@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
+                  id="Definitions_CamundaImplementations">
+  <bpmn:process id="Process_CamundaImplementations" name="Camunda implementations">
+    <bpmn:startEvent id="StartEvent_1">
+      <bpmn:outgoing>Flow_Start_To_Delegate</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:sequenceFlow id="Flow_Start_To_Delegate" sourceRef="StartEvent_1" targetRef="Service_Delegate" />
+    <bpmn:serviceTask id="Service_Delegate" name="Check client" camunda:delegateExpression="${checkClientDelegate}" camunda:asyncBefore="true">
+      <bpmn:incoming>Flow_Start_To_Delegate</bpmn:incoming>
+      <bpmn:outgoing>Flow_Delegate_To_External</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_Delegate_To_External" sourceRef="Service_Delegate" targetRef="Service_External" />
+    <bpmn:serviceTask id="Service_External" name="Score client" camunda:type="external" camunda:topic="score-client">
+      <bpmn:incoming>Flow_Delegate_To_External</bpmn:incoming>
+      <bpmn:outgoing>Flow_External_To_User</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_External_To_User" sourceRef="Service_External" targetRef="User_Approve" />
+    <bpmn:userTask id="User_Approve" name="Approve" camunda:formKey="approve-form">
+      <bpmn:incoming>Flow_External_To_User</bpmn:incoming>
+      <bpmn:outgoing>Flow_User_To_Call</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="Flow_User_To_Call" sourceRef="User_Approve" targetRef="Call_SubProcess" />
+    <bpmn:callActivity id="Call_SubProcess" name="Run risk check" calledElement="risk-check">
+      <bpmn:incoming>Flow_User_To_Call</bpmn:incoming>
+      <bpmn:outgoing>Flow_Call_To_End</bpmn:outgoing>
+    </bpmn:callActivity>
+    <bpmn:sequenceFlow id="Flow_Call_To_End" sourceRef="Call_SubProcess" targetRef="EndEvent_1" />
+    <bpmn:endEvent id="EndEvent_1">
+      <bpmn:incoming>Flow_Call_To_End</bpmn:incoming>
+    </bpmn:endEvent>
+  </bpmn:process>
+</bpmn:definitions>

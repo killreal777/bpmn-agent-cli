@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  id="Definitions_SubProcess">
+  <bpmn:process id="Process_SubProcess" name="Subprocess demo">
+    <bpmn:subProcess id="SubProcess_1" name="Handle request">
+      <bpmn:startEvent id="SubStart_1">
+        <bpmn:outgoing>Flow_SubStart_To_Task</bpmn:outgoing>
+      </bpmn:startEvent>
+      <bpmn:sequenceFlow id="Flow_SubStart_To_Task" sourceRef="SubStart_1" targetRef="SubTask_1" />
+      <bpmn:task id="SubTask_1" name="Inside subprocess">
+        <bpmn:incoming>Flow_SubStart_To_Task</bpmn:incoming>
+      </bpmn:task>
+    </bpmn:subProcess>
+  </bpmn:process>
+</bpmn:definitions>
