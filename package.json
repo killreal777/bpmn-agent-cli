@@ -1,0 +1,27 @@
+{
+  "name": "bpmn-agent-cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "bpmn-agent-cli": "./dist/cli/main.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "build:extension": "npm run build && node scripts/build-extension.mjs",
+    "start": "tsx src/cli/main.ts"
+  },
+  "dependencies": {
+    "bpmn-moddle": "^9.0.4",
+    "camunda-bpmn-moddle": "^7.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.29",
+    "esbuild": "^0.25.0",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.4"
+  }
+}
