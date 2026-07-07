@@ -1,0 +1,11 @@
+{
+  "name": "bpmn-agent-cli",
+  "displayName": "BPMN Agent CLI",
+  "description": "Agent-friendly CLI and skill for reading BPMN files.",
+  "version": "0.1.0",
+  "author": {
+    "name": "killreal777"
+  },
+  "skills": "./skills/",
+  "commands": "./commands/"
+}

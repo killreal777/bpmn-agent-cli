@@ -1,0 +1,13 @@
+{
+  "name": "bpmn-agent-tools",
+  "owner": {
+    "name": "killreal777"
+  },
+  "plugins": [
+    {
+      "name": "bpmn-agent-cli",
+      "description": "Agent-friendly CLI and skill for reading BPMN files.",
+      "source": "./"
+    }
+  ]
+}
