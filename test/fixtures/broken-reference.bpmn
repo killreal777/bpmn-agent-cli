@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  id="Definitions_BrokenReference">
+  <bpmn:process id="Process_BrokenReference" name="Broken reference">
+    <bpmn:startEvent id="StartEvent_1">
+      <bpmn:outgoing>Flow_To_Missing</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:sequenceFlow id="Flow_To_Missing" sourceRef="StartEvent_1" targetRef="Activity_Missing" />
+  </bpmn:process>
+</bpmn:definitions>

@@ -11,4 +11,15 @@ describe('validateModel', () => {
 
     expect(result).toMatchObject({ valid: true, errors: [], infos: [] });
   });
+
+  it('reports broken sequence-flow references as errors', async () => {
+    const model = await loadBpmn(fixturePath('broken-reference.bpmn'));
+    const result = validateModel(model, buildIndexes(model));
+
+    expect(result.valid).toBe(false);
+    expect(result.errors).toContainEqual(expect.objectContaining({
+      code: 'BROKEN_SEQUENCE_FLOW_TARGET',
+      elementId: 'Flow_To_Missing'
+    }));
+  });
 });

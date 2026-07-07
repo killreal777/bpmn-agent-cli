@@ -78,4 +78,21 @@ describe('CLI overview and validate', () => {
       result: { focus: { id: 'Task_1' } }
     });
   });
+
+  it('prints implementations envelope as JSON', async () => {
+    const { stdout } = await execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'implementations', 'test/fixtures/camunda-implementations.bpmn']);
+
+    expect(JSON.parse(stdout)).toMatchObject({
+      ok: true,
+      command: 'implementations',
+      result: { serviceTasks: expect.any(Array) }
+    });
+  });
+
+  it('exits 1 for validation errors', async () => {
+    await expect(execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'validate', 'test/fixtures/broken-reference.bpmn'])).rejects.toMatchObject({
+      code: 1,
+      stdout: expect.stringContaining('"valid":false')
+    });
+  });
 });
