@@ -60,27 +60,39 @@ The main binary is:
 bpmn-agent-cli
 ```
 
-The command shape is:
+The command shape is command-first:
 
 ```bash
-bpmn-agent-cli <file> <command> [options]
+bpmn-agent-cli <command> [file] [options]
 ```
 
-Read-only commands support:
+Examples:
 
 ```bash
---format json|text|markdown
+bpmn-agent-cli overview process.bpmn
+bpmn-agent-cli find process.bpmn --query "loan"
+bpmn-agent-cli element process.bpmn --id Activity_CheckClient
+bpmn-agent-cli trace process.bpmn --from Activity_CheckClient --direction forward
+bpmn-agent-cli to-json process.bpmn --preset optimized
+bpmn-agent-cli to-json --print-config optimized
+```
+
+The command-first shape is required because some commands do not need a BPMN input file, such as `to-json --print-config`, and future utility commands such as `version`, `doctor`, `schema`, or shell completion.
+
+Read-only P0 commands support:
+
+```bash
 --pretty
 --compact
 --limit <n>
 ```
 
-JSON is the default output format. In P0, `--compact` keeps the output envelope to preserve one stable machine-readable contract.
+P0 supports JSON output only. `--pretty` formats the JSON for human reading. `--compact` keeps the output envelope in P0 to preserve one stable machine-readable contract. Markdown and text output are P1 unless a later implementation plan explicitly moves them into scope.
 
 The legacy command is:
 
 ```bash
-bpmn-agent-cli <file> to-json [-o <output>] [--preset base|optimized] [--print-config <preset>]
+bpmn-agent-cli to-json [file] [-o <output>] [--preset base|optimized] [--print-config <preset>]
 ```
 
 If `to-json` receives `-o`, it writes the converted JSON to that path. If `-o` is omitted, it writes JSON to stdout. `--print-config` returns the selected converter preset without requiring an input file.
@@ -125,23 +137,222 @@ Exit codes:
 
 In JSON mode, stdout must contain only parseable JSON. Debug and diagnostic logs must go to stderr.
 
+## Result Schemas
+
+P0 command results must use these stable schemas. Optional fields may be omitted only when they are not applicable to the element or command.
+
+```ts
+export type ElementSummary = {
+  id: string;
+  type: string;
+  name: string | null;
+  processId?: string | null;
+};
+
+export type Diagnostic = {
+  severity: 'error' | 'warning' | 'info';
+  code: string;
+  message: string;
+  elementId?: string;
+  details?: Record<string, unknown>;
+};
+
+export type SequenceFlowSummary = {
+  id: string;
+  type: 'bpmn:SequenceFlow';
+  name: string | null;
+  sourceId: string;
+  sourceName: string | null;
+  targetId: string;
+  targetName: string | null;
+  condition: string | null;
+};
+
+export type PathSummary = {
+  nodes: ElementSummary[];
+  flows: Array<{
+    id: string;
+    name: string | null;
+    condition: string | null;
+  }>;
+  depth: number;
+  cycleDetected?: boolean;
+};
+```
+
+Command-specific result contracts:
+
+```ts
+export type OverviewResult = {
+  definitions: { id: string | null };
+  processes: Array<{
+    id: string;
+    name: string | null;
+    flowNodes: number;
+    sequenceFlows: number;
+  }>;
+  collaborations: Array<{
+    id: string;
+    name: string | null;
+    participants: number;
+    messageFlows: number;
+  }>;
+  counts: {
+    tasks: Record<string, number>;
+    gateways: Record<string, number>;
+    events: Record<string, number>;
+    sequenceFlows: number;
+    messageFlows: number;
+  };
+  extensions: string[];
+  diagnosticsSummary: { errors: number; warnings: number; infos: number };
+  warnings: Diagnostic[];
+};
+
+export type FindResult = {
+  query: string | null;
+  matches: Array<ElementSummary & {
+    incoming: number;
+    outgoing: number;
+    score: number;
+  }>;
+  truncated: boolean;
+};
+
+export type ElementResult = {
+  element: ElementSummary & {
+    documentation?: string | null;
+    incoming?: SequenceFlowSummary[];
+    outgoing?: SequenceFlowSummary[];
+    source?: ElementSummary | null;
+    target?: ElementSummary | null;
+    condition?: string | null;
+    implementation?: ImplementationSummary | null;
+    boundaryEvents?: EventSummary[];
+    laneIds?: string[];
+    participantId?: string | null;
+  };
+};
+
+export type ContextResult = {
+  focus: ElementSummary;
+  before: PathSummary[];
+  after: PathSummary[];
+  boundaryEvents: Array<EventSummary & { targetPath?: string[] }>;
+  truncated: boolean;
+};
+
+export type TraceResult = {
+  from: ElementSummary;
+  direction: 'forward' | 'backward';
+  depth: number;
+  paths: PathSummary[];
+  truncated: boolean;
+};
+
+export type GatewayResult = {
+  id: string;
+  type: string;
+  name: string | null;
+  incoming: SequenceFlowSummary[];
+  branches: Array<{
+    flowId: string;
+    name: string | null;
+    condition: string | null;
+    target: ElementSummary;
+  }>;
+  behavior: 'exclusive' | 'inclusive' | 'parallel' | 'eventBased';
+  diagnostics: Diagnostic[];
+};
+
+export type ImplementationsResult = {
+  serviceTasks: ImplementationSummary[];
+  callActivities: ImplementationSummary[];
+  listeners: ImplementationSummary[];
+  forms: ImplementationSummary[];
+};
+
+export type ValidateResult = {
+  valid: boolean;
+  errors: Diagnostic[];
+  warnings: Diagnostic[];
+  infos: Diagnostic[];
+};
+```
+
+Shared implementation and event schemas:
+
+```ts
+export type ImplementationKind =
+  | 'delegateExpression'
+  | 'class'
+  | 'expression'
+  | 'externalTask'
+  | 'callActivity'
+  | 'listener'
+  | 'form';
+
+export type ImplementationSummary = {
+  elementId: string;
+  elementName: string | null;
+  elementType: string;
+  kind: ImplementationKind;
+  value?: string;
+  topic?: string;
+  asyncBefore?: boolean;
+  asyncAfter?: boolean;
+  exclusive?: boolean;
+  details?: Record<string, unknown>;
+};
+
+export type EventSummary = ElementSummary & {
+  eventDefinitionType?: string | null;
+};
+
+export type MessageFlowSummary = {
+  id: string;
+  type: 'bpmn:MessageFlow';
+  name: string | null;
+  sourceId: string | null;
+  sourceName: string | null;
+  targetId: string | null;
+  targetName: string | null;
+};
+
+export type ParticipantSummary = {
+  id: string;
+  name: string | null;
+  processId: string | null;
+};
+
+export type LaneSummary = {
+  id: string;
+  name: string | null;
+  flowNodeIds: string[];
+};
+```
+
 ## Index Model
 
-`buildIndexes` creates deterministic maps for:
+`buildIndexes` creates deterministic maps with these shapes:
 
-- `byId`
-- `byNormalizedName`
-- `byType`
-- `byProcessId`
-- `incomingByNodeId`
-- `outgoingByNodeId`
-- `sequenceFlowById`
-- `messageFlowById`
-- `boundaryEventsByAttachedToId`
-- `childrenBySubprocessId`
-- `participantByProcessId`
-- `lanesByElementId`
-- `implementationsByElementId`
+```ts
+export interface BpmnIndexes {
+  byId: Map<string, ElementSummary>;
+  byNormalizedName: Map<string, ElementSummary[]>;
+  byType: Map<string, ElementSummary[]>;
+  byProcessId: Map<string, ElementSummary[]>;
+  incomingByNodeId: Map<string, SequenceFlowSummary[]>;
+  outgoingByNodeId: Map<string, SequenceFlowSummary[]>;
+  sequenceFlowById: Map<string, SequenceFlowSummary>;
+  messageFlowById: Map<string, MessageFlowSummary>;
+  boundaryEventsByAttachedToId: Map<string, EventSummary[]>;
+  childrenBySubprocessId: Map<string, ElementSummary[]>;
+  participantByProcessId: Map<string, ParticipantSummary>;
+  lanesByElementId: Map<string, LaneSummary[]>;
+  implementationsByElementId: Map<string, ImplementationSummary[]>;
+}
+```
 
 Element summaries include `id`, `type`, `name`, and optional `processId`. Specialized summaries cover sequence flows, message flows, event definitions, lanes, participants, and Camunda implementation hooks.
 
@@ -173,11 +384,17 @@ Returns structural details for tasks, gateways, events, subprocesses, call activ
 
 ### `context`
 
-Returns bounded before/after paths around a focus element. Defaults are `--before 2`, `--after 2`, `--include-boundary-events true`, and `--include-extensions true`. Traversal must guard against cycles and report `truncated: true` when path count or depth limits cut off results.
+Returns bounded before/after paths around a focus element. Defaults are `--before 2`, `--after 2`, `--max-paths 20`, `--include-boundary-events true`, and `--include-extensions true`.
+
+Cycle behavior:
+
+- A path may include the repeated node once to show the cycle.
+- Traversal must not continue after repeating a node already present in the current path.
+- The result must include `truncated: true` if additional branches were skipped because of depth, path count, or cycle guards.
 
 ### `trace`
 
-Returns forward or backward control-flow paths from a starting element. It respects `--depth` and `--max-paths`, preserves sequence-flow conditions, and prevents infinite loops in cyclic diagrams.
+Returns forward or backward control-flow paths from a starting element. Defaults are `--direction forward`, `--depth 5`, and `--max-paths 20`. It preserves sequence-flow conditions and uses the same cycle behavior as `context`.
 
 ### `gateway`
 
@@ -185,11 +402,33 @@ Explains gateway incoming flows and outgoing branches. Exclusive and inclusive g
 
 ### `implementations`
 
-Lists Camunda and BPMN runtime connection points, including delegate expressions, Java classes, expressions, external task topics, form keys, call activities, execution listeners, task listeners, and call activity in/out mappings where available.
+Lists the P0 Camunda and BPMN runtime connection points:
+
+- `camunda:class`
+- `camunda:delegateExpression`
+- `camunda:expression`
+- `camunda:type="external"` with `camunda:topic`
+- `camunda:formKey`
+- `calledElement` for `bpmn:CallActivity`
+- execution listeners with delegate, class, or expression values when they are directly available through moddle extension elements
+- task listeners with delegate, class, or expression values when they are directly available through moddle extension elements
+
+Call activity in/out mappings are P1 unless the legacy converter projection already exposes them without adding parsing complexity.
 
 ### `validate`
 
-Runs syntax, reference, and semantic checks available in P0:
+Runs syntax, reference, and semantic checks available in P0.
+
+Validation pipeline:
+
+1. Try `loadBpmn`.
+2. If XML/BPMN parsing fails, return a `BPMN_PARSE_ERROR` envelope and exit `4`.
+3. If parsing succeeds, build indexes.
+4. Run reference and semantic diagnostics.
+5. If diagnostics contain errors, return `ValidateResult` and exit `1`.
+6. If diagnostics contain only warnings or infos, return `ValidateResult` and exit `0`.
+
+P0 diagnostics:
 
 - moddle parse succeeds
 - ids are unique in indexed scope
@@ -209,8 +448,9 @@ The CLI must remain local, deterministic, and safe:
 
 - no LLM calls
 - no network calls during BPMN analysis
-- no reading outside explicitly provided BPMN paths except bundled package metadata
+- during BPMN analysis, no file reads except the explicitly provided BPMN input file, package-owned bundled metadata/descriptors, and files explicitly passed through CLI options
 - no modifying input BPMN files in P0
+- writing is allowed only to paths explicitly passed through output options, such as `to-json -o`
 - no progress bars or colored output in JSON mode
 - no stdout logs outside the selected output payload
 - stable JSON ordering for the same input and arguments
@@ -251,15 +491,22 @@ Completion verification commands:
 npm test
 npm run typecheck
 npm run build
+npm run build:extension
+```
+
+Run Claude plugin validation when `claude` is available:
+
+```bash
+claude plugin validate .
 ```
 
 Smoke commands after build:
 
 ```bash
-node dist/cli/main.js docs/bpmn-examples/loan-application-process.bpmn overview --pretty
-node dist/cli/main.js docs/bpmn-examples/loan-application-process.bpmn find --query "loan" --pretty
-node dist/cli/main.js docs/bpmn-examples/loan-application-process.bpmn validate --pretty
-node dist/cli/main.js docs/bpmn-examples/loan-application-process.bpmn to-json --preset optimized > tmp/loan.optimized.json
+node dist/cli/main.js overview docs/bpmn-examples/loan-application-process.bpmn --pretty
+node dist/cli/main.js find docs/bpmn-examples/loan-application-process.bpmn --query "loan" --pretty
+node dist/cli/main.js validate docs/bpmn-examples/loan-application-process.bpmn --pretty
+node dist/cli/main.js to-json docs/bpmn-examples/loan-application-process.bpmn --preset optimized > tmp/loan.optimized.json
 ```
 
 ## Packaging And Agent Metadata
@@ -275,7 +522,51 @@ P0 includes:
 - `skills/bpmn-agent/SKILL.md`.
 - `commands/bpmn.md` for command discoverability.
 
-The extension/package should include a `build:extension` script that prepares compiled CLI artifacts. Generated `dist` should not be committed unless implementation testing shows the extension installers require committed compiled files.
+P0 uses a bundled CLI strategy for GitHub-based Qwen/Claude installation. The repository must contain a committed self-contained runtime bundle:
+
+```text
+dist/extension/bpmn-agent-cli.cjs
+```
+
+`build:extension` must regenerate this bundle from source. The bundled CLI must run from an installed extension/plugin directory without running `npm install` inside the extension/plugin cache.
+
+The Qwen extension manifest must include this shape:
+
+```json
+{
+  "name": "bpmn-agent-cli",
+  "version": "0.1.0",
+  "contextFileName": "QWEN.md",
+  "commands": "commands",
+  "skills": "skills"
+}
+```
+
+Qwen command files must invoke the bundled CLI through `${extensionPath}` and `${/}` path separators so the installed extension can run on Linux, macOS, and Windows.
+
+Claude plugin metadata remains root-based in P0:
+
+```text
+.claude-plugin/
+├── marketplace.json
+└── plugin.json
+```
+
+The Claude plugin must not rely on files outside the copied plugin directory. The plugin must validate with:
+
+```bash
+claude plugin validate .
+```
+
+If root plugin source compatibility becomes a blocker during verification, the implementation must move to a nested plugin package before completion rather than documenting a broken install flow.
+
+## P0 Execution Phases
+
+The implementation plan must split P0 into three phases so the work remains reviewable:
+
+- P0-A foundation: package setup, `loadBpmn`, `buildIndexes`, output envelope, error envelope, `overview`, basic `validate`, and tests.
+- P0-B core read commands: `find`, `element`, `context`, `trace`, `gateway`, minimal `implementations`, CLI tests, and fixtures.
+- P0-C distribution: legacy `to-json`, README, `AGENTS.md`, `docs/CLI.md`, `docs/OUTPUT_CONTRACTS.md`, `docs/ROADMAP.md`, Qwen extension files, Claude plugin manifests, skill, command file, bundled extension runtime, and install smoke checks.
 
 ## Documentation
 
@@ -293,7 +584,7 @@ P0 documentation includes:
 - BPMN moddle objects are cyclic and inconsistent across element kinds. Mitigation: normalize into summaries before query logic uses the model.
 - Camunda extension coverage can expand quickly. Mitigation: support the required P0 attributes and return unknown extensions only when explicitly requested later.
 - CLI argument parsing can become tangled. Mitigation: keep parser small and command-specific, with tests for invalid arguments and exit codes.
-- Extension installers may require compiled artifacts. Mitigation: provide `build:extension` first; commit generated artifacts only if verification proves they are required.
+- Extension installers require runtime artifacts when installing directly from GitHub. Mitigation: commit the self-contained `dist/extension/bpmn-agent-cli.cjs` bundle and verify it runs without local `node_modules`.
 
 ## Acceptance Criteria
 
@@ -306,8 +597,11 @@ The MVP is complete when:
 - Core query functions are covered by tests.
 - CLI smoke tests cover each P0 command.
 - Legacy converter tests remain green.
-- `npm test`, `npm run typecheck`, and `npm run build` pass.
-- Qwen extension manifest exists.
-- Claude plugin manifests exist.
+- `npm test`, `npm run typecheck`, `npm run build`, and `npm run build:extension` pass.
+- `dist/extension/bpmn-agent-cli.cjs` is committed and can run without local `node_modules`.
+- `qwen-extension.json` exists and documents GitHub installation.
+- After Qwen installation, the BPMN skill is visible and the command file can invoke the bundled CLI through `${extensionPath}`. If Qwen Code is unavailable locally, the skipped manual check is documented with the missing command.
+- Claude plugin manifests exist and pass `claude plugin validate .` when Claude Code is available. If Claude Code is unavailable locally, the skipped manual check is documented with the missing command.
+- Installed Claude plugin can invoke the bundled CLI without relying on files outside the plugin directory.
 - `skills/bpmn-agent/SKILL.md` exists.
 - README documents Qwen and Claude install flows.
