@@ -58,4 +58,24 @@ describe('CLI overview and validate', () => {
       result: { id: 'Gateway_1', behavior: 'exclusive' }
     });
   });
+
+  it('prints trace envelope as JSON', async () => {
+    const { stdout } = await execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'trace', 'test/fixtures/simple-linear.bpmn', '--from', 'StartEvent_1']);
+
+    expect(JSON.parse(stdout)).toMatchObject({
+      ok: true,
+      command: 'trace',
+      result: { from: { id: 'StartEvent_1' } }
+    });
+  });
+
+  it('prints context envelope as JSON', async () => {
+    const { stdout } = await execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'context', 'test/fixtures/simple-linear.bpmn', '--id', 'Task_1']);
+
+    expect(JSON.parse(stdout)).toMatchObject({
+      ok: true,
+      command: 'context',
+      result: { focus: { id: 'Task_1' } }
+    });
+  });
 });

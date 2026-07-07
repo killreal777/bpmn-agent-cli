@@ -3,10 +3,12 @@
 import { BpmnCliError } from '../bpmn/errors.js';
 import { errorEnvelope, toExitCode, writeJson } from '../output/jsonOutput.js';
 import { parseArgs } from './args.js';
+import { contextCommand } from './commands/contextCommand.js';
 import { elementCommand } from './commands/elementCommand.js';
 import { findCommand } from './commands/findCommand.js';
 import { gatewayCommand } from './commands/gatewayCommand.js';
 import { overviewCommand } from './commands/overviewCommand.js';
+import { traceCommand } from './commands/traceCommand.js';
 import { validateCommand } from './commands/validateCommand.js';
 
 export async function main(args: string[] = process.argv.slice(2)): Promise<void> {
@@ -41,6 +43,16 @@ export async function main(args: string[] = process.argv.slice(2)): Promise<void
 
     if (parsed.command === 'gateway') {
       writeJson(await gatewayCommand(parsed), pretty);
+      return;
+    }
+
+    if (parsed.command === 'trace') {
+      writeJson(await traceCommand(parsed), pretty);
+      return;
+    }
+
+    if (parsed.command === 'context') {
+      writeJson(await contextCommand(parsed), pretty);
       return;
     }
 
