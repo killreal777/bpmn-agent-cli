@@ -83,11 +83,10 @@ Read-only P0 commands support:
 
 ```bash
 --pretty
---compact
 --limit <n>
 ```
 
-P0 supports JSON output only. `--pretty` formats the JSON for human reading. `--compact` keeps the output envelope in P0 to preserve one stable machine-readable contract. Markdown and text output are P1 unless a later implementation plan explicitly moves them into scope.
+P0 supports JSON output only. `--pretty` formats the JSON for human reading. `--compact`, Markdown output, and text output are P1 unless a later implementation plan explicitly moves them into scope.
 
 The legacy command is:
 
@@ -137,6 +136,23 @@ Exit codes:
 
 In JSON mode, stdout must contain only parseable JSON. Debug and diagnostic logs must go to stderr.
 
+All P0 query commands use the common success and error envelopes.
+
+The legacy `to-json` command is the only successful-output exception:
+
+- successful `to-json` output preserves the existing converter JSON shape without wrapping it in the common success envelope
+- `to-json --print-config` returns raw converter config JSON without wrapping it in the common success envelope
+- `to-json` errors still use the common error envelope
+
+Additional P0 error codes:
+
+- `MISSING_FILE_ARGUMENT`
+- `INVALID_COMMAND`
+- `INVALID_OPTION_VALUE`
+- `UNSUPPORTED_BPMN_ELEMENT_TYPE`
+
+Element suggestions in error envelopes are limited to five entries, sorted by suggestion score descending, then `id` ascending.
+
 ## Result Schemas
 
 P0 command results must use these stable schemas. Optional fields may be omitted only when they are not applicable to the element or command.
@@ -179,6 +195,10 @@ export type PathSummary = {
   cycleDetected?: boolean;
 };
 ```
+
+`ElementSummary.type` always uses the canonical moddle type, for example `bpmn:ServiceTask`, not a CLI alias such as `serviceTask`. Type aliases are accepted only in input filters.
+
+`PathSummary.depth` is the number of sequence-flow edges in the path. For non-empty control-flow paths, `flows.length === Math.max(0, nodes.length - 1)`.
 
 Command-specific result contracts:
 
@@ -227,7 +247,7 @@ export type ElementResult = {
     source?: ElementSummary | null;
     target?: ElementSummary | null;
     condition?: string | null;
-    implementation?: ImplementationSummary | null;
+    implementations?: ImplementationSummary[];
     boundaryEvents?: EventSummary[];
     laneIds?: string[];
     participantId?: string | null;
@@ -238,7 +258,7 @@ export type ContextResult = {
   focus: ElementSummary;
   before: PathSummary[];
   after: PathSummary[];
-  boundaryEvents: Array<EventSummary & { targetPath?: string[] }>;
+  boundaryEvents: Array<EventSummary & { targetPath?: PathSummary | null }>;
   truncated: boolean;
 };
 
@@ -376,6 +396,16 @@ Match priority:
 4. substring id
 5. type filter
 
+Scores are deterministic:
+
+- `1.0`: exact id
+- `0.95`: exact normalized name
+- `0.8`: substring normalized name
+- `0.7`: substring id
+- `0.5`: type-only match
+
+If multiple rules match, the result uses the maximum score. Results sort by `score` descending, then `id` ascending, then `type` ascending, then `name` ascending with `null` treated as an empty string.
+
 Unknown type aliases return `INVALID_TYPE_FILTER`. No matches return an empty `matches` array, not an error.
 
 ### `element`
@@ -385,6 +415,8 @@ Returns structural details for tasks, gateways, events, subprocesses, call activ
 ### `context`
 
 Returns bounded before/after paths around a focus element. Defaults are `--before 2`, `--after 2`, `--max-paths 20`, `--include-boundary-events true`, and `--include-extensions true`.
+
+All context paths include the focus element. `before` paths end with the focus element. `after` paths start with the focus element.
 
 Cycle behavior:
 
@@ -431,7 +463,7 @@ Validation pipeline:
 P0 diagnostics:
 
 - moddle parse succeeds
-- ids are unique in indexed scope
+- duplicate ids are reported on a best-effort basis from moddle warnings or indexed elements visible after parsing
 - sequence-flow source and target references exist
 - boundary event `attachedToRef` exists
 - flow node incoming/outgoing references point to existing sequence flows
@@ -441,6 +473,8 @@ P0 diagnostics:
 - start events without incoming and end events without outgoing are valid
 
 If errors exist, the command exits with code `1`. If only warnings exist, it exits with code `0`. Parse errors exit with code `4`.
+
+Full XML-level duplicate id detection is P1 unless it is directly available through the BPMN loader. P0 must not add a custom BPMN/XML parser to implement this diagnostic.
 
 ## Runtime Constraints
 
@@ -530,6 +564,8 @@ dist/extension/bpmn-agent-cli.cjs
 
 `build:extension` must regenerate this bundle from source. The bundled CLI must run from an installed extension/plugin directory without running `npm install` inside the extension/plugin cache.
 
+The extension bundle must include all runtime dependencies and BPMN/Camunda moddle descriptors required for parsing. It must not require `node_modules` at runtime. Bundle smoke tests must run from a temporary directory that contains only `dist/extension/bpmn-agent-cli.cjs` and copied BPMN test fixtures.
+
 The Qwen extension manifest must include this shape:
 
 ```json
@@ -559,6 +595,19 @@ claude plugin validate .
 ```
 
 If root plugin source compatibility becomes a blocker during verification, the implementation must move to a nested plugin package before completion rather than documenting a broken install flow.
+
+Concrete fallback layout:
+
+```text
+plugins/bpmn-agent-cli/
+├── .claude-plugin/
+│   └── plugin.json
+├── skills/
+├── commands/
+└── dist/
+```
+
+If the fallback is used, `.claude-plugin/marketplace.json` must point the plugin `source` to `plugins/bpmn-agent-cli`.
 
 ## P0 Execution Phases
 
@@ -599,6 +648,7 @@ The MVP is complete when:
 - Legacy converter tests remain green.
 - `npm test`, `npm run typecheck`, `npm run build`, and `npm run build:extension` pass.
 - `dist/extension/bpmn-agent-cli.cjs` is committed and can run without local `node_modules`.
+- Bundle smoke tests copy only `dist/extension/bpmn-agent-cli.cjs` and BPMN fixtures to a temporary directory and successfully run `overview`, `find`, `validate`, and `to-json`.
 - `qwen-extension.json` exists and documents GitHub installation.
 - After Qwen installation, the BPMN skill is visible and the command file can invoke the bundled CLI through `${extensionPath}`. If Qwen Code is unavailable locally, the skipped manual check is documented with the missing command.
 - Claude plugin manifests exist and pass `claude plugin validate .` when Claude Code is available. If Claude Code is unavailable locally, the skipped manual check is documented with the missing command.
