@@ -1,0 +1,97 @@
+# bpmn-agent-cli
+
+Agent-friendly local CLI for reading and validating BPMN 2.0 files without forcing agents to inspect full BPMN XML.
+
+The tool is deterministic and local:
+
+- no runtime LLM calls
+- no runtime network calls during BPMN analysis
+- JSON output by default
+- machine-readable errors
+- legacy raw `to-json` converter preserved from `bpmn-to-json`
+
+## Development
+
+```bash
+npm install
+npm test
+npm run typecheck
+npm run build
+npm run build:extension
+```
+
+Run from source:
+
+```bash
+npm run start -- overview process.bpmn --pretty
+```
+
+Run the built CLI:
+
+```bash
+node dist/cli/main.js overview process.bpmn --pretty
+```
+
+## CLI Examples
+
+```bash
+bpmn-agent-cli overview process.bpmn
+bpmn-agent-cli find process.bpmn --query "loan"
+bpmn-agent-cli element process.bpmn --id Activity_CheckClient
+bpmn-agent-cli context process.bpmn --id Activity_CheckClient
+bpmn-agent-cli trace process.bpmn --from Activity_CheckClient
+bpmn-agent-cli gateway process.bpmn --id Gateway_CheckResult
+bpmn-agent-cli implementations process.bpmn
+bpmn-agent-cli validate process.bpmn
+bpmn-agent-cli to-json process.bpmn --preset optimized
+```
+
+All query commands return a JSON envelope. The legacy `to-json` command returns raw converter JSON for compatibility.
+
+## Qwen Code Install
+
+Target install command:
+
+```text
+/extensions install https://github.com/killreal777/bpmn-agent-cli
+```
+
+CLI equivalent:
+
+```bash
+qwen extensions install https://github.com/killreal777/bpmn-agent-cli
+```
+
+The extension uses `qwen-extension.json`, `QWEN.md`, `commands/`, `skills/`, and the committed bundle at `dist/extension/bpmn-agent-cli.cjs`.
+
+## Claude Code Install
+
+Marketplace flow:
+
+```text
+/plugin marketplace add killreal777/bpmn-agent-cli
+/plugin install bpmn-agent-cli@bpmn-agent-tools
+```
+
+CLI equivalent:
+
+```bash
+claude plugin marketplace add killreal777/bpmn-agent-cli
+claude plugin install bpmn-agent-cli@bpmn-agent-tools
+```
+
+Validate when Claude Code is available:
+
+```bash
+claude plugin validate .
+```
+
+## MVP Status
+
+P0 includes read-only commands: `overview`, `find`, `element`, `context`, `trace`, `gateway`, `implementations`, `validate`, plus legacy `to-json`.
+
+P1/P2/P3 scope is documented in `docs/ROADMAP.md`.
+
+## Relationship To bpmn-to-json
+
+`bpmn-to-json` provided the original BPMN XML to compact JSON converter. This project keeps that behavior as `bpmn-agent-cli to-json` and adds higher-level agent-oriented queries over a parsed BPMN model and deterministic indexes.

@@ -1,0 +1,84 @@
+# CLI Reference
+
+Command shape:
+
+```bash
+bpmn-agent-cli <command> [file] [options]
+```
+
+## overview
+
+```bash
+bpmn-agent-cli overview process.bpmn
+```
+
+Returns definitions, processes, collaborations, counts, extensions, diagnostics summary and warnings.
+
+## find
+
+```bash
+bpmn-agent-cli find process.bpmn --query "loan"
+bpmn-agent-cli find process.bpmn --id Task_1
+bpmn-agent-cli find process.bpmn --type serviceTask
+```
+
+Scores are deterministic: exact id `1.0`, exact normalized name `0.95`, substring name `0.8`, substring id `0.7`, type-only `0.5`.
+
+## element
+
+```bash
+bpmn-agent-cli element process.bpmn --id Task_1
+```
+
+Returns structural details for a task, gateway, event, subprocess, call activity, or sequence flow.
+
+## context
+
+```bash
+bpmn-agent-cli context process.bpmn --id Task_1 --before 2 --after 2
+```
+
+Returns local before/after paths. Before paths end with the focus element; after paths start with it.
+
+## trace
+
+```bash
+bpmn-agent-cli trace process.bpmn --from Task_1
+bpmn-agent-cli trace process.bpmn --from Task_1 --direction backward --depth 5 --max-paths 20
+```
+
+Returns cycle-safe control-flow paths.
+
+## gateway
+
+```bash
+bpmn-agent-cli gateway process.bpmn --id Gateway_1
+```
+
+Returns incoming flows and outgoing branches with conditions.
+
+## implementations
+
+```bash
+bpmn-agent-cli implementations process.bpmn
+```
+
+Lists Camunda delegates, classes, expressions, external task topics, form keys and call activities.
+
+## validate
+
+```bash
+bpmn-agent-cli validate process.bpmn
+```
+
+Returns `valid`, `errors`, `warnings`, and `infos`. Validation errors exit with code `1`; parse errors exit with code `4`.
+
+## to-json
+
+```bash
+bpmn-agent-cli to-json process.bpmn --preset optimized
+bpmn-agent-cli to-json process.bpmn -o tmp/process.json
+bpmn-agent-cli to-json --print-config optimized
+```
+
+Legacy command. Successful output is raw converter JSON, not the common success envelope.
