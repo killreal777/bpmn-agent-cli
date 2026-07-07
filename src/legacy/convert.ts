@@ -1,14 +1,11 @@
-import { createRequire } from 'node:module';
 import BpmnModdle from 'bpmn-moddle';
+import camundaModdle from 'camunda-bpmn-moddle/resources/camunda.json' with { type: 'json' };
 import {
   type CompressionConfig,
   type CompressionPresetName,
   resolveCompressionConfig
 } from './config.js';
 import { applyOptimizations } from './optimizations/pipeline.js';
-
-const require = createRequire(import.meta.url);
-const camundaModdle = require('camunda-bpmn-moddle/resources/camunda.json') as Record<string, unknown>;
 
 type ModdleElement = {
   $type?: string;
@@ -73,7 +70,7 @@ const EXECUTION_KEY_MAP = new Map<string, string>([
 
 export async function convertBpmnToJson(xml: string, options: ConvertOptions = {}): Promise<ConversionResult> {
   const config = resolveCompressionConfig(options.config ?? (options.preset ? { extends: options.preset } : undefined));
-  const moddle = new BpmnModdle({ camunda: camundaModdle });
+  const moddle = new BpmnModdle({ camunda: camundaModdle as Record<string, unknown> });
   const { rootElement, warnings } = await moddle.fromXML(xml);
   const definitions = rootElement as ModdleElement;
   const rootElements = arrayOf<ModdleElement>(definitions.rootElements);
