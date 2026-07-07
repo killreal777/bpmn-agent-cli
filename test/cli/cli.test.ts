@@ -38,4 +38,24 @@ describe('CLI overview and validate', () => {
       result: { matches: [expect.objectContaining({ id: 'Task_1', score: 0.8 })] }
     });
   });
+
+  it('prints element envelope as JSON', async () => {
+    const { stdout } = await execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'element', 'test/fixtures/simple-linear.bpmn', '--id', 'Task_1']);
+
+    expect(JSON.parse(stdout)).toMatchObject({
+      ok: true,
+      command: 'element',
+      result: { element: { id: 'Task_1' } }
+    });
+  });
+
+  it('prints gateway envelope as JSON', async () => {
+    const { stdout } = await execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'gateway', 'test/fixtures/gateway-condition.bpmn', '--id', 'Gateway_1']);
+
+    expect(JSON.parse(stdout)).toMatchObject({
+      ok: true,
+      command: 'gateway',
+      result: { id: 'Gateway_1', behavior: 'exclusive' }
+    });
+  });
 });

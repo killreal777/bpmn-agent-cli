@@ -3,7 +3,9 @@
 import { BpmnCliError } from '../bpmn/errors.js';
 import { errorEnvelope, toExitCode, writeJson } from '../output/jsonOutput.js';
 import { parseArgs } from './args.js';
+import { elementCommand } from './commands/elementCommand.js';
 import { findCommand } from './commands/findCommand.js';
+import { gatewayCommand } from './commands/gatewayCommand.js';
 import { overviewCommand } from './commands/overviewCommand.js';
 import { validateCommand } from './commands/validateCommand.js';
 
@@ -29,6 +31,16 @@ export async function main(args: string[] = process.argv.slice(2)): Promise<void
 
     if (parsed.command === 'find') {
       writeJson(await findCommand(parsed), pretty);
+      return;
+    }
+
+    if (parsed.command === 'element') {
+      writeJson(await elementCommand(parsed), pretty);
+      return;
+    }
+
+    if (parsed.command === 'gateway') {
+      writeJson(await gatewayCommand(parsed), pretty);
       return;
     }
 
