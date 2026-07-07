@@ -12,7 +12,7 @@ export function parseArgs(args: string[]): ParsedArgs {
 
   for (let index = 0; index < optionArgs.length; index += 1) {
     const item = optionArgs[index];
-    if (!item.startsWith('--')) {
+    if (!item.startsWith('--') && item !== '-o') {
       continue;
     }
 

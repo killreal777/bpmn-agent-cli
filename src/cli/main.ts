@@ -10,6 +10,7 @@ import { gatewayCommand } from './commands/gatewayCommand.js';
 import { implementationsCommand } from './commands/implementationsCommand.js';
 import { overviewCommand } from './commands/overviewCommand.js';
 import { traceCommand } from './commands/traceCommand.js';
+import { toJsonCommand } from './commands/toJsonCommand.js';
 import { validateCommand } from './commands/validateCommand.js';
 
 export async function main(args: string[] = process.argv.slice(2)): Promise<void> {
@@ -59,6 +60,11 @@ export async function main(args: string[] = process.argv.slice(2)): Promise<void
 
     if (parsed.command === 'implementations') {
       writeJson(await implementationsCommand(parsed), pretty);
+      return;
+    }
+
+    if (parsed.command === 'to-json') {
+      await toJsonCommand(parsed, pretty);
       return;
     }
 

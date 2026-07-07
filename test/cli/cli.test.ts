@@ -95,4 +95,20 @@ describe('CLI overview and validate', () => {
       stdout: expect.stringContaining('"valid":false')
     });
   });
+
+  it('prints raw legacy to-json output without envelope', async () => {
+    const { stdout } = await execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'to-json', 'test/fixtures/simple-linear.bpmn']);
+    const parsed = JSON.parse(stdout);
+
+    expect(parsed.ok).toBeUndefined();
+    expect(parsed.processes[0].id).toBe('Process_SimpleLinear');
+  });
+
+  it('prints raw converter config without envelope', async () => {
+    const { stdout } = await execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'to-json', '--print-config', 'optimized']);
+    const parsed = JSON.parse(stdout);
+
+    expect(parsed.extends).toBeUndefined();
+    expect(parsed.optimizations.enabled).toContain('compactElementMeta');
+  });
 });
