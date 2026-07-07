@@ -27,4 +27,15 @@ describe('CLI overview and validate', () => {
       result: { valid: true, errors: [] }
     });
   });
+
+  it('prints find envelope as JSON', async () => {
+    const { stdout } = await execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'find', 'test/fixtures/simple-linear.bpmn', '--query', 'work']);
+    const parsed = JSON.parse(stdout);
+
+    expect(parsed).toMatchObject({
+      ok: true,
+      command: 'find',
+      result: { matches: [expect.objectContaining({ id: 'Task_1', score: 0.8 })] }
+    });
+  });
 });
