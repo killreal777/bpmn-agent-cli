@@ -17,16 +17,16 @@ Status values:
 ### BL-001: `delete-safe`
 
 Priority: `P3`
-Status: `ready-for-spec`
+Status: `implemented`
 
 Delete one BPMN element only when the operation is structurally safe. P3 scope should support deleting a task-like node with exactly one incoming and one outgoing sequence flow, reconnecting source to target or refusing if semantics are ambiguous.
 
-Acceptance direction:
+Implemented scope:
 
 - Dry-run default and explicit `--write`.
-- Refuse gateways, events, subprocesses, boundary events, message flows, and elements with multiple incoming/outgoing in the first version.
-- Validate patched BPMN XML before writing.
-- Return machine-readable diff and safety reason.
+- Refuses gateways, events, subprocesses, boundary events, sequence flows, call activities, and elements with multiple incoming/outgoing.
+- Validates patched BPMN XML before writing.
+- Returns machine-readable diff and `DI_NOT_UPDATED`.
 
 ### BL-002: `add-boundary-event`
 
@@ -250,4 +250,3 @@ Each backlog item should become a design spec before implementation. A good spec
 - validation pipeline
 - test fixtures
 - extension bundle smoke test
-

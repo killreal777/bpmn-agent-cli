@@ -78,7 +78,10 @@ P3-B implemented:
 
 - `connect`
 
-Remaining structural write commands:
+P3-C implemented:
 
 - `delete-safe`
+
+Remaining structural write commands:
+
 - `add-boundary-event`

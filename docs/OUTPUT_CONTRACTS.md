@@ -321,6 +321,29 @@ type ConnectResult = {
 
 `connect` uses the success envelope. Dry-run is default and reports the planned structural diff without writing files. P3-B does not update BPMNDI layout and returns `DI_NOT_UPDATED` in `warnings`.
 
+## DeleteSafeResult
+
+```ts
+type DeleteSafeResult = {
+  dryRun: boolean;
+  written: boolean;
+  file: string;
+  outputFile: string | null;
+  deleted: ElementSummary;
+  removedFlows: SequenceFlowSummary[];
+  replacementFlow: SequenceFlowSummary;
+  warnings: Diagnostic[];
+  diff: Array<{
+    op: "remove" | "add" | "replace";
+    path: string;
+    before: string | null;
+    after: string | null;
+  }>;
+};
+```
+
+`delete-safe` uses the success envelope. Dry-run is default and reports the planned structural diff without writing files. P3-C does not generate replacement BPMNDI layout and returns `DI_NOT_UPDATED` in `warnings`.
+
 ## Element Type Contract
 
 `type` fields use canonical moddle types such as `bpmn:ServiceTask`. CLI aliases such as `serviceTask` are accepted only as input filters.

@@ -186,6 +186,18 @@ Adds one `bpmn:SequenceFlow` between two existing flow nodes and updates source 
 
 P3-B updates semantic BPMN only and does not update BPMNDI layout. Successful results include a `DI_NOT_UPDATED` warning.
 
+## delete-safe
+
+```bash
+bpmn-agent-cli delete-safe process.bpmn --id Task_1
+bpmn-agent-cli delete-safe process.bpmn --id Task_1 --replacement-flow-id Flow_Start_To_End --write
+bpmn-agent-cli delete-safe process.bpmn --id Task_1 --write -o tmp/deleted.bpmn
+```
+
+Deletes one safe linear flow node with exactly one incoming and one outgoing sequence flow, then reconnects predecessor to successor with one replacement sequence flow. Dry-run is the default. No file is written unless `--write` is provided. `-o` is allowed only with `--write`.
+
+P3-C refuses gateways, events, subprocess-like nodes, call activities, sequence flows, and nodes with non-linear connectivity. It removes BPMNDI entries that explicitly referenced deleted ids, but does not generate layout for the replacement flow, so successful results include `DI_NOT_UPDATED`.
+
 ## validate
 
 ```bash
