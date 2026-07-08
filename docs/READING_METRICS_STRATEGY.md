@@ -545,6 +545,15 @@ npm run benchmark -- --variant candidate
 npm run benchmark:compare -- --baseline results/baseline.json --candidate results/candidate.json
 ```
 
+Agent-executed benchmark runs are tracked separately:
+
+```bash
+npm run benchmark:agent -- --variant codex-current --agent codex
+npm run benchmark:compare -- --baseline results/agent-baseline.json --candidate results/agent-candidate.json
+```
+
+In this mode the agent receives the task prompt, chooses commands itself, and real `bpmn-agent-cli` invocations are captured through a PATH wrapper. See `docs/AGENT_BENCHMARKS.md`.
+
 The runner should produce a report with:
 
 - task id;
@@ -730,4 +739,3 @@ Recommended concrete tasks for the development team:
 8. Run and commit/share the first baseline report.
 9. Choose the first candidate feature only after baseline results are available.
 10. Run the first A/B experiment and document the decision.
-

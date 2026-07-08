@@ -56,6 +56,9 @@ async function main() {
       elapsedMs: delta(candidate, baseline, 'elapsedMs'),
       stdoutBytes: delta(candidate, baseline, 'stdoutBytes'),
       estimatedOutputTokens: delta(candidate, baseline, 'estimatedOutputTokens'),
+      estimatedAgentOutputTokens: delta(candidate, baseline, 'estimatedAgentOutputTokens'),
+      answerCorrectnessScore: delta(candidate, baseline, 'answerCorrectnessScore'),
+      averageCorrectnessScore: delta(candidate, baseline, 'averageCorrectnessScore'),
       xmlFallbackRate: delta(candidate, baseline, 'xmlFallbackRate'),
       toolErrors: delta(candidate, baseline, 'toolErrors'),
       toolErrorRate: delta(candidate, baseline, 'toolErrorRate')

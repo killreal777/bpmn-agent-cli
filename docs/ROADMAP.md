@@ -95,6 +95,7 @@ P4 Sprint 0 implemented:
 - opt-in CLI metrics logging
 - benchmark runner and comparison report
 - baseline reading report
+- agent-executed benchmark runner with Codex preset and custom agent command support
 
 Baseline summary:
 

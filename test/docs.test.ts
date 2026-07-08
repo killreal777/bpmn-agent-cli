@@ -7,6 +7,7 @@ describe('documentation', () => {
     const agents = await readFile('AGENTS.md', 'utf8');
     const cli = await readFile('docs/CLI.md', 'utf8');
     const contracts = await readFile('docs/OUTPUT_CONTRACTS.md', 'utf8');
+    const agentBenchmarks = await readFile('docs/AGENT_BENCHMARKS.md', 'utf8');
     const roadmap = await readFile('docs/ROADMAP.md', 'utf8');
     const vision = await readFile('docs/PRODUCT_VISION.md', 'utf8');
     const backlog = await readFile('docs/BACKLOG.md', 'utf8');
@@ -77,6 +78,9 @@ describe('documentation', () => {
     expect(readingMetrics).toContain('Reading Optimization Metrics Strategy');
     expect(readingMetrics).toContain('tokens_per_successful_task');
     expect(readingMetrics).toContain('xml_fallback_rate');
+    expect(agentBenchmarks).toContain('benchmark:agent');
+    expect(agentBenchmarks).toContain('--agent codex');
+    expect(agentBenchmarks).toContain('answerCorrectnessScore');
     expect(benchmarkFixtures.filter((file) => file.endsWith('.bpmn')).length).toBeGreaterThanOrEqual(5);
     expect(benchmarkTasks.filter((file) => file.endsWith('.json')).length).toBeGreaterThanOrEqual(20);
   });
