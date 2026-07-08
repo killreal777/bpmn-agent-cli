@@ -7623,8 +7623,8 @@ function collectPaths(indexes, start, direction, depth, maxPaths) {
   let truncated = false;
   function visit(nodes, flows, remainingDepth, seen, cycleDetected = false) {
     const current = nodes[nodes.length - 1];
-    const nextFlows = direction === "forward" ? indexes.outgoingByNodeId.get(current.id) ?? [] : indexes.incomingByNodeId.get(current.id) ?? [];
-    if (remainingDepth === 0 || nextFlows.length === 0 || cycleDetected) {
+    const nextFlows2 = direction === "forward" ? indexes.outgoingByNodeId.get(current.id) ?? [] : indexes.incomingByNodeId.get(current.id) ?? [];
+    if (remainingDepth === 0 || nextFlows2.length === 0 || cycleDetected) {
       if (paths.length < maxPaths) {
         paths.push({ nodes, flows, depth: flows.length, cycleDetected: cycleDetected || void 0 });
       } else {
@@ -7632,7 +7632,7 @@ function collectPaths(indexes, start, direction, depth, maxPaths) {
       }
       return;
     }
-    for (const flow of nextFlows) {
+    for (const flow of nextFlows2) {
       if (paths.length >= maxPaths) {
         truncated = true;
         return;
@@ -8332,6 +8332,120 @@ async function overviewCommand(args) {
   });
 }
 
+// src/query/path.ts
+function findPaths(indexes, args) {
+  const from = indexes.byId.get(args.from);
+  const to = indexes.byId.get(args.to);
+  if (!from) {
+    throw new BpmnCliError("ELEMENT_NOT_FOUND", "Element not found", 1, { elementId: args.from });
+  }
+  if (!to) {
+    throw new BpmnCliError("ELEMENT_NOT_FOUND", "Element not found", 1, { elementId: args.to });
+  }
+  const paths = collectTargetPaths(indexes, from, to, args.direction, args.depth, args.maxPaths);
+  return {
+    from,
+    to,
+    direction: args.direction,
+    depth: args.depth,
+    paths: paths.paths,
+    found: paths.paths.length > 0,
+    truncated: paths.truncated
+  };
+}
+function collectTargetPaths(indexes, from, to, direction, depth, maxPaths) {
+  const queue = [{ nodes: [from], flows: [], seen: /* @__PURE__ */ new Set([from.id]) }];
+  const paths = [];
+  let truncated = false;
+  while (queue.length > 0) {
+    const item = queue.shift();
+    const current = item.nodes[item.nodes.length - 1];
+    if (current.id === to.id && item.flows.length > 0) {
+      if (paths.length < maxPaths) {
+        paths.push({
+          nodes: item.nodes,
+          flows: item.flows,
+          depth: item.flows.length,
+          cycleDetected: item.cycleDetected || void 0
+        });
+      } else {
+        truncated = true;
+      }
+      continue;
+    }
+    if (item.cycleDetected) {
+      continue;
+    }
+    if (item.flows.length >= depth) {
+      truncated = true;
+      continue;
+    }
+    for (const flow of nextFlows(indexes, current.id, direction)) {
+      const nextId = direction === "forward" ? flow.targetId : flow.sourceId;
+      const next = indexes.byId.get(nextId);
+      if (!next) {
+        continue;
+      }
+      const repeated = item.seen.has(next.id);
+      queue.push({
+        nodes: [...item.nodes, next],
+        flows: [...item.flows, { id: flow.id, name: flow.name, condition: flow.condition }],
+        seen: /* @__PURE__ */ new Set([...item.seen, next.id]),
+        cycleDetected: item.cycleDetected || repeated || void 0
+      });
+    }
+  }
+  return { paths: paths.sort(comparePath), truncated };
+}
+function nextFlows(indexes, id, direction) {
+  const flows = direction === "forward" ? indexes.outgoingByNodeId.get(id) ?? [] : indexes.incomingByNodeId.get(id) ?? [];
+  return [...flows].sort((a, b) => a.id.localeCompare(b.id));
+}
+function comparePath(a, b) {
+  return a.depth - b.depth || a.nodes.map((node) => node.id).join("|").localeCompare(b.nodes.map((node) => node.id).join("|")) || a.flows.map((flow) => flow.id).join("|").localeCompare(b.flows.map((flow) => flow.id).join("|"));
+}
+
+// src/cli/commands/pathCommand.ts
+async function pathCommand(args) {
+  if (!args.file) {
+    throw new BpmnCliError("MISSING_FILE_ARGUMENT", "path requires a BPMN file", 2);
+  }
+  const from = args.options.get("--from");
+  if (typeof from !== "string") {
+    throw new BpmnCliError("INVALID_OPTION_VALUE", "path requires --from", 2);
+  }
+  const to = args.options.get("--to");
+  if (typeof to !== "string") {
+    throw new BpmnCliError("INVALID_OPTION_VALUE", "path requires --to", 2);
+  }
+  const direction = args.options.get("--direction");
+  if (direction !== void 0 && direction !== "forward" && direction !== "backward") {
+    throw new BpmnCliError("INVALID_OPTION_VALUE", "--direction must be forward or backward", 2);
+  }
+  const model = await loadBpmn(args.file);
+  return successEnvelope({
+    command: "path",
+    file: args.file,
+    result: findPaths(buildIndexes(model), {
+      from,
+      to,
+      direction: direction === "backward" ? "backward" : "forward",
+      depth: numberOption3(args, "--depth", 10),
+      maxPaths: numberOption3(args, "--max-paths", 20)
+    })
+  });
+}
+function numberOption3(args, name2, fallback) {
+  const value = args.options.get(name2);
+  if (value === void 0) {
+    return fallback;
+  }
+  if (typeof value !== "string" || !Number.isInteger(Number(value)) || Number(value) < 0) {
+    throw new BpmnCliError("INVALID_OPTION_VALUE", `${name2} must be a non-negative integer`, 2, { option: name2, value });
+  }
+  return Number(value);
+}
+
 // src/query/participants.ts
 function getParticipants(model, indexes) {
   const referencedProcessIds = /* @__PURE__ */ new Set();
@@ -8458,12 +8572,12 @@ async function traceCommand(args) {
     result: trace(buildIndexes(model), {
       from,
       direction: direction === "backward" ? "backward" : "forward",
-      depth: numberOption3(args, "--depth", 5),
-      maxPaths: numberOption3(args, "--max-paths", 20)
+      depth: numberOption4(args, "--depth", 5),
+      maxPaths: numberOption4(args, "--max-paths", 20)
     })
   });
 }
-function numberOption3(args, name2, fallback) {
+function numberOption4(args, name2, fallback) {
   const value = args.options.get(name2);
   if (value === void 0) {
     return fallback;
@@ -9312,6 +9426,10 @@ async function main(args = process.argv.slice(2)) {
     }
     if (parsed.command === "subprocess") {
       writeJson(await subprocessCommand(parsed), pretty);
+      return;
+    }
+    if (parsed.command === "path") {
+      writeJson(await pathCommand(parsed), pretty);
       return;
     }
     if (parsed.command === "to-json") {
