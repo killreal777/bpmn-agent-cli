@@ -8713,6 +8713,193 @@ async function gatewayCommand(args) {
   });
 }
 
+// src/cli/commands/implementationCommand.ts
+var import_promises4 = require("node:fs/promises");
+var import_node_path3 = require("node:path");
+
+// src/write/implementationElement.ts
+var CAMUNDA_NS = "http://camunda.org/schema/1.0/bpmn";
+function setImplementationXml(args) {
+  const element = args.indexes.byId.get(args.elementId);
+  if (!element) {
+    throw new BpmnCliError("ELEMENT_NOT_FOUND", "Element not found", 1, { elementId: args.elementId });
+  }
+  const kind = parseKind(args.kind);
+  const patches = patchesFor(kind, args.value);
+  const patched = patchOpeningTag(args.xml, args.elementId, patches);
+  const xml2 = patches.some((patch) => patch.name.startsWith("camunda:")) ? ensureCamundaNamespace(patched.xml) : patched.xml;
+  return {
+    xml: xml2,
+    result: {
+      dryRun: args.dryRun ?? true,
+      written: args.written ?? false,
+      file: args.file,
+      outputFile: args.outputFile ?? null,
+      element,
+      kind,
+      before: patched.before,
+      after: Object.fromEntries(patches.map((patch) => [patch.name, patch.value])),
+      diff: patched.diff.map((item) => ({
+        ...item,
+        path: `/elements/${args.elementId}/${item.path}`
+      }))
+    }
+  };
+}
+function parseKind(kind) {
+  if (kind === "delegateExpression" || kind === "class" || kind === "expression" || kind === "externalTask" || kind === "form" || kind === "callActivity") {
+    return kind;
+  }
+  throw new BpmnCliError("INVALID_OPTION_VALUE", `Unsupported implementation kind: ${kind}`, 2, { kind });
+}
+function patchesFor(kind, value) {
+  if (kind === "delegateExpression") {
+    return [{ name: "camunda:delegateExpression", value }];
+  }
+  if (kind === "class") {
+    return [{ name: "camunda:class", value }];
+  }
+  if (kind === "expression") {
+    return [{ name: "camunda:expression", value }];
+  }
+  if (kind === "externalTask") {
+    return [
+      { name: "camunda:type", value: "external" },
+      { name: "camunda:topic", value }
+    ];
+  }
+  if (kind === "form") {
+    return [{ name: "camunda:formKey", value }];
+  }
+  return [{ name: "calledElement", value }];
+}
+function patchOpeningTag(xml2, elementId, patches) {
+  const escapedId = escapeRegExp2(elementId);
+  const tagPattern = new RegExp(`<[^!?/][^>]*\\bid="${escapedId}"[^>]*>`);
+  const match = xml2.match(tagPattern);
+  if (!match || match.index === void 0) {
+    throw new BpmnCliError("UNSUPPORTED_BPMN_ELEMENT_TYPE", "Could not find target element opening tag", 1, { elementId });
+  }
+  let tag = match[0];
+  const before = {};
+  const diff = [];
+  for (const patch of patches) {
+    const existing = readAttribute(tag, patch.name);
+    before[patch.name] = existing;
+    tag = writeAttribute(tag, patch.name, patch.value);
+    diff.push({
+      op: existing === null ? "add" : "replace",
+      path: patch.name,
+      before: existing,
+      after: patch.value
+    });
+  }
+  return {
+    xml: `${xml2.slice(0, match.index)}${tag}${xml2.slice(match.index + match[0].length)}`,
+    before,
+    diff
+  };
+}
+function readAttribute(tag, name2) {
+  const pattern = new RegExp(`\\s${escapeRegExp2(name2)}="([^"]*)"`);
+  return tag.match(pattern)?.[1] ?? null;
+}
+function writeAttribute(tag, name2, value) {
+  const escapedValue = escapeAttribute(value);
+  const pattern = new RegExp(`\\s${escapeRegExp2(name2)}="[^"]*"`);
+  if (pattern.test(tag)) {
+    return tag.replace(pattern, ` ${name2}="${escapedValue}"`);
+  }
+  return tag.replace(/\/?>$/, (suffix) => ` ${name2}="${escapedValue}"${suffix}`);
+}
+function ensureCamundaNamespace(xml2) {
+  if (xml2.includes("xmlns:camunda=")) {
+    return xml2;
+  }
+  const definitionsPattern = /<bpmn:definitions\b[^>]*>/;
+  const match = xml2.match(definitionsPattern);
+  if (!match || match.index === void 0) {
+    throw new BpmnCliError("UNSUPPORTED_BPMN_ELEMENT_TYPE", "Could not find bpmn:definitions opening tag", 1);
+  }
+  const tag = match[0].replace(/>$/, ` xmlns:camunda="${CAMUNDA_NS}">`);
+  return `${xml2.slice(0, match.index)}${tag}${xml2.slice(match.index + match[0].length)}`;
+}
+function escapeAttribute(value) {
+  return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+function escapeRegExp2(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// src/cli/commands/implementationCommand.ts
+async function implementationCommand(args) {
+  if (!args.file) {
+    throw new BpmnCliError("MISSING_FILE_ARGUMENT", "implementation requires a BPMN file", 2);
+  }
+  const elementId = args.options.get("--id");
+  if (typeof elementId !== "string") {
+    throw new BpmnCliError("INVALID_OPTION_VALUE", "implementation requires --id", 2);
+  }
+  const kind = args.options.get("--kind");
+  if (typeof kind !== "string") {
+    throw new BpmnCliError("INVALID_OPTION_VALUE", "implementation requires --kind", 2);
+  }
+  const value = args.options.get("--value");
+  if (typeof value !== "string") {
+    throw new BpmnCliError("INVALID_OPTION_VALUE", "implementation requires --value", 2);
+  }
+  const write = args.options.get("--write") === true;
+  const outputPath = args.options.get("-o");
+  if (outputPath !== void 0 && typeof outputPath !== "string") {
+    throw new BpmnCliError("INVALID_OPTION_VALUE", "-o requires an output path", 2);
+  }
+  if (!write && outputPath) {
+    throw new BpmnCliError("INVALID_OPTION_VALUE", "-o is only allowed with --write", 2);
+  }
+  const model = await loadBpmn(args.file);
+  const targetPath = outputPath || args.file;
+  const plan = setImplementationXml({
+    xml: model.xml,
+    indexes: buildIndexes(model),
+    elementId,
+    kind,
+    value,
+    file: args.file,
+    outputFile: write ? targetPath : null,
+    dryRun: !write,
+    written: write
+  });
+  await validateXml2(plan.xml);
+  if (write) {
+    await writeOutput3(targetPath, plan.xml);
+  }
+  return successEnvelope({
+    command: "implementation",
+    file: args.file,
+    result: plan.result
+  });
+}
+async function validateXml2(xml2) {
+  try {
+    await createBpmnModdle().fromXML(xml2);
+  } catch (error3) {
+    throw new BpmnCliError("BPMN_PARSE_ERROR", "Patched BPMN XML did not parse", 4, {
+      cause: error3 instanceof Error ? error3.message : String(error3)
+    });
+  }
+}
+async function writeOutput3(path, payload) {
+  try {
+    await (0, import_promises4.mkdir)((0, import_node_path3.dirname)(path), { recursive: true });
+    await (0, import_promises4.writeFile)(path, payload, "utf8");
+  } catch (error3) {
+    throw new BpmnCliError("OUTPUT_WRITE_ERROR", "Failed to write implementation BPMN", 1, {
+      path,
+      cause: error3 instanceof Error ? error3.message : String(error3)
+    });
+  }
+}
+
 // src/cli/commands/implementationsCommand.ts
 async function implementationsCommand(args) {
   if (!args.file) {
@@ -8888,8 +9075,8 @@ async function participantsCommand(args) {
 }
 
 // src/cli/commands/renameCommand.ts
-var import_promises4 = require("node:fs/promises");
-var import_node_path3 = require("node:path");
+var import_promises5 = require("node:fs/promises");
+var import_node_path4 = require("node:path");
 
 // src/write/renameElement.ts
 function renameElementXml(args) {
@@ -8897,7 +9084,7 @@ function renameElementXml(args) {
   if (!element) {
     throw new BpmnCliError("ELEMENT_NOT_FOUND", "Element not found", 1, { elementId: args.elementId });
   }
-  const patch = patchOpeningTag(args.xml, args.elementId, args.name);
+  const patch = patchOpeningTag2(args.xml, args.elementId, args.name);
   return {
     xml: patch.xml,
     result: {
@@ -8917,15 +9104,15 @@ function renameElementXml(args) {
     }
   };
 }
-function patchOpeningTag(xml2, elementId, name2) {
-  const escapedId = escapeRegExp2(elementId);
+function patchOpeningTag2(xml2, elementId, name2) {
+  const escapedId = escapeRegExp3(elementId);
   const tagPattern = new RegExp(`<[^!?/][^>]*\\bid="${escapedId}"[^>]*>`);
   const match = xml2.match(tagPattern);
   if (!match || match.index === void 0) {
     throw new BpmnCliError("UNSUPPORTED_BPMN_ELEMENT_TYPE", "Could not find target element opening tag", 1, { elementId });
   }
   const tag = match[0];
-  const escapedName = escapeAttribute(name2);
+  const escapedName = escapeAttribute2(name2);
   const namePattern = /\bname="[^"]*"/;
   const operation = namePattern.test(tag) ? "replace" : "add";
   const updatedTag = operation === "replace" ? tag.replace(namePattern, `name="${escapedName}"`) : tag.replace(/\/?>$/, (suffix) => ` name="${escapedName}"${suffix}`);
@@ -8934,10 +9121,10 @@ function patchOpeningTag(xml2, elementId, name2) {
     operation
   };
 }
-function escapeAttribute(value) {
+function escapeAttribute2(value) {
   return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
-function escapeRegExp2(value) {
+function escapeRegExp3(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
@@ -8974,9 +9161,9 @@ async function renameCommand(args) {
     dryRun: !write,
     written: write
   });
-  await validateXml2(plan.xml);
+  await validateXml3(plan.xml);
   if (write) {
-    await writeOutput3(targetPath, plan.xml);
+    await writeOutput4(targetPath, plan.xml);
   }
   return successEnvelope({
     command: "rename",
@@ -8984,7 +9171,7 @@ async function renameCommand(args) {
     result: plan.result
   });
 }
-async function validateXml2(xml2) {
+async function validateXml3(xml2) {
   try {
     await createBpmnModdle().fromXML(xml2);
   } catch (error3) {
@@ -8993,10 +9180,10 @@ async function validateXml2(xml2) {
     });
   }
 }
-async function writeOutput3(path, payload) {
+async function writeOutput4(path, payload) {
   try {
-    await (0, import_promises4.mkdir)((0, import_node_path3.dirname)(path), { recursive: true });
-    await (0, import_promises4.writeFile)(path, payload, "utf8");
+    await (0, import_promises5.mkdir)((0, import_node_path4.dirname)(path), { recursive: true });
+    await (0, import_promises5.writeFile)(path, payload, "utf8");
   } catch (error3) {
     throw new BpmnCliError("OUTPUT_WRITE_ERROR", "Failed to write renamed BPMN", 1, {
       path,
@@ -9060,8 +9247,8 @@ function numberOption4(args, name2, fallback) {
 }
 
 // src/cli/commands/toJsonCommand.ts
-var import_promises5 = require("node:fs/promises");
-var import_node_path4 = require("node:path");
+var import_promises6 = require("node:fs/promises");
+var import_node_path5 = require("node:path");
 
 // src/legacy/optimizations/ids.ts
 var OPTIMIZATION_IDS = {
@@ -9807,7 +9994,7 @@ async function toJsonCommand(args, pretty) {
   if (!args.file) {
     throw new BpmnCliError("MISSING_FILE_ARGUMENT", "to-json requires a BPMN file", 2);
   }
-  const xml2 = await (0, import_promises5.readFile)(args.file, "utf8");
+  const xml2 = await (0, import_promises6.readFile)(args.file, "utf8");
   const converted = await convertBpmnToJson(xml2, { preset: stringOption5(args, "--preset") });
   const output = `${JSON.stringify(converted, null, pretty ? 2 : 0)}
 `;
@@ -9816,8 +10003,8 @@ async function toJsonCommand(args, pretty) {
     process.stdout.write(output);
     return;
   }
-  await (0, import_promises5.mkdir)((0, import_node_path4.dirname)(outputPath), { recursive: true });
-  await (0, import_promises5.writeFile)(outputPath, output, "utf8");
+  await (0, import_promises6.mkdir)((0, import_node_path5.dirname)(outputPath), { recursive: true });
+  await (0, import_promises6.writeFile)(outputPath, output, "utf8");
 }
 function stringOption5(args, name2) {
   const value = args.options.get(name2);
@@ -9913,6 +10100,10 @@ async function main(args = process.argv.slice(2)) {
     }
     if (parsed.command === "documentation") {
       writeJson(await documentationCommand(parsed), pretty);
+      return;
+    }
+    if (parsed.command === "implementation") {
+      writeJson(await implementationCommand(parsed), pretty);
       return;
     }
     if (parsed.command === "to-json") {
