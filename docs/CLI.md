@@ -120,6 +120,16 @@ bpmn-agent-cli export process.bpmn --format markdown -o tmp/process.md
 
 Exports compact BPMN context. `markdown` and `text` successes write raw content. `json` success uses the common JSON envelope. `--section` accepts `all`, `overview`, `participants`, `lanes`, `events`, `subprocess`, and `implementations`.
 
+## rename
+
+```bash
+bpmn-agent-cli rename process.bpmn --id Task_1 --name "Review"
+bpmn-agent-cli rename process.bpmn --id Task_1 --name "Review" --write
+bpmn-agent-cli rename process.bpmn --id Task_1 --name "Review" --write -o tmp/renamed.bpmn
+```
+
+Renames one indexed BPMN element. Dry-run is the default. No file is written unless `--write` is provided. `-o` is allowed only with `--write`.
+
 ## validate
 
 ```bash

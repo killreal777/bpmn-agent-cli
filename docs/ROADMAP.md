@@ -46,9 +46,12 @@ Remaining reading improvements:
 
 ## P2
 
-Safe write commands:
+P2-A implemented:
 
 - `rename`
+
+Remaining safe write commands:
+
 - `documentation`
 - `implementation`
 - `format`

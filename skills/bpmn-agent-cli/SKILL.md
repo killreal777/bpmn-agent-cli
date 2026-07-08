@@ -25,6 +25,7 @@ Prefer specialized CLI queries over reading raw BPMN XML. The CLI returns small 
 13. Use `bpmn-agent-cli subprocess <file> --id <subprocessId>` to inspect direct subprocess contents.
 14. Use `bpmn-agent-cli path <file> --from <sourceId> --to <targetId>` to answer reachability questions.
 15. Use `bpmn-agent-cli export <file> --format markdown` to produce compact shareable BPMN context.
+16. Use `bpmn-agent-cli rename <file> --id <elementId> --name "<new name>"` for dry-run rename planning; add `--write` only when explicitly asked to modify BPMN files.
 
 Do not manually rewrite BPMN XML. P0 is read-only except for the legacy `to-json` output command.
 

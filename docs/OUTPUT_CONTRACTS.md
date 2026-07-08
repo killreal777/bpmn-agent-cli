@@ -185,6 +185,28 @@ type ExportResult = {
 
 `export --format json` uses the success envelope. `export --format markdown` and `export --format text` write raw successful export content.
 
+## RenameResult
+
+```ts
+type RenameResult = {
+  dryRun: boolean;
+  written: boolean;
+  file: string;
+  outputFile: string | null;
+  element: ElementSummary;
+  before: { name: string | null };
+  after: { name: string };
+  diff: Array<{
+    op: "replace" | "add";
+    path: string;
+    before: string | null;
+    after: string;
+  }>;
+};
+```
+
+`rename` uses the success envelope. Dry-run is default and reports the planned diff without writing files.
+
 ## Element Type Contract
 
 `type` fields use canonical moddle types such as `bpmn:ServiceTask`. CLI aliases such as `serviceTask` are accepted only as input filters.
