@@ -229,6 +229,29 @@ type DocumentationResult = {
 
 `documentation` uses the success envelope. Dry-run is default and reports the planned documentation diff without writing files.
 
+## ImplementationPatchResult
+
+```ts
+type ImplementationPatchResult = {
+  dryRun: boolean;
+  written: boolean;
+  file: string;
+  outputFile: string | null;
+  element: ElementSummary;
+  kind: "delegateExpression" | "class" | "expression" | "externalTask" | "form" | "callActivity";
+  before: Record<string, string | null>;
+  after: Record<string, string>;
+  diff: Array<{
+    op: "replace" | "add";
+    path: string;
+    before: string | null;
+    after: string;
+  }>;
+};
+```
+
+`implementation` uses the success envelope. Dry-run is default and reports the planned implementation diff without writing files. For `externalTask`, `diff` contains both `camunda:type` and `camunda:topic`.
+
 ## Element Type Contract
 
 `type` fields use canonical moddle types such as `bpmn:ServiceTask`. CLI aliases such as `serviceTask` are accepted only as input filters.

@@ -50,6 +50,7 @@ bpmn-agent-cli subprocess process.bpmn --id SubProcess_1
 bpmn-agent-cli export process.bpmn --format markdown
 bpmn-agent-cli rename process.bpmn --id Task_1 --name "Review"
 bpmn-agent-cli documentation process.bpmn --id Task_1 --text "Review"
+bpmn-agent-cli implementation process.bpmn --id Service_1 --kind delegateExpression --value '${serviceDelegate}'
 bpmn-agent-cli validate process.bpmn
 bpmn-agent-cli to-json process.bpmn --preset optimized
 ```
@@ -107,6 +108,8 @@ P1-C adds `export` for markdown, text, and JSON context output.
 P2-A adds safe `rename` with dry-run default and explicit `--write`.
 
 P2-B adds safe `documentation` updates with dry-run default and explicit `--write`.
+
+P2-C adds safe `implementation` updates for supported top-level runtime attributes with dry-run default and explicit `--write`.
 
 P1/P2/P3 scope is documented in `docs/ROADMAP.md`.
 

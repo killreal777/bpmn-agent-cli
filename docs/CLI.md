@@ -140,6 +140,18 @@ bpmn-agent-cli documentation process.bpmn --id Task_1 --text "Review" --write -o
 
 Adds or replaces one `bpmn:documentation` child for an indexed BPMN element. Dry-run is the default. No file is written unless `--write` is provided. `-o` is allowed only with `--write`.
 
+## implementation
+
+```bash
+bpmn-agent-cli implementation process.bpmn --id Service_1 --kind delegateExpression --value '${serviceDelegate}'
+bpmn-agent-cli implementation process.bpmn --id Service_1 --kind externalTask --value score-client --write
+bpmn-agent-cli implementation process.bpmn --id Service_1 --kind externalTask --value score-client --write -o tmp/implemented.bpmn
+```
+
+Sets one supported implementation attribute group on an indexed BPMN element. Dry-run is the default. No file is written unless `--write` is provided. `-o` is allowed only with `--write`.
+
+Supported `--kind` values are `delegateExpression`, `class`, `expression`, `externalTask`, `form`, and `callActivity`. `externalTask` writes `camunda:type="external"` and `camunda:topic="<value>"`; other kinds write one attribute.
+
 ## validate
 
 ```bash

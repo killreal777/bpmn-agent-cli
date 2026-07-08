@@ -54,9 +54,12 @@ P2-B implemented:
 
 - `documentation`
 
-Remaining safe write commands:
+P2-C implemented:
 
 - `implementation`
+
+Remaining safe write commands:
+
 - `format`
 
 All write commands default to dry-run and require explicit `--write`.
