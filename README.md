@@ -42,6 +42,10 @@ bpmn-agent-cli context process.bpmn --id Activity_CheckClient
 bpmn-agent-cli trace process.bpmn --from Activity_CheckClient
 bpmn-agent-cli gateway process.bpmn --id Gateway_CheckResult
 bpmn-agent-cli implementations process.bpmn
+bpmn-agent-cli participants process.bpmn
+bpmn-agent-cli lanes process.bpmn --element Activity_CheckClient
+bpmn-agent-cli events process.bpmn --type boundary
+bpmn-agent-cli subprocess process.bpmn --id SubProcess_1
 bpmn-agent-cli validate process.bpmn
 bpmn-agent-cli to-json process.bpmn --preset optimized
 ```
@@ -89,6 +93,8 @@ claude plugin validate .
 ## MVP Status
 
 P0 includes read-only commands: `overview`, `find`, `element`, `context`, `trace`, `gateway`, `implementations`, `validate`, plus legacy `to-json`.
+
+P1-A adds read-only structural commands: `participants`, `lanes`, `events`, and `subprocess`.
 
 P1/P2/P3 scope is documented in `docs/ROADMAP.md`.
 

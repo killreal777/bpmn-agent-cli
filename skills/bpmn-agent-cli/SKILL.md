@@ -19,6 +19,10 @@ Prefer specialized CLI queries over reading raw BPMN XML. The CLI returns small 
 7. Use `bpmn-agent-cli trace <file> --from <elementId> --direction backward` for backward flow.
 8. Use `bpmn-agent-cli implementations <file>` to find Camunda delegates, external task topics, forms, and call activities.
 9. Use `bpmn-agent-cli validate <file>` before making conclusions about structural correctness.
+10. Use `bpmn-agent-cli participants <file>` to inspect pools, participants, and message flows.
+11. Use `bpmn-agent-cli lanes <file> --element <elementId>` to understand lane ownership for an element.
+12. Use `bpmn-agent-cli events <file> --type boundary` to inspect event triggers and boundary handling.
+13. Use `bpmn-agent-cli subprocess <file> --id <subprocessId>` to inspect direct subprocess contents.
 
 Do not manually rewrite BPMN XML. P0 is read-only except for the legacy `to-json` output command.
 

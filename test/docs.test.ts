@@ -16,9 +16,18 @@ describe('documentation', () => {
     expect(agents).toContain('npm test');
     expect(cli).toContain('bpmn-agent-cli overview process.bpmn');
     expect(cli).toContain('bpmn-agent-cli to-json process.bpmn --preset optimized');
+    expect(cli).toContain('bpmn-agent-cli participants process.bpmn');
+    expect(cli).toContain('bpmn-agent-cli lanes process.bpmn --element Task_1');
+    expect(cli).toContain('bpmn-agent-cli events process.bpmn --type boundary');
+    expect(cli).toContain('bpmn-agent-cli subprocess process.bpmn --id SubProcess_1');
     expect(contracts).toContain('ELEMENT_NOT_FOUND');
     expect(contracts).toContain('ValidateResult');
+    expect(contracts).toContain('ParticipantsResult');
+    expect(contracts).toContain('LanesResult');
+    expect(contracts).toContain('EventsResult');
+    expect(contracts).toContain('SubprocessResult');
     expect(roadmap).toContain('P0');
+    expect(roadmap).toContain('P1-A');
     expect(roadmap).toContain('P1');
     expect(roadmap).toContain('P2');
   });

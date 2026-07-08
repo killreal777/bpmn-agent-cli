@@ -2,7 +2,7 @@
 
 ## Success Envelope
 
-All P0 query commands except `to-json` return:
+All P0 and P1-A query commands except `to-json` return:
 
 ```json
 {
@@ -69,6 +69,78 @@ export type ValidateResult = {
   errors: Diagnostic[];
   warnings: Diagnostic[];
   infos: Diagnostic[];
+};
+```
+
+## ParticipantsResult
+
+```ts
+type ParticipantsResult = {
+  collaborations: Array<{
+    id: string;
+    name: string | null;
+    participants: ParticipantSummary[];
+    messageFlows: MessageFlowSummary[];
+  }>;
+  unreferencedProcesses: Array<{ id: string; name: string | null }>;
+};
+```
+
+## LanesResult
+
+```ts
+type LanesResult = {
+  lanes: Array<{
+    id: string;
+    name: string | null;
+    processId: string | null;
+    flowNodes: ElementSummary[];
+  }>;
+  elementLanes: Array<{
+    element: ElementSummary;
+    lanes: LaneSummary[];
+  }>;
+};
+```
+
+Without `--element`, `elementLanes` is empty. With `--element`, it contains exactly one entry for the requested element.
+
+## EventsResult
+
+```ts
+type EventDefinitionSummary = {
+  type: string;
+  value?: string | null;
+  refId?: string | null;
+  refName?: string | null;
+};
+
+type EventsResult = {
+  events: Array<EventSummary & {
+    category: "start" | "end" | "boundary" | "intermediate" | "other";
+    eventDefinitions: EventDefinitionSummary[];
+    attachedTo?: ElementSummary | null;
+    outgoing: SequenceFlowSummary[];
+    incoming: SequenceFlowSummary[];
+  }>;
+};
+```
+
+`bpmn:EventBasedGateway` is a gateway and is not returned by `events`.
+
+## SubprocessResult
+
+```ts
+type SubprocessResult = {
+  subprocesses: Array<{
+    element: ElementSummary;
+    parentSubprocessId: string | null;
+    children: ElementSummary[];
+    nestedSubprocesses: ElementSummary[];
+    incoming: SequenceFlowSummary[];
+    outgoing: SequenceFlowSummary[];
+    boundaryEvents: EventSummary[];
+  }>;
 };
 ```
 

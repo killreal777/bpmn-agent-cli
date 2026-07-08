@@ -24,13 +24,16 @@ Distribution:
 
 ## P1
 
-Reading improvements:
+P1-A implemented:
 
-- `path`
 - `events`
 - `subprocess`
 - `participants`
 - `lanes`
+
+Remaining reading improvements:
+
+- `path`
 - `export`
 - markdown/text output where useful
 - full duplicate id detection if supported without custom parsing

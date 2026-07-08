@@ -65,6 +65,41 @@ bpmn-agent-cli implementations process.bpmn
 
 Lists Camunda delegates, classes, expressions, external task topics, form keys and call activities.
 
+## participants
+
+```bash
+bpmn-agent-cli participants process.bpmn
+```
+
+Returns collaborations, participants, message flows, and processes that are not referenced by a participant.
+
+## lanes
+
+```bash
+bpmn-agent-cli lanes process.bpmn
+bpmn-agent-cli lanes process.bpmn --element Task_1
+```
+
+Without `--element`, returns all lanes and an empty `elementLanes` array. With `--element`, returns only lanes containing that element and one element-to-lanes mapping.
+
+## events
+
+```bash
+bpmn-agent-cli events process.bpmn
+bpmn-agent-cli events process.bpmn --type boundary
+```
+
+`--type` accepts `start`, `end`, `boundary`, `intermediate`, and `other`. Event-based gateways are not returned by this command.
+
+## subprocess
+
+```bash
+bpmn-agent-cli subprocess process.bpmn
+bpmn-agent-cli subprocess process.bpmn --id SubProcess_1
+```
+
+Returns subprocess-like elements, direct children, direct nested subprocesses, incoming/outgoing flows, and boundary events.
+
 ## validate
 
 ```bash
