@@ -152,6 +152,16 @@ Sets one supported implementation attribute group on an indexed BPMN element. Dr
 
 Supported `--kind` values are `delegateExpression`, `class`, `expression`, `externalTask`, `form`, and `callActivity`. `externalTask` writes `camunda:type="external"` and `camunda:topic="<value>"`; other kinds write one attribute.
 
+## format
+
+```bash
+bpmn-agent-cli format process.bpmn
+bpmn-agent-cli format process.bpmn --write
+bpmn-agent-cli format process.bpmn --write -o tmp/formatted.bpmn
+```
+
+Formats BPMN XML by parsing with `bpmn-moddle` and serializing the model with formatting enabled. Dry-run is the default and reports byte counts plus whether serialized XML differs from input. No file is written unless `--write` is provided. `-o` is allowed only with `--write`.
+
 ## validate
 
 ```bash

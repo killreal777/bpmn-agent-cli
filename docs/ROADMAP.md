@@ -58,7 +58,7 @@ P2-C implemented:
 
 - `implementation`
 
-Remaining safe write commands:
+P2-D implemented:
 
 - `format`
 

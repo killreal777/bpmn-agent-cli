@@ -28,6 +28,7 @@ Prefer specialized CLI queries over reading raw BPMN XML. The CLI returns small 
 16. Use `bpmn-agent-cli rename <file> --id <elementId> --name "<new name>"` for dry-run rename planning; add `--write` only when explicitly asked to modify BPMN files.
 17. Use `bpmn-agent-cli documentation <file> --id <elementId> --text "<text>"` for dry-run documentation updates; add `--write` only when explicitly asked to modify BPMN files.
 18. Use `bpmn-agent-cli implementation <file> --id <elementId> --kind <kind> --value "<value>"` for dry-run runtime implementation updates; add `--write` only when explicitly asked to modify BPMN files.
+19. Use `bpmn-agent-cli format <file>` to dry-run BPMN XML formatting through moddle serialization; add `--write` only when explicitly asked to modify BPMN files.
 
 Do not manually rewrite BPMN XML. P0 is read-only except for the legacy `to-json` output command.
 

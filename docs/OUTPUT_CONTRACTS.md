@@ -252,6 +252,29 @@ type ImplementationPatchResult = {
 
 `implementation` uses the success envelope. Dry-run is default and reports the planned implementation diff without writing files. For `externalTask`, `diff` contains both `camunda:type` and `camunda:topic`.
 
+## FormatResult
+
+```ts
+type FormatResult = {
+  dryRun: boolean;
+  written: boolean;
+  file: string;
+  outputFile: string | null;
+  changed: boolean;
+  before: {
+    bytes: number;
+  };
+  after: {
+    bytes: number;
+  };
+  diagnostics: {
+    warnings: Array<{ message: string }>;
+  };
+};
+```
+
+`format` uses the success envelope. Dry-run is default and reports byte counts plus whether moddle serialization differs from the input XML. Formatted XML is not emitted to stdout.
+
 ## Element Type Contract
 
 `type` fields use canonical moddle types such as `bpmn:ServiceTask`. CLI aliases such as `serviceTask` are accepted only as input filters.
