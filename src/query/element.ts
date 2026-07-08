@@ -1,5 +1,6 @@
 import { BpmnCliError } from '../bpmn/errors.js';
 import type { BpmnIndexes, ElementSummary, EventSummary, ImplementationSummary, SequenceFlowSummary } from '../bpmn/types.js';
+import { getElementDetails, type ElementDetails } from './elementDetails.js';
 
 export type ElementResult = {
   element: ElementSummary & {
@@ -12,6 +13,7 @@ export type ElementResult = {
     boundaryEvents?: EventSummary[];
     laneIds?: string[];
     participantId?: string | null;
+    details?: ElementDetails;
   };
 };
 
@@ -28,7 +30,8 @@ export function getElement(indexes: BpmnIndexes, args: { id: string }): ElementR
         ...element,
         source: indexes.byId.get(sequenceFlow.sourceId) ?? null,
         target: indexes.byId.get(sequenceFlow.targetId) ?? null,
-        condition: sequenceFlow.condition
+        condition: sequenceFlow.condition,
+        details: getElementDetails(indexes, element)
       }
     };
   }
@@ -41,7 +44,8 @@ export function getElement(indexes: BpmnIndexes, args: { id: string }): ElementR
       implementations: indexes.implementationsByElementId.get(element.id) ?? [],
       boundaryEvents: indexes.boundaryEventsByAttachedToId.get(element.id) ?? [],
       laneIds: (indexes.lanesByElementId.get(element.id) ?? []).map((lane) => lane.id),
-      participantId: element.processId ? indexes.participantByProcessId.get(element.processId)?.id ?? null : null
+      participantId: element.processId ? indexes.participantByProcessId.get(element.processId)?.id ?? null : null,
+      details: getElementDetails(indexes, element)
     }
   };
 }

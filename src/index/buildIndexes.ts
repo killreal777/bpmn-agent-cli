@@ -45,6 +45,7 @@ const SUBPROCESS_TYPES = new Set([
 
 export function buildIndexes(model: LoadedBpmnModel): BpmnIndexes {
   const indexes: BpmnIndexes = {
+    rawById: new Map(),
     byId: new Map(),
     byNormalizedName: new Map(),
     byType: new Map(),
@@ -127,6 +128,7 @@ function indexFlowElements(
     }
 
     elementsById.set(id, element);
+    indexes.rawById.set(id, element);
 
     if (type === 'bpmn:SequenceFlow') {
       const summary = summarizeSequenceFlow(element);

@@ -61,6 +61,86 @@ Suggestions are limited to five items and sorted by score descending, then id as
 - `OUTPUT_WRITE_ERROR`
 - `INTERNAL_ERROR`
 
+## ElementResult
+
+`element` returns the existing element summary plus structural fields such as incoming/outgoing flows. P4 adds optional `details` as a type-specific, sanitized view of the same BPMN element. Raw moddle internals are not exposed.
+
+```ts
+type ElementResult = {
+  element: ElementSummary & {
+    incoming?: SequenceFlowSummary[];
+    outgoing?: SequenceFlowSummary[];
+    source?: ElementSummary | null;
+    target?: ElementSummary | null;
+    condition?: string | null;
+    implementations?: ImplementationSummary[];
+    boundaryEvents?: EventSummary[];
+    laneIds?: string[];
+    participantId?: string | null;
+    details?: ElementDetails;
+  };
+};
+
+type ElementDetails =
+  | CallActivityElementDetails
+  | ServiceTaskElementDetails
+  | UserTaskElementDetails
+  | SequenceFlowElementDetails
+  | BoundaryEventElementDetails;
+
+type CallActivityMapping = {
+  direction: "in" | "out";
+  source?: string;
+  sourceExpression?: string;
+  target?: string;
+  variables?: string;
+  businessKey?: string;
+  local?: boolean;
+};
+
+type CallActivityElementDetails = {
+  kind: "callActivity";
+  calledElement: string | null;
+  inputMappings: CallActivityMapping[];
+  outputMappings: CallActivityMapping[];
+  variableCandidates: string[];
+  warnings: string[];
+};
+
+type ServiceTaskElementDetails = {
+  kind: "serviceTask";
+  implementation: {
+    type: string | null;
+    topic: string | null;
+    delegateExpression: string | null;
+    class: string | null;
+    expression: string | null;
+  };
+  variableCandidates: string[];
+};
+
+type UserTaskElementDetails = {
+  kind: "userTask";
+  formKey: string | null;
+  variableCandidates: string[];
+};
+
+type SequenceFlowElementDetails = {
+  kind: "sequenceFlow";
+  condition: string | null;
+  variableCandidates: string[];
+};
+
+type BoundaryEventElementDetails = {
+  kind: "boundaryEvent";
+  attachedTo: ElementSummary | null;
+  cancelActivity: boolean | null;
+  eventDefinitions: EventDefinitionSummary[];
+};
+```
+
+For CallActivity data flow, use `inputMappings` and `outputMappings`; together they are the `callActivityMappings` surface until a dedicated `variables` or `call-activity` command is added.
+
 ## ValidateResult
 
 ```ts

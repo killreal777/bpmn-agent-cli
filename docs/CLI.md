@@ -32,6 +32,14 @@ bpmn-agent-cli element process.bpmn --id Task_1
 
 Returns structural details for a task, gateway, event, subprocess, call activity, or sequence flow.
 
+For supported element types, `element.details` adds a type-specific card:
+
+- call activity called element and Camunda input/output mappings
+- service task implementation attributes
+- user task form key
+- sequence flow condition and variable candidates
+- boundary event attachment and event definitions
+
 ## context
 
 ```bash

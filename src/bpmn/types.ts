@@ -109,6 +109,7 @@ export type PathSummary = {
 };
 
 export type BpmnIndexes = {
+  rawById: Map<string, ModdleElement>;
   byId: Map<string, ElementSummary>;
   byNormalizedName: Map<string, ElementSummary[]>;
   byType: Map<string, ElementSummary[]>;

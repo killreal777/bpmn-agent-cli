@@ -38,6 +38,9 @@ describe('documentation', () => {
     expect(readme).toContain('bpmn-agent-cli path process.bpmn --from StartEvent_1 --to EndEvent_1');
     expect(readme).toContain('bpmn-agent-cli export process.bpmn --format markdown');
     expect(contracts).toContain('ELEMENT_NOT_FOUND');
+    expect(contracts).toContain('ElementDetails');
+    expect(contracts).toContain('CallActivityElementDetails');
+    expect(contracts).toContain('callActivityMappings');
     expect(contracts).toContain('ValidateResult');
     expect(contracts).toContain('ParticipantsResult');
     expect(contracts).toContain('LanesResult');
