@@ -2,7 +2,12 @@
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
                   id="Definitions_SubProcess">
   <bpmn:process id="Process_SubProcess" name="Subprocess demo">
+    <bpmn:startEvent id="StartEvent_1" name="Start">
+      <bpmn:outgoing>Flow_Start_To_Sub</bpmn:outgoing>
+    </bpmn:startEvent>
     <bpmn:subProcess id="SubProcess_1" name="Handle request">
+      <bpmn:incoming>Flow_Start_To_Sub</bpmn:incoming>
+      <bpmn:outgoing>Flow_Sub_To_AdHoc</bpmn:outgoing>
       <bpmn:startEvent id="SubStart_1">
         <bpmn:outgoing>Flow_SubStart_To_Task</bpmn:outgoing>
       </bpmn:startEvent>
@@ -11,5 +16,20 @@
         <bpmn:incoming>Flow_SubStart_To_Task</bpmn:incoming>
       </bpmn:task>
     </bpmn:subProcess>
+    <bpmn:adHocSubProcess id="AdHocSubProcess_1" name="Ad hoc review">
+      <bpmn:incoming>Flow_Sub_To_AdHoc</bpmn:incoming>
+      <bpmn:outgoing>Flow_AdHoc_To_Transaction</bpmn:outgoing>
+    </bpmn:adHocSubProcess>
+    <bpmn:transaction id="Transaction_1" name="Transactional work">
+      <bpmn:incoming>Flow_AdHoc_To_Transaction</bpmn:incoming>
+      <bpmn:outgoing>Flow_Transaction_To_End</bpmn:outgoing>
+    </bpmn:transaction>
+    <bpmn:endEvent id="EndEvent_1" name="Done">
+      <bpmn:incoming>Flow_Transaction_To_End</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_Start_To_Sub" sourceRef="StartEvent_1" targetRef="SubProcess_1" />
+    <bpmn:sequenceFlow id="Flow_Sub_To_AdHoc" sourceRef="SubProcess_1" targetRef="AdHocSubProcess_1" />
+    <bpmn:sequenceFlow id="Flow_AdHoc_To_Transaction" sourceRef="AdHocSubProcess_1" targetRef="Transaction_1" />
+    <bpmn:sequenceFlow id="Flow_Transaction_To_End" sourceRef="Transaction_1" targetRef="EndEvent_1" />
   </bpmn:process>
 </bpmn:definitions>

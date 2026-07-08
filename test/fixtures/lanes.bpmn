@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="Definitions_Lanes" targetNamespace="http://example.com/lanes">
+  <bpmn:process id="Process_Lanes" name="Lane process">
+    <bpmn:laneSet id="LaneSet_1">
+      <bpmn:lane id="Lane_Operations" name="Operations">
+        <bpmn:flowNodeRef>StartEvent_1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Review</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Empty" name="Empty lane" />
+    </bpmn:laneSet>
+    <bpmn:startEvent id="StartEvent_1" name="Start">
+      <bpmn:outgoing>Flow_Start_To_Review</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="Task_Review" name="Review">
+      <bpmn:incoming>Flow_Start_To_Review</bpmn:incoming>
+      <bpmn:outgoing>Flow_Review_To_End</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="EndEvent_1" name="Done">
+      <bpmn:incoming>Flow_Review_To_End</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_Start_To_Review" sourceRef="StartEvent_1" targetRef="Task_Review" />
+    <bpmn:sequenceFlow id="Flow_Review_To_End" sourceRef="Task_Review" targetRef="EndEvent_1" />
+  </bpmn:process>
+</bpmn:definitions>

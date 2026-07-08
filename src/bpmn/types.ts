@@ -64,6 +64,7 @@ export type ParticipantSummary = {
 export type LaneSummary = {
   id: string;
   name: string | null;
+  processId: string | null;
   flowNodeIds: string[];
 };
 
@@ -112,6 +113,9 @@ export type BpmnIndexes = {
   boundaryEventsByAttachedToId: Map<string, EventSummary[]>;
   childrenBySubprocessId: Map<string, ElementSummary[]>;
   participantByProcessId: Map<string, ParticipantSummary>;
+  lanesById: Map<string, LaneSummary>;
+  lanesByProcessId: Map<string, LaneSummary[]>;
   lanesByElementId: Map<string, LaneSummary[]>;
   implementationsByElementId: Map<string, ImplementationSummary[]>;
+  subprocessParentByChildId: Map<string, string>;
 };

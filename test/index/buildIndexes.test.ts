@@ -41,4 +41,27 @@ describe('buildIndexes', () => {
       topic: 'score-client'
     }));
   });
+
+  it('indexes all lanes and subprocess parent relationships', async () => {
+    const lanes = buildIndexes(await loadBpmn(fixturePath('lanes.bpmn')));
+    const subprocess = buildIndexes(await loadBpmn(fixturePath('subprocess.bpmn')));
+
+    expect(lanes.lanesById.get('Lane_Operations')).toMatchObject({
+      id: 'Lane_Operations',
+      name: 'Operations',
+      processId: 'Process_Lanes',
+      flowNodeIds: ['StartEvent_1', 'Task_Review']
+    });
+    expect(lanes.lanesById.get('Lane_Empty')).toMatchObject({
+      id: 'Lane_Empty',
+      name: 'Empty lane',
+      processId: 'Process_Lanes',
+      flowNodeIds: []
+    });
+    expect(lanes.lanesByProcessId.get('Process_Lanes')?.map((lane) => lane.id)).toEqual(['Lane_Empty', 'Lane_Operations']);
+    expect(lanes.lanesByElementId.get('Task_Review')?.map((lane) => lane.id)).toEqual(['Lane_Operations']);
+    expect(subprocess.subprocessParentByChildId.get('SubTask_1')).toBe('SubProcess_1');
+    expect(subprocess.byType.get('bpmn:AdHocSubProcess')?.map((element) => element.id)).toEqual(['AdHocSubProcess_1']);
+    expect(subprocess.byType.get('bpmn:Transaction')?.map((element) => element.id)).toEqual(['Transaction_1']);
+  });
 });

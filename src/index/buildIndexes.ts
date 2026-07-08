@@ -29,10 +29,18 @@ const FLOW_NODE_TYPES = new Set([
   'bpmn:ManualTask',
   'bpmn:CallActivity',
   'bpmn:SubProcess',
+  'bpmn:AdHocSubProcess',
+  'bpmn:Transaction',
   'bpmn:ExclusiveGateway',
   'bpmn:ParallelGateway',
   'bpmn:InclusiveGateway',
   'bpmn:EventBasedGateway'
+]);
+
+const SUBPROCESS_TYPES = new Set([
+  'bpmn:SubProcess',
+  'bpmn:AdHocSubProcess',
+  'bpmn:Transaction'
 ]);
 
 export function buildIndexes(model: LoadedBpmnModel): BpmnIndexes {
@@ -48,8 +56,11 @@ export function buildIndexes(model: LoadedBpmnModel): BpmnIndexes {
     boundaryEventsByAttachedToId: new Map(),
     childrenBySubprocessId: new Map(),
     participantByProcessId: new Map(),
+    lanesById: new Map(),
+    lanesByProcessId: new Map(),
     lanesByElementId: new Map(),
-    implementationsByElementId: new Map()
+    implementationsByElementId: new Map(),
+    subprocessParentByChildId: new Map()
   };
 
   const elementsById = new Map<string, ModdleElement>();
@@ -61,7 +72,7 @@ export function buildIndexes(model: LoadedBpmnModel): BpmnIndexes {
     }
 
     for (const laneSet of arrayOf<ModdleElement>(process.laneSets)) {
-      indexLaneSet(indexes, laneSet);
+      indexLaneSet(indexes, laneSet, processId);
     }
 
     indexFlowElements(indexes, elementsById, arrayOf<ModdleElement>(process.flowElements), processId, null);
@@ -135,6 +146,7 @@ function indexFlowElements(
 
     if (subprocessId) {
       pushMap(indexes.childrenBySubprocessId, subprocessId, summary);
+      indexes.subprocessParentByChildId.set(id, subprocessId);
     }
 
     if (type === 'bpmn:BoundaryEvent') {
@@ -151,7 +163,7 @@ function indexFlowElements(
       pushMap(indexes.implementationsByElementId, id, implementation);
     }
 
-    if (type === 'bpmn:SubProcess') {
+    if (SUBPROCESS_TYPES.has(type)) {
       indexFlowElements(indexes, elementsById, arrayOf<ModdleElement>(element.flowElements), processId, id);
     }
   }
@@ -310,20 +322,24 @@ function cleanImplementation(value: ImplementationSummary): ImplementationSummar
   return Object.fromEntries(Object.entries(value).filter(([, item]) => item !== undefined)) as ImplementationSummary;
 }
 
-function indexLaneSet(indexes: BpmnIndexes, laneSet: ModdleElement): void {
+function indexLaneSet(indexes: BpmnIndexes, laneSet: ModdleElement, processId: string): void {
   for (const lane of sortElements(arrayOf<ModdleElement>(laneSet.lanes))) {
     const summary: LaneSummary = {
       id: String(lane.id),
       name: stringValue(lane.name),
+      processId,
       flowNodeIds: arrayOf<unknown>(lane.flowNodeRef).map(idOf).filter((id): id is string => Boolean(id)).sort()
     };
+
+    indexes.lanesById.set(summary.id, summary);
+    pushMap(indexes.lanesByProcessId, processId, summary);
 
     for (const flowNodeId of summary.flowNodeIds) {
       pushMap(indexes.lanesByElementId, flowNodeId, summary);
     }
 
     for (const childLaneSet of arrayOf<ModdleElement>(lane.childLaneSet ? [lane.childLaneSet] : [])) {
-      indexLaneSet(indexes, childLaneSet);
+      indexLaneSet(indexes, childLaneSet, processId);
     }
   }
 }
@@ -369,6 +385,7 @@ function sortIndexArrays(indexes: BpmnIndexes): void {
     indexes.outgoingByNodeId,
     indexes.boundaryEventsByAttachedToId,
     indexes.childrenBySubprocessId,
+    indexes.lanesByProcessId,
     indexes.lanesByElementId,
     indexes.implementationsByElementId
   ]) {
