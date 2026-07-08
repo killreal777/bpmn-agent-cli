@@ -27,6 +27,7 @@ import { subprocessCommand } from './commands/subprocessCommand.js';
 import { traceCommand } from './commands/traceCommand.js';
 import { toJsonCommand } from './commands/toJsonCommand.js';
 import { validateCommand } from './commands/validateCommand.js';
+import { variablesCommand } from './commands/variablesCommand.js';
 
 export async function main(args: string[] = process.argv.slice(2)): Promise<void> {
   if (args.includes('--help') || args.length === 0) {
@@ -67,6 +68,11 @@ export async function main(args: string[] = process.argv.slice(2)): Promise<void
 
     if (parsed.command === 'element') {
       writeJson(await elementCommand(parsed), pretty);
+      return;
+    }
+
+    if (parsed.command === 'variables') {
+      writeJson(await variablesCommand(parsed), pretty);
       return;
     }
 

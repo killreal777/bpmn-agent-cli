@@ -101,7 +101,7 @@ function callActivityDetails(element: ModdleElement): ElementDetails {
   };
 }
 
-function mappingSummary(element: ModdleElement): CallActivityMapping | null {
+export function mappingSummary(element: ModdleElement): CallActivityMapping | null {
   if (element.$type !== 'camunda:In' && element.$type !== 'camunda:Out') {
     return null;
   }
@@ -196,7 +196,7 @@ function conditionText(value: unknown): string | null {
   return expressionBody(value);
 }
 
-function variableCandidatesFromMappings(mappings: CallActivityMapping[]): string[] {
+export function variableCandidatesFromMappings(mappings: CallActivityMapping[]): string[] {
   const values = mappings.flatMap((mapping) => [
     mapping.source,
     mapping.sourceExpression,
@@ -207,7 +207,7 @@ function variableCandidatesFromMappings(mappings: CallActivityMapping[]): string
   return variableCandidatesFromValues(values);
 }
 
-function variableCandidatesFromValues(values: string[]): string[] {
+export function variableCandidatesFromValues(values: string[]): string[] {
   const candidates = new Set<string>();
 
   for (const value of values) {
@@ -219,7 +219,7 @@ function variableCandidatesFromValues(values: string[]): string[] {
   return [...candidates].sort((a, b) => a.localeCompare(b));
 }
 
-function extractVariableCandidates(value: string): string[] {
+export function extractVariableCandidates(value: string): string[] {
   const withoutStrings = value.replace(/'[^']*'|"[^"]*"/g, ' ');
   const tokens = withoutStrings.match(/[A-Za-z_][A-Za-z0-9_.]*/g) ?? [];
   const reserved = new Set(['all', 'and', 'or', 'not', 'true', 'false', 'null']);

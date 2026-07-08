@@ -141,6 +141,44 @@ type BoundaryEventElementDetails = {
 
 For CallActivity data flow, use `inputMappings` and `outputMappings`; together they are the `callActivityMappings` surface until a dedicated `variables` or `call-activity` command is added.
 
+## VariablesResult
+
+```ts
+type VariableDirection = "read" | "write" | "in" | "out" | "pass-through" | "unknown";
+
+type VariableUsage = {
+  name: string;
+  direction: VariableDirection;
+  source: "callActivityMapping" | "sequenceFlowCondition" | "implementationExpression" | "formKey";
+  element: ElementSummary;
+  expression?: string;
+  mapping?: CallActivityMapping;
+};
+
+type VariableSummary = {
+  name: string;
+  usageCount: number;
+  directions: VariableDirection[];
+  elements: ElementSummary[];
+};
+
+type VariablesResult = {
+  variables: VariableSummary[];
+  usages: VariableUsage[];
+  callActivityMappings: Array<{
+    element: ElementSummary;
+    calledElement: string | null;
+    inputMappings: CallActivityMapping[];
+    outputMappings: CallActivityMapping[];
+    variables: string[];
+    warnings: string[];
+  }>;
+  warnings: string[];
+};
+```
+
+`variables` is read-only and best-effort. It does not execute or fully parse expression languages; variable names from expressions are candidates.
+
 ## ValidateResult
 
 ```ts

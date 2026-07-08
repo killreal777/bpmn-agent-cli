@@ -40,6 +40,16 @@ For supported element types, `element.details` adds a type-specific card:
 - sequence flow condition and variable candidates
 - boundary event attachment and event definitions
 
+## variables
+
+```bash
+bpmn-agent-cli variables process.bpmn
+bpmn-agent-cli variables process.bpmn --element Call_SubProcess
+bpmn-agent-cli variables process.bpmn --name customerId
+```
+
+Returns best-effort variable usage extracted from CallActivity mappings, sequence-flow conditions, implementation expressions, and form keys. It also returns structured CallActivity input/output mappings.
+
 ## context
 
 ```bash

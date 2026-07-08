@@ -22,6 +22,7 @@ describe('documentation', () => {
     expect(cli).toContain('bpmn-agent-cli overview process.bpmn');
     expect(cli).toContain('bpmn-agent-cli to-json process.bpmn --preset optimized');
     expect(cli).toContain('bpmn-agent-cli participants process.bpmn');
+    expect(cli).toContain('bpmn-agent-cli variables process.bpmn --element Call_SubProcess');
     expect(cli).toContain('bpmn-agent-cli lanes process.bpmn --element Task_1');
     expect(cli).toContain('bpmn-agent-cli events process.bpmn --type boundary');
     expect(cli).toContain('bpmn-agent-cli subprocess process.bpmn --id SubProcess_1');
@@ -41,6 +42,7 @@ describe('documentation', () => {
     expect(contracts).toContain('ElementDetails');
     expect(contracts).toContain('CallActivityElementDetails');
     expect(contracts).toContain('callActivityMappings');
+    expect(contracts).toContain('VariablesResult');
     expect(contracts).toContain('ValidateResult');
     expect(contracts).toContain('ParticipantsResult');
     expect(contracts).toContain('LanesResult');
