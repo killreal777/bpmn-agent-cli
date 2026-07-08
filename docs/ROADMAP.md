@@ -85,3 +85,13 @@ P3-C implemented:
 P3-D implemented:
 
 - `add-boundary-event`
+
+## P4
+
+Planned read-side focus:
+
+- `variables`
+- enriched `element` details by BPMN element type
+- `call-activity`
+- variable-aware lint rules
+- legacy `to-json` deprecation/removal plan

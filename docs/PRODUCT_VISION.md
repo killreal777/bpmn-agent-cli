@@ -34,9 +34,11 @@ The product should become the default utility an agent reaches for before readin
 
 ## Near-Term Direction
 
-The near-term product should finish safe structural editing and then improve confidence:
+The near-term product should shift back toward read-side understanding after completing safe structural editing:
 
-- Finish remaining P3 structural commands.
+- Make process variables and CallActivity mappings first-class read concepts.
+- Enrich `element` with type-specific details so agents can inspect one element without raw XML.
+- Deprecate legacy `to-json` as a primary workflow.
 - Add semantic lint rules that catch common Camunda/BPMN mistakes.
 - Add `diff` and `plan` commands so write operations become easier to review.
 - Add CI-friendly report output for repository-wide BPMN checks.
@@ -49,4 +51,3 @@ The near-term product should finish safe structural editing and then improve con
 - Hidden automatic rewrites without explicit `--write`.
 - LLM-powered analysis inside the CLI runtime.
 - Lossy conversion as the default command behavior.
-

@@ -3,7 +3,7 @@
 Backlog priority:
 
 - `P3`: finish currently planned structural BPMN write commands.
-- `P4`: high-value product capabilities after structural writes.
+- `P4`: read-side understanding improvements for agents.
 - `P5`: larger workflow, ecosystem, or polish work.
 
 Status values:
@@ -49,9 +49,125 @@ Status: `proposed`
 
 Create a documented safety matrix for each write command describing supported element types, refused cases, semantic risks, and future expansion.
 
+## P4: Variable And Element Understanding
+
+### BL-004: `variables`
+
+Priority: `P4`
+Status: `ready-for-spec`
+
+Add a read-only command that extracts process variable usage from BPMN/Camunda metadata and expressions.
+
+Initial scope:
+
+- Camunda `camunda:in` and `camunda:out` mappings on `bpmn:CallActivity`.
+- Mapping attributes: `source`, `sourceExpression`, `target`, `variables`, `businessKey`, `local`.
+- Sequence flow condition expressions as variable read candidates.
+- Camunda `expression` and `delegateExpression` as expression usage candidates.
+- Element-level grouping: each usage must point back to element id/name/type.
+- Usage direction: `read`, `write`, `in`, `out`, `pass-through`, or `unknown`.
+
+Command direction:
+
+```bash
+bpmn-agent-cli variables process.bpmn
+bpmn-agent-cli variables process.bpmn --element Call_SubProcess
+bpmn-agent-cli variables process.bpmn --name customerId
+```
+
+Result direction:
+
+- `variables`: normalized variable list.
+- `usages`: all detected usages sorted by variable name, element id, direction.
+- `callActivityMappings`: structured in/out mappings for call activities.
+- `warnings`: ambiguous expressions and unsupported mapping forms.
+
+This is the highest-priority read improvement because agents need to understand BPMN context variables before safely reviewing or modifying workflows.
+
+### BL-005: Enrich `element` With Type-Specific Details
+
+Priority: `P4`
+Status: `ready-for-spec`
+
+Extend the existing `element` command so it returns specialized detail sections depending on element type.
+
+Initial strategies:
+
+- `bpmn:CallActivity`: include `calledElement`, Camunda in/out mappings, business key mapping, variable pass-through, and mapping warnings.
+- `bpmn:ServiceTask`: include implementation metadata and variable candidates from expressions.
+- `bpmn:UserTask`: include form key and variable candidates from form-related metadata when available.
+- `bpmn:SequenceFlow`: include condition expression and variable read candidates.
+- `bpmn:BoundaryEvent`: include event definition details and attached element summary.
+
+The command should keep the current compact element summary but add a `details` object that is stable, JSON-first, and omits raw/noisy moddle internals.
+
+### BL-006: `call-activity`
+
+Priority: `P4`
+Status: `ready-for-spec`
+
+Add a focused read-only command for call activity contracts.
+
+Command direction:
+
+```bash
+bpmn-agent-cli call-activity process.bpmn --id Call_SubProcess
+bpmn-agent-cli call-activity process.bpmn
+```
+
+Output should include:
+
+- called element/key
+- all `camunda:in` mappings
+- all `camunda:out` mappings
+- `variables="all"` pass-through
+- business key mapping
+- local variable flags
+- unresolved or unsupported mapping warnings
+- optional relationship to `variables` result
+
+This can share the same extraction layer as `variables` and enriched `element`.
+
+### BL-007: Variable-Aware Lint Rules
+
+Priority: `P4`
+Status: `proposed`
+
+Add lint diagnostics based on extracted variable usage.
+
+Initial rules:
+
+- call activity with no explicit mappings and no `variables="all"`.
+- `camunda:in` mapping missing target.
+- `camunda:out` mapping missing target.
+- `sourceExpression` without target.
+- suspicious pass-through of all variables.
+- condition expression references variables with no detected producer.
+
+### BL-008: Legacy `to-json` Removal Plan
+
+Priority: `P4`
+Status: `ready-for-spec`
+
+Remove legacy-first thinking from the product and migrate away from raw `to-json`.
+
+Direction:
+
+- Keep `to-json` temporarily only as deprecated compatibility command.
+- Add deprecation notice in docs, not JSON stdout.
+- Move legacy converter docs to a migration section.
+- Prefer `overview`, `element`, `variables`, `export --format json`, and future `schema`.
+- Define a future major-version removal point.
+
+Acceptance direction:
+
+- No read workflow should require `to-json`.
+- Skill should stop recommending `to-json` except for compatibility.
+- Backlog should track replacement coverage before removal.
+
 ## P4: Review And Confidence
 
-### BL-004: `diff`
+### BL-009: `diff`
 
 Priority: `P4`
 Status: `ready-for-spec`
@@ -65,7 +181,7 @@ Acceptance direction:
 - Ignore pure formatting differences.
 - Include sequence flow topology changes.
 
-### BL-005: `plan-write`
+### BL-010: `plan-write`
 
 Priority: `P4`
 Status: `proposed`
@@ -78,7 +194,7 @@ Acceptance direction:
 - Output includes commands to execute and expected result schema.
 - Useful for agent self-review before `--write`.
 
-### BL-006: BPMN Lint Rules
+### BL-011: BPMN Lint Rules
 
 Priority: `P4`
 Status: `ready-for-spec`
@@ -96,14 +212,14 @@ Initial rules:
 - boundary event without outgoing handler
 - call activity missing called element
 
-### BL-007: `impact`
+### BL-012: `impact`
 
 Priority: `P4`
 Status: `proposed`
 
 Given an element id, report downstream and upstream impact including paths, participants, lanes, events, implementations, and call activities affected by a change.
 
-### BL-008: `review`
+### BL-013: `review`
 
 Priority: `P4`
 Status: `proposed`
@@ -112,7 +228,7 @@ Generate a human-readable review packet for a BPMN file or BPMN diff: overview, 
 
 ## P4: Agent Context And Query Expansion
 
-### BL-009: `query`
+### BL-014: `query`
 
 Priority: `P4`
 Status: `proposed`
@@ -125,7 +241,7 @@ Example:
 bpmn-agent-cli query process.bpmn --where 'type=bpmn:ServiceTask and implementation.kind=externalTask'
 ```
 
-### BL-010: Repository Batch Mode
+### BL-015: Repository Batch Mode
 
 Priority: `P4`
 Status: `proposed`
@@ -138,14 +254,14 @@ Acceptance direction:
 - Output is stable JSON with per-file envelopes.
 - No reading unrelated project files during BPMN analysis.
 
-### BL-011: `schema`
+### BL-016: `schema`
 
 Priority: `P4`
 Status: `proposed`
 
 Print JSON schemas for command outputs and errors so downstream agents and CI can validate contracts.
 
-### BL-012: Shell Completion
+### BL-017: Shell Completion
 
 Priority: `P4`
 Status: `proposed`
@@ -154,7 +270,7 @@ Generate shell completions for commands and options.
 
 ## P5: Visual And Layout Support
 
-### BL-013: BPMNDI Layout For Inserted Elements
+### BL-018: BPMNDI Layout For Inserted Elements
 
 Priority: `P5`
 Status: `blocked`
@@ -166,14 +282,14 @@ Blocked by:
 - Structural write commands need stable semantic behavior first.
 - Layout strategy must be deterministic and testable.
 
-### BL-014: `layout-check`
+### BL-019: `layout-check`
 
 Priority: `P5`
 Status: `proposed`
 
 Detect semantic BPMN elements that have no BPMNDI shape/edge and report layout gaps.
 
-### BL-015: SVG Preview Export
+### BL-020: SVG Preview Export
 
 Priority: `P5`
 Status: `proposed`
@@ -182,28 +298,28 @@ Export a simple SVG preview or diagram metadata snapshot for agents and code rev
 
 ## P5: Distribution And Ecosystem
 
-### BL-016: npm Package Release
+### BL-021: npm Package Release
 
 Priority: `P5`
 Status: `proposed`
 
 Prepare public npm publishing alongside GitHub extension installation.
 
-### BL-017: GitHub Action
+### BL-022: GitHub Action
 
 Priority: `P5`
 Status: `proposed`
 
 Provide a GitHub Action for BPMN validation, lint, and review report generation.
 
-### BL-018: MCP Server
+### BL-023: MCP Server
 
 Priority: `P5`
 Status: `proposed`
 
 Expose read/query/validate commands through a local MCP server for tools that prefer tool calls over CLI subprocesses.
 
-### BL-019: Versioned Output Contracts
+### BL-024: Versioned Output Contracts
 
 Priority: `P5`
 Status: `proposed`
@@ -212,28 +328,28 @@ Add explicit output contract versioning and compatibility policy.
 
 ## P5: Camunda And BPMN Coverage
 
-### BL-020: Camunda Input/Output Mappings
+### BL-025: Camunda Input/Output Mapping Editing
 
 Priority: `P5`
 Status: `proposed`
 
-Read and safely edit Camunda input/output mappings for call activities and service tasks.
+Safely edit Camunda input/output mappings for call activities and service tasks. Read-only mapping extraction is now tracked earlier under `variables`, enriched `element`, and `call-activity`.
 
-### BL-021: Listener Editing
+### BL-026: Listener Editing
 
 Priority: `P5`
 Status: `proposed`
 
 Safely add, replace, and remove execution/task listeners in `extensionElements`.
 
-### BL-022: Message Flow Editing
+### BL-027: Message Flow Editing
 
 Priority: `P5`
 Status: `proposed`
 
 Add safe commands for creating and deleting message flows in collaborations.
 
-### BL-023: Event Definition Editing
+### BL-028: Event Definition Editing
 
 Priority: `P5`
 Status: `proposed`

@@ -57,6 +57,9 @@ describe('documentation', () => {
     expect(vision).toContain('Product Vision');
     expect(vision).toContain('Dry-run');
     expect(backlog).toContain('Product Backlog');
+    expect(backlog).toContain('variables');
+    expect(backlog).toContain('call-activity');
+    expect(backlog).toContain('Legacy `to-json` Removal Plan');
     expect(backlog).toContain('delete-safe');
     expect(backlog).toContain('add-boundary-event');
     expect(backlog).toContain('BPMN Lint Rules');
