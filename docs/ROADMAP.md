@@ -88,13 +88,25 @@ P3-D implemented:
 
 ## P4
 
-Planned metric-first reading optimization:
+P4 Sprint 0 implemented:
 
 - adopt `docs/READING_METRICS_STRATEGY.md`
 - benchmark fixtures and task definitions
 - opt-in CLI metrics logging
 - benchmark runner and comparison report
 - baseline reading report
+
+Baseline summary:
+
+- 20 benchmark tasks
+- 36 CLI calls
+- 20 successful tasks
+- 8843 estimated output tokens
+- 0 XML fallback
+- 0 tool errors
+
+Planned measured experiments:
+
 - first measured experiment: enriched `element` details by BPMN element type
 - second measured experiment: `context --profile agent`
 - semantic experiment: `variables` or `call-activity`

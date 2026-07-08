@@ -67,7 +67,7 @@ Acceptance:
 ### BL-005: Reading Benchmark Fixtures And Tasks
 
 Priority: `P4`
-Status: `ready-for-spec`
+Status: `implemented`
 
 Add a deterministic offline benchmark suite for BPMN reading tasks.
 
@@ -78,10 +78,16 @@ Initial scope:
 - At least 20 task definitions across overview, element inspection, local context, gateway reasoning, path/reachability, events, subprocess/call activity, implementations, variables, and composite scenarios.
 - Expected-answer metadata and scoring rubrics that do not require production BPMN files.
 
+Implemented scope:
+
+- 5 synthetic BPMN fixtures under `benchmarks/fixtures/`.
+- 20 task definitions under `benchmarks/tasks/`.
+- Task definitions include executable `cliCalls` for deterministic offline benchmark runs.
+
 ### BL-006: CLI Metrics Logging
 
 Priority: `P4`
-Status: `ready-for-spec`
+Status: `implemented`
 
 Add opt-in metrics tracing for benchmark runs.
 
@@ -99,10 +105,16 @@ Requirements:
 - Do not log BPMN content or full sensitive arguments.
 - JSON stdout must remain valid command output only.
 
+Implemented scope:
+
+- `--trace-metrics <path>` appends privacy-preserving JSONL entries.
+- File content and argument values are hashed.
+- Command JSON stdout remains unchanged.
+
 ### BL-007: Benchmark Runner And Comparison Report
 
 Priority: `P4`
-Status: `ready-for-spec`
+Status: `implemented`
 
 Add npm scripts and runner skeleton for comparing baseline and candidate tool variants.
 
@@ -127,10 +139,16 @@ Report direction:
 - tool errors/retries
 - aggregate comparison
 
+Implemented scope:
+
+- `npm run benchmark`.
+- `npm run benchmark:compare`.
+- Smoke-tested one-task benchmark and self-comparison.
+
 ### BL-008: Baseline Reading Report
 
 Priority: `P4`
-Status: `blocked`
+Status: `implemented`
 
 Run the first benchmark against the current CLI and commit a baseline report.
 
@@ -145,6 +163,16 @@ Acceptance:
 - Baseline report exists under `benchmarks/results/`.
 - Report includes enough data to choose the first read feature experiment.
 - No new reading feature is required for this backlog item.
+
+Implemented baseline:
+
+- Report: `benchmarks/results/baseline.json`.
+- Tasks: 20.
+- Successful tasks: 20.
+- CLI calls: 36.
+- Estimated output tokens: 8843.
+- XML fallback rate: 0.
+- Tool errors: 0.
 
 ## P4: Variable And Element Understanding
 
