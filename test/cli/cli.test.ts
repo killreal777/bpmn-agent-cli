@@ -144,6 +144,19 @@ describe('CLI overview and validate', () => {
     });
   });
 
+  it('prints path envelope as JSON', async () => {
+    const { stdout } = await execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'path', 'test/fixtures/simple-linear.bpmn', '--from', 'StartEvent_1', '--to', 'EndEvent_1']);
+
+    expect(JSON.parse(stdout)).toMatchObject({
+      ok: true,
+      command: 'path',
+      result: {
+        found: true,
+        paths: [expect.objectContaining({ depth: 2 })]
+      }
+    });
+  });
+
   it('exits 1 for validation errors', async () => {
     await expect(execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'validate', 'test/fixtures/broken-reference.bpmn'])).rejects.toMatchObject({
       code: 1,
@@ -162,6 +175,13 @@ describe('CLI overview and validate', () => {
     await expect(execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'subprocess', 'test/fixtures/subprocess.bpmn', '--id', 'SubTask_1'])).rejects.toMatchObject({
       code: 1,
       stdout: expect.stringContaining('UNSUPPORTED_BPMN_ELEMENT_TYPE')
+    });
+  });
+
+  it('exits 2 when path is missing --to', async () => {
+    await expect(execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'path', 'test/fixtures/simple-linear.bpmn', '--from', 'StartEvent_1'])).rejects.toMatchObject({
+      code: 2,
+      stdout: expect.stringContaining('INVALID_OPTION_VALUE')
     });
   });
 
