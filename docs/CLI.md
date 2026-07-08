@@ -109,6 +109,17 @@ bpmn-agent-cli subprocess process.bpmn --id SubProcess_1
 
 Returns subprocess-like elements, direct children, direct nested subprocesses, incoming/outgoing flows, and boundary events.
 
+## export
+
+```bash
+bpmn-agent-cli export process.bpmn --format markdown
+bpmn-agent-cli export process.bpmn --format text --section overview
+bpmn-agent-cli export process.bpmn --format json --section events
+bpmn-agent-cli export process.bpmn --format markdown -o tmp/process.md
+```
+
+Exports compact BPMN context. `markdown` and `text` successes write raw content. `json` success uses the common JSON envelope. `--section` accepts `all`, `overview`, `participants`, `lanes`, `events`, `subprocess`, and `implementations`.
+
 ## validate
 
 ```bash

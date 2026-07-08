@@ -160,6 +160,31 @@ type PathResult = {
 
 `paths` contains only paths that reach `to`. For both directions, path nodes are returned in requested endpoint order from `from` to `to`.
 
+## ExportResult
+
+```ts
+type ExportSection =
+  | "overview"
+  | "participants"
+  | "lanes"
+  | "events"
+  | "subprocess"
+  | "implementations";
+
+type ExportResult = {
+  format: "json";
+  sections: ExportSection[];
+  overview?: OverviewResult;
+  participants?: ParticipantsResult;
+  lanes?: LanesResult;
+  events?: EventsResult;
+  subprocess?: SubprocessResult;
+  implementations?: ImplementationsResult;
+};
+```
+
+`export --format json` uses the success envelope. `export --format markdown` and `export --format text` write raw successful export content.
+
 ## Element Type Contract
 
 `type` fields use canonical moddle types such as `bpmn:ServiceTask`. CLI aliases such as `serviceTask` are accepted only as input filters.

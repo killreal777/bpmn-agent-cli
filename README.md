@@ -47,6 +47,7 @@ bpmn-agent-cli participants process.bpmn
 bpmn-agent-cli lanes process.bpmn --element Activity_CheckClient
 bpmn-agent-cli events process.bpmn --type boundary
 bpmn-agent-cli subprocess process.bpmn --id SubProcess_1
+bpmn-agent-cli export process.bpmn --format markdown
 bpmn-agent-cli validate process.bpmn
 bpmn-agent-cli to-json process.bpmn --preset optimized
 ```
@@ -98,6 +99,8 @@ P0 includes read-only commands: `overview`, `find`, `element`, `context`, `trace
 P1-A adds read-only structural commands: `participants`, `lanes`, `events`, and `subprocess`.
 
 P1-B adds `path` for focused reachability between two BPMN elements.
+
+P1-C adds `export` for markdown, text, and JSON context output.
 
 P1/P2/P3 scope is documented in `docs/ROADMAP.md`.
 

@@ -35,10 +35,13 @@ P1-B implemented:
 
 - `path`
 
-Remaining reading improvements:
+P1-C implemented:
 
 - `export`
-- markdown/text output where useful
+- markdown/text output for `export`
+
+Remaining reading improvements:
+
 - full duplicate id detection if supported without custom parsing
 
 ## P2

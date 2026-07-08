@@ -21,7 +21,9 @@ describe('documentation', () => {
     expect(cli).toContain('bpmn-agent-cli events process.bpmn --type boundary');
     expect(cli).toContain('bpmn-agent-cli subprocess process.bpmn --id SubProcess_1');
     expect(cli).toContain('bpmn-agent-cli path process.bpmn --from StartEvent_1 --to EndEvent_1');
+    expect(cli).toContain('bpmn-agent-cli export process.bpmn --format markdown');
     expect(readme).toContain('bpmn-agent-cli path process.bpmn --from StartEvent_1 --to EndEvent_1');
+    expect(readme).toContain('bpmn-agent-cli export process.bpmn --format markdown');
     expect(contracts).toContain('ELEMENT_NOT_FOUND');
     expect(contracts).toContain('ValidateResult');
     expect(contracts).toContain('ParticipantsResult');
@@ -29,6 +31,7 @@ describe('documentation', () => {
     expect(contracts).toContain('EventsResult');
     expect(contracts).toContain('SubprocessResult');
     expect(contracts).toContain('PathResult');
+    expect(contracts).toContain('ExportResult');
     expect(roadmap).toContain('P0');
     expect(roadmap).toContain('P1-A');
     expect(roadmap).toContain('P1');
