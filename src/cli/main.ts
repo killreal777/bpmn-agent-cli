@@ -5,6 +5,7 @@ import { errorEnvelope, toExitCode, writeJson } from '../output/jsonOutput.js';
 import { parseArgs } from './args.js';
 import { contextCommand } from './commands/contextCommand.js';
 import { elementCommand } from './commands/elementCommand.js';
+import { eventsCommand } from './commands/eventsCommand.js';
 import { findCommand } from './commands/findCommand.js';
 import { gatewayCommand } from './commands/gatewayCommand.js';
 import { implementationsCommand } from './commands/implementationsCommand.js';
@@ -72,6 +73,11 @@ export async function main(args: string[] = process.argv.slice(2)): Promise<void
 
     if (parsed.command === 'lanes') {
       writeJson(await lanesCommand(parsed), pretty);
+      return;
+    }
+
+    if (parsed.command === 'events') {
+      writeJson(await eventsCommand(parsed), pretty);
       return;
     }
 

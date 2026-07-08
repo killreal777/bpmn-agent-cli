@@ -116,10 +116,31 @@ describe('CLI overview and validate', () => {
     });
   });
 
+  it('prints events envelope as JSON', async () => {
+    const { stdout } = await execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'events', 'test/fixtures/boundary-timer.bpmn', '--type', 'boundary']);
+
+    expect(JSON.parse(stdout)).toMatchObject({
+      ok: true,
+      command: 'events',
+      result: {
+        events: [
+          expect.objectContaining({ id: 'Boundary_Timer', category: 'boundary' })
+        ]
+      }
+    });
+  });
+
   it('exits 1 for validation errors', async () => {
     await expect(execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'validate', 'test/fixtures/broken-reference.bpmn'])).rejects.toMatchObject({
       code: 1,
       stdout: expect.stringContaining('"valid":false')
+    });
+  });
+
+  it('exits 2 for invalid events type filter', async () => {
+    await expect(execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'events', 'test/fixtures/boundary-timer.bpmn', '--type', 'gateway'])).rejects.toMatchObject({
+      code: 2,
+      stdout: expect.stringContaining('INVALID_OPTION_VALUE')
     });
   });
 

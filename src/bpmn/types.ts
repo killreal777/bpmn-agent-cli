@@ -55,6 +55,13 @@ export type EventSummary = ElementSummary & {
   eventDefinitionType?: string | null;
 };
 
+export type EventDefinitionSummary = {
+  type: string;
+  value?: string | null;
+  refId?: string | null;
+  refName?: string | null;
+};
+
 export type ParticipantSummary = {
   id: string;
   name: string | null;
