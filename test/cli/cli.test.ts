@@ -89,6 +89,20 @@ describe('CLI overview and validate', () => {
     });
   });
 
+  it('prints participants envelope as JSON', async () => {
+    const { stdout } = await execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'participants', 'test/fixtures/collaboration-message-flow.bpmn']);
+
+    expect(JSON.parse(stdout)).toMatchObject({
+      ok: true,
+      command: 'participants',
+      result: {
+        collaborations: [
+          expect.objectContaining({ id: 'Collaboration_1' })
+        ]
+      }
+    });
+  });
+
   it('exits 1 for validation errors', async () => {
     await expect(execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'validate', 'test/fixtures/broken-reference.bpmn'])).rejects.toMatchObject({
       code: 1,
