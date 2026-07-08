@@ -12,6 +12,7 @@ import { implementationsCommand } from './commands/implementationsCommand.js';
 import { lanesCommand } from './commands/lanesCommand.js';
 import { overviewCommand } from './commands/overviewCommand.js';
 import { participantsCommand } from './commands/participantsCommand.js';
+import { subprocessCommand } from './commands/subprocessCommand.js';
 import { traceCommand } from './commands/traceCommand.js';
 import { toJsonCommand } from './commands/toJsonCommand.js';
 import { validateCommand } from './commands/validateCommand.js';
@@ -78,6 +79,11 @@ export async function main(args: string[] = process.argv.slice(2)): Promise<void
 
     if (parsed.command === 'events') {
       writeJson(await eventsCommand(parsed), pretty);
+      return;
+    }
+
+    if (parsed.command === 'subprocess') {
+      writeJson(await subprocessCommand(parsed), pretty);
       return;
     }
 

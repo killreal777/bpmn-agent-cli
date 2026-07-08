@@ -130,6 +130,20 @@ describe('CLI overview and validate', () => {
     });
   });
 
+  it('prints subprocess envelope as JSON', async () => {
+    const { stdout } = await execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'subprocess', 'test/fixtures/subprocess.bpmn', '--id', 'SubProcess_1']);
+
+    expect(JSON.parse(stdout)).toMatchObject({
+      ok: true,
+      command: 'subprocess',
+      result: {
+        subprocesses: [
+          expect.objectContaining({ element: expect.objectContaining({ id: 'SubProcess_1' }) })
+        ]
+      }
+    });
+  });
+
   it('exits 1 for validation errors', async () => {
     await expect(execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'validate', 'test/fixtures/broken-reference.bpmn'])).rejects.toMatchObject({
       code: 1,
@@ -141,6 +155,13 @@ describe('CLI overview and validate', () => {
     await expect(execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'events', 'test/fixtures/boundary-timer.bpmn', '--type', 'gateway'])).rejects.toMatchObject({
       code: 2,
       stdout: expect.stringContaining('INVALID_OPTION_VALUE')
+    });
+  });
+
+  it('exits 1 when subprocess id is not subprocess-like', async () => {
+    await expect(execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'subprocess', 'test/fixtures/subprocess.bpmn', '--id', 'SubTask_1'])).rejects.toMatchObject({
+      code: 1,
+      stdout: expect.stringContaining('UNSUPPORTED_BPMN_ELEMENT_TYPE')
     });
   });
 
