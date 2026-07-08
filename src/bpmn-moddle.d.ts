@@ -10,8 +10,13 @@ declare module 'bpmn-moddle' {
     elementsById: Record<string, unknown>;
   };
 
+  export type ToXmlResult = {
+    xml: string;
+  };
+
   export default class BpmnModdle {
     constructor(packages?: Record<string, unknown>);
     fromXML(xml: string): Promise<FromXmlResult>;
+    toXML(element: unknown, options?: { format?: boolean; preamble?: boolean }): Promise<ToXmlResult>;
   }
 }
