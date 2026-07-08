@@ -72,8 +72,11 @@ P3-A implemented:
 
 - `insert-task-between`
 
-Remaining structural write commands:
+P3-B implemented:
 
 - `connect`
+
+Remaining structural write commands:
+
 - `delete-safe`
 - `add-boundary-event`

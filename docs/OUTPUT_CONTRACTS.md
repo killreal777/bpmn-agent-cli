@@ -298,6 +298,29 @@ type InsertTaskBetweenResult = {
 
 `insert-task-between` uses the success envelope. Dry-run is default and reports the planned structural diff without writing files. P3-A does not update BPMNDI layout and returns `DI_NOT_UPDATED` in `warnings`.
 
+## ConnectResult
+
+```ts
+type ConnectResult = {
+  dryRun: boolean;
+  written: boolean;
+  file: string;
+  outputFile: string | null;
+  flow: SequenceFlowSummary;
+  source: ElementSummary;
+  target: ElementSummary;
+  warnings: Diagnostic[];
+  diff: Array<{
+    op: "add";
+    path: string;
+    before: string | null;
+    after: string;
+  }>;
+};
+```
+
+`connect` uses the success envelope. Dry-run is default and reports the planned structural diff without writing files. P3-B does not update BPMNDI layout and returns `DI_NOT_UPDATED` in `warnings`.
+
 ## Element Type Contract
 
 `type` fields use canonical moddle types such as `bpmn:ServiceTask`. CLI aliases such as `serviceTask` are accepted only as input filters.

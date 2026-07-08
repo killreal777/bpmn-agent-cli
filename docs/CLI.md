@@ -174,6 +174,18 @@ Splits one existing `bpmn:SequenceFlow` and inserts one task-like node between t
 
 P3-A updates semantic BPMN only and does not update BPMNDI layout. Successful results include a `DI_NOT_UPDATED` warning.
 
+## connect
+
+```bash
+bpmn-agent-cli connect process.bpmn --from Task_A --to Task_B --id Flow_A_B
+bpmn-agent-cli connect process.bpmn --from Task_A --to Task_B --id Flow_A_B --name "approved" --write
+bpmn-agent-cli connect process.bpmn --from Task_A --to Task_B --id Flow_A_B --write -o tmp/connected.bpmn
+```
+
+Adds one `bpmn:SequenceFlow` between two existing flow nodes and updates source `outgoing` plus target `incoming` references. Dry-run is the default. No file is written unless `--write` is provided. `-o` is allowed only with `--write`.
+
+P3-B updates semantic BPMN only and does not update BPMNDI layout. Successful results include a `DI_NOT_UPDATED` warning.
+
 ## validate
 
 ```bash

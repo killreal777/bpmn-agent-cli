@@ -53,6 +53,7 @@ bpmn-agent-cli documentation process.bpmn --id Task_1 --text "Review"
 bpmn-agent-cli implementation process.bpmn --id Service_1 --kind delegateExpression --value '${serviceDelegate}'
 bpmn-agent-cli format process.bpmn --write -o tmp/formatted.bpmn
 bpmn-agent-cli insert-task-between process.bpmn --flow Flow_A_B --id Task_New --name "Review"
+bpmn-agent-cli connect process.bpmn --from Task_A --to Task_B --id Flow_A_B
 bpmn-agent-cli validate process.bpmn
 bpmn-agent-cli to-json process.bpmn --preset optimized
 ```
@@ -116,6 +117,8 @@ P2-C adds safe `implementation` updates for supported top-level runtime attribut
 P2-D adds safe model-based BPMN XML `format` with dry-run default and explicit `--write`.
 
 P3-A adds structural `insert-task-between` for splitting one sequence flow and inserting one task-like node. BPMNDI layout is not updated in P3-A.
+
+P3-B adds structural `connect` for adding one sequence flow between existing nodes. BPMNDI layout is not updated in P3-B.
 
 P1/P2/P3 scope is documented in `docs/ROADMAP.md`.
 

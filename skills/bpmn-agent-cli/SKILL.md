@@ -30,6 +30,7 @@ Prefer specialized CLI queries over reading raw BPMN XML. The CLI returns small 
 18. Use `bpmn-agent-cli implementation <file> --id <elementId> --kind <kind> --value "<value>"` for dry-run runtime implementation updates; add `--write` only when explicitly asked to modify BPMN files.
 19. Use `bpmn-agent-cli format <file>` to dry-run BPMN XML formatting through moddle serialization; add `--write` only when explicitly asked to modify BPMN files.
 20. Use `bpmn-agent-cli insert-task-between <file> --flow <flowId> --id <newElementId> --name "<name>"` to dry-run insertion of one task-like node into an existing sequence flow; note that P3-A does not update BPMNDI layout.
+21. Use `bpmn-agent-cli connect <file> --from <sourceId> --to <targetId> --id <flowId>` to dry-run adding one sequence flow between existing nodes; note that P3-B does not update BPMNDI layout.
 
 Do not manually rewrite BPMN XML. P0 is read-only except for the legacy `to-json` output command.
 
