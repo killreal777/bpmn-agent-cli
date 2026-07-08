@@ -17,7 +17,7 @@ export function parseArgs(args: string[]): ParsedArgs {
     }
 
     const next = optionArgs[index + 1];
-    if (next && !next.startsWith('--')) {
+    if (next && !next.startsWith('-')) {
       options.set(item, next);
       index += 1;
     } else {

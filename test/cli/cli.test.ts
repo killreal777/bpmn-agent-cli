@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { readFile } from 'node:fs/promises';
+import { copyFile, readFile } from 'node:fs/promises';
 import { promisify } from 'node:util';
 import { describe, expect, it } from 'vitest';
 
@@ -185,6 +185,40 @@ describe('CLI overview and validate', () => {
     expect(written).toContain('# BPMN Export');
   });
 
+  it('prints rename dry-run envelope without modifying input', async () => {
+    const before = await readFile('test/fixtures/simple-linear.bpmn', 'utf8');
+    const { stdout } = await execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'rename', 'test/fixtures/simple-linear.bpmn', '--id', 'Task_1', '--name', 'Review']);
+    const after = await readFile('test/fixtures/simple-linear.bpmn', 'utf8');
+
+    expect(JSON.parse(stdout)).toMatchObject({
+      ok: true,
+      command: 'rename',
+      result: {
+        dryRun: true,
+        written: false,
+        before: { name: 'Do work' },
+        after: { name: 'Review' }
+      }
+    });
+    expect(after).toBe(before);
+  });
+
+  it('writes rename output to explicit path', async () => {
+    const input = 'tmp/rename-input.bpmn';
+    const output = 'tmp/rename-output.bpmn';
+    await copyFile('test/fixtures/simple-linear.bpmn', input);
+
+    const { stdout } = await execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'rename', input, '--id', 'Task_1', '--name', 'Review', '--write', '-o', output]);
+    const written = await readFile(output, 'utf8');
+
+    expect(JSON.parse(stdout)).toMatchObject({
+      ok: true,
+      command: 'rename',
+      result: { dryRun: false, written: true, outputFile: output }
+    });
+    expect(written).toContain('id="Task_1" name="Review"');
+  });
+
   it('exits 1 for validation errors', async () => {
     await expect(execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'validate', 'test/fixtures/broken-reference.bpmn'])).rejects.toMatchObject({
       code: 1,
@@ -208,6 +242,13 @@ describe('CLI overview and validate', () => {
 
   it('exits 2 when path is missing --to', async () => {
     await expect(execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'path', 'test/fixtures/simple-linear.bpmn', '--from', 'StartEvent_1'])).rejects.toMatchObject({
+      code: 2,
+      stdout: expect.stringContaining('INVALID_OPTION_VALUE')
+    });
+  });
+
+  it('exits 2 when rename dry-run uses output path', async () => {
+    await expect(execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'rename', 'test/fixtures/simple-linear.bpmn', '--id', 'Task_1', '--name', 'Review', '-o', 'tmp/invalid.bpmn'])).rejects.toMatchObject({
       code: 2,
       stdout: expect.stringContaining('INVALID_OPTION_VALUE')
     });
