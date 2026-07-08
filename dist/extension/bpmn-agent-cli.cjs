@@ -8648,6 +8648,89 @@ function numberOption2(args, name2, fallback) {
   return parsed;
 }
 
+// src/cli/commands/formatCommand.ts
+var import_promises4 = require("node:fs/promises");
+var import_node_path3 = require("node:path");
+
+// src/write/formatBpmn.ts
+async function formatBpmnModel(args) {
+  const { xml: xml2 } = await createBpmnModdle().toXML(args.model.definitions, { format: true });
+  const formatted = xml2.endsWith("\n") ? xml2 : `${xml2}
+`;
+  return {
+    xml: formatted,
+    result: {
+      dryRun: args.dryRun ?? true,
+      written: args.written ?? false,
+      file: args.file,
+      outputFile: args.outputFile ?? null,
+      changed: formatted !== args.model.xml,
+      before: {
+        bytes: Buffer.byteLength(args.model.xml, "utf8")
+      },
+      after: {
+        bytes: Buffer.byteLength(formatted, "utf8")
+      },
+      diagnostics: {
+        warnings: args.model.warnings
+      }
+    }
+  };
+}
+
+// src/cli/commands/formatCommand.ts
+async function formatCommand(args) {
+  if (!args.file) {
+    throw new BpmnCliError("MISSING_FILE_ARGUMENT", "format requires a BPMN file", 2);
+  }
+  const write = args.options.get("--write") === true;
+  const outputPath = args.options.get("-o");
+  if (outputPath !== void 0 && typeof outputPath !== "string") {
+    throw new BpmnCliError("INVALID_OPTION_VALUE", "-o requires an output path", 2);
+  }
+  if (!write && outputPath) {
+    throw new BpmnCliError("INVALID_OPTION_VALUE", "-o is only allowed with --write", 2);
+  }
+  const model = await loadBpmn(args.file);
+  const targetPath = outputPath || args.file;
+  const plan = await formatBpmnModel({
+    model,
+    file: args.file,
+    outputFile: write ? targetPath : null,
+    dryRun: !write,
+    written: write
+  });
+  await validateXml2(plan.xml);
+  if (write) {
+    await writeOutput3(targetPath, plan.xml);
+  }
+  return successEnvelope({
+    command: "format",
+    file: args.file,
+    result: plan.result
+  });
+}
+async function validateXml2(xml2) {
+  try {
+    await createBpmnModdle().fromXML(xml2);
+  } catch (error3) {
+    throw new BpmnCliError("BPMN_PARSE_ERROR", "Formatted BPMN XML did not parse", 4, {
+      cause: error3 instanceof Error ? error3.message : String(error3)
+    });
+  }
+}
+async function writeOutput3(path, payload) {
+  try {
+    await (0, import_promises4.mkdir)((0, import_node_path3.dirname)(path), { recursive: true });
+    await (0, import_promises4.writeFile)(path, payload, "utf8");
+  } catch (error3) {
+    throw new BpmnCliError("OUTPUT_WRITE_ERROR", "Failed to write formatted BPMN", 1, {
+      path,
+      cause: error3 instanceof Error ? error3.message : String(error3)
+    });
+  }
+}
+
 // src/query/gateway.ts
 var GATEWAY_BEHAVIOR = /* @__PURE__ */ new Map([
   ["bpmn:ExclusiveGateway", "exclusive"],
@@ -8714,8 +8797,8 @@ async function gatewayCommand(args) {
 }
 
 // src/cli/commands/implementationCommand.ts
-var import_promises4 = require("node:fs/promises");
-var import_node_path3 = require("node:path");
+var import_promises5 = require("node:fs/promises");
+var import_node_path4 = require("node:path");
 
 // src/write/implementationElement.ts
 var CAMUNDA_NS = "http://camunda.org/schema/1.0/bpmn";
@@ -8869,9 +8952,9 @@ async function implementationCommand(args) {
     dryRun: !write,
     written: write
   });
-  await validateXml2(plan.xml);
+  await validateXml3(plan.xml);
   if (write) {
-    await writeOutput3(targetPath, plan.xml);
+    await writeOutput4(targetPath, plan.xml);
   }
   return successEnvelope({
     command: "implementation",
@@ -8879,7 +8962,7 @@ async function implementationCommand(args) {
     result: plan.result
   });
 }
-async function validateXml2(xml2) {
+async function validateXml3(xml2) {
   try {
     await createBpmnModdle().fromXML(xml2);
   } catch (error3) {
@@ -8888,10 +8971,10 @@ async function validateXml2(xml2) {
     });
   }
 }
-async function writeOutput3(path, payload) {
+async function writeOutput4(path, payload) {
   try {
-    await (0, import_promises4.mkdir)((0, import_node_path3.dirname)(path), { recursive: true });
-    await (0, import_promises4.writeFile)(path, payload, "utf8");
+    await (0, import_promises5.mkdir)((0, import_node_path4.dirname)(path), { recursive: true });
+    await (0, import_promises5.writeFile)(path, payload, "utf8");
   } catch (error3) {
     throw new BpmnCliError("OUTPUT_WRITE_ERROR", "Failed to write implementation BPMN", 1, {
       path,
@@ -9075,8 +9158,8 @@ async function participantsCommand(args) {
 }
 
 // src/cli/commands/renameCommand.ts
-var import_promises5 = require("node:fs/promises");
-var import_node_path4 = require("node:path");
+var import_promises6 = require("node:fs/promises");
+var import_node_path5 = require("node:path");
 
 // src/write/renameElement.ts
 function renameElementXml(args) {
@@ -9161,9 +9244,9 @@ async function renameCommand(args) {
     dryRun: !write,
     written: write
   });
-  await validateXml3(plan.xml);
+  await validateXml4(plan.xml);
   if (write) {
-    await writeOutput4(targetPath, plan.xml);
+    await writeOutput5(targetPath, plan.xml);
   }
   return successEnvelope({
     command: "rename",
@@ -9171,7 +9254,7 @@ async function renameCommand(args) {
     result: plan.result
   });
 }
-async function validateXml3(xml2) {
+async function validateXml4(xml2) {
   try {
     await createBpmnModdle().fromXML(xml2);
   } catch (error3) {
@@ -9180,10 +9263,10 @@ async function validateXml3(xml2) {
     });
   }
 }
-async function writeOutput4(path, payload) {
+async function writeOutput5(path, payload) {
   try {
-    await (0, import_promises5.mkdir)((0, import_node_path4.dirname)(path), { recursive: true });
-    await (0, import_promises5.writeFile)(path, payload, "utf8");
+    await (0, import_promises6.mkdir)((0, import_node_path5.dirname)(path), { recursive: true });
+    await (0, import_promises6.writeFile)(path, payload, "utf8");
   } catch (error3) {
     throw new BpmnCliError("OUTPUT_WRITE_ERROR", "Failed to write renamed BPMN", 1, {
       path,
@@ -9247,8 +9330,8 @@ function numberOption4(args, name2, fallback) {
 }
 
 // src/cli/commands/toJsonCommand.ts
-var import_promises6 = require("node:fs/promises");
-var import_node_path5 = require("node:path");
+var import_promises7 = require("node:fs/promises");
+var import_node_path6 = require("node:path");
 
 // src/legacy/optimizations/ids.ts
 var OPTIMIZATION_IDS = {
@@ -9994,7 +10077,7 @@ async function toJsonCommand(args, pretty) {
   if (!args.file) {
     throw new BpmnCliError("MISSING_FILE_ARGUMENT", "to-json requires a BPMN file", 2);
   }
-  const xml2 = await (0, import_promises6.readFile)(args.file, "utf8");
+  const xml2 = await (0, import_promises7.readFile)(args.file, "utf8");
   const converted = await convertBpmnToJson(xml2, { preset: stringOption5(args, "--preset") });
   const output = `${JSON.stringify(converted, null, pretty ? 2 : 0)}
 `;
@@ -10003,8 +10086,8 @@ async function toJsonCommand(args, pretty) {
     process.stdout.write(output);
     return;
   }
-  await (0, import_promises6.mkdir)((0, import_node_path5.dirname)(outputPath), { recursive: true });
-  await (0, import_promises6.writeFile)(outputPath, output, "utf8");
+  await (0, import_promises7.mkdir)((0, import_node_path6.dirname)(outputPath), { recursive: true });
+  await (0, import_promises7.writeFile)(outputPath, output, "utf8");
 }
 function stringOption5(args, name2) {
   const value = args.options.get(name2);
@@ -10104,6 +10187,10 @@ async function main(args = process.argv.slice(2)) {
     }
     if (parsed.command === "implementation") {
       writeJson(await implementationCommand(parsed), pretty);
+      return;
+    }
+    if (parsed.command === "format") {
+      writeJson(await formatCommand(parsed), pretty);
       return;
     }
     if (parsed.command === "to-json") {
