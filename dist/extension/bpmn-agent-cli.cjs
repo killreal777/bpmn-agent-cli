@@ -7341,6 +7341,7 @@ var SUBPROCESS_TYPES = /* @__PURE__ */ new Set([
 ]);
 function buildIndexes(model) {
   const indexes = {
+    rawById: /* @__PURE__ */ new Map(),
     byId: /* @__PURE__ */ new Map(),
     byNormalizedName: /* @__PURE__ */ new Map(),
     byType: /* @__PURE__ */ new Map(),
@@ -7406,6 +7407,7 @@ function indexFlowElements(indexes, elementsById, flowElements, processId, subpr
       continue;
     }
     elementsById.set(id, element);
+    indexes.rawById.set(id, element);
     if (type === "bpmn:SequenceFlow") {
       const summary2 = summarizeSequenceFlow(element);
       if (summary2) {
@@ -8606,6 +8608,178 @@ async function writeOutput4(path, payload) {
   }
 }
 
+// src/query/elementDetails.ts
+function getElementDetails(indexes, element) {
+  const raw = indexes.rawById.get(element.id);
+  if (!raw) {
+    return void 0;
+  }
+  if (element.type === "bpmn:CallActivity") {
+    return callActivityDetails(raw);
+  }
+  if (element.type === "bpmn:ServiceTask") {
+    return serviceTaskDetails(raw);
+  }
+  if (element.type === "bpmn:UserTask") {
+    return userTaskDetails(raw);
+  }
+  if (element.type === "bpmn:SequenceFlow") {
+    return sequenceFlowDetails(raw);
+  }
+  if (element.type === "bpmn:BoundaryEvent") {
+    return boundaryEventDetails(indexes, raw);
+  }
+  return void 0;
+}
+function callActivityDetails(element) {
+  const extensionValues = arrayOf2(element.extensionElements?.values);
+  const mappings = extensionValues.map(mappingSummary).filter((mapping) => Boolean(mapping));
+  const inputMappings = mappings.filter((mapping) => mapping.direction === "in");
+  const outputMappings = mappings.filter((mapping) => mapping.direction === "out");
+  const variableCandidates = variableCandidatesFromMappings(mappings);
+  return {
+    kind: "callActivity",
+    calledElement: stringValue(element.calledElement),
+    inputMappings,
+    outputMappings,
+    variableCandidates,
+    warnings: []
+  };
+}
+function mappingSummary(element) {
+  if (element.$type !== "camunda:In" && element.$type !== "camunda:Out") {
+    return null;
+  }
+  const direction = element.$type === "camunda:In" ? "in" : "out";
+  return clean({
+    direction,
+    source: stringValue(element.source) ?? void 0,
+    sourceExpression: stringValue(element.sourceExpression) ?? void 0,
+    target: stringValue(element.target) ?? void 0,
+    variables: stringValue(element.variables) ?? void 0,
+    businessKey: stringValue(element.businessKey) ?? void 0,
+    local: booleanValue2(element.local)
+  });
+}
+function serviceTaskDetails(element) {
+  const expressions = [
+    stringValue(element.delegateExpression),
+    stringValue(element.class),
+    stringValue(element.expression),
+    stringValue(element.topic)
+  ].filter((value) => Boolean(value));
+  return {
+    kind: "serviceTask",
+    implementation: {
+      type: stringValue(element.type),
+      topic: stringValue(element.topic),
+      delegateExpression: stringValue(element.delegateExpression),
+      class: stringValue(element.class),
+      expression: stringValue(element.expression)
+    },
+    variableCandidates: variableCandidatesFromValues(expressions)
+  };
+}
+function userTaskDetails(element) {
+  const formKey = stringValue(element.formKey);
+  return {
+    kind: "userTask",
+    formKey,
+    variableCandidates: variableCandidatesFromValues(formKey ? [formKey] : [])
+  };
+}
+function sequenceFlowDetails(element) {
+  const condition = conditionText2(element.conditionExpression);
+  return {
+    kind: "sequenceFlow",
+    condition,
+    variableCandidates: variableCandidatesFromValues(condition ? [condition] : [])
+  };
+}
+function boundaryEventDetails(indexes, element) {
+  const attachedToId = idOf2(element.attachedToRef);
+  return {
+    kind: "boundaryEvent",
+    attachedTo: attachedToId ? indexes.byId.get(attachedToId) ?? null : null,
+    cancelActivity: booleanValue2(element.cancelActivity) ?? null,
+    eventDefinitions: arrayOf2(element.eventDefinitions).map(eventDefinitionSummary)
+  };
+}
+function eventDefinitionSummary(element) {
+  return clean({
+    type: String(element.$type),
+    value: timerValue(element) ?? void 0,
+    refId: idOf2(element.messageRef) ?? idOf2(element.errorRef) ?? idOf2(element.signalRef) ?? idOf2(element.escalationRef) ?? void 0,
+    refName: nameOf(element.messageRef) ?? nameOf(element.errorRef) ?? nameOf(element.signalRef) ?? nameOf(element.escalationRef) ?? void 0
+  });
+}
+function timerValue(element) {
+  return expressionBody(element.timeDuration) ?? expressionBody(element.timeDate) ?? expressionBody(element.timeCycle);
+}
+function expressionBody(value) {
+  if (!isRecord2(value)) {
+    return null;
+  }
+  return stringValue(value.body);
+}
+function conditionText2(value) {
+  return expressionBody(value);
+}
+function variableCandidatesFromMappings(mappings) {
+  const values = mappings.flatMap((mapping) => [
+    mapping.source,
+    mapping.sourceExpression,
+    mapping.target,
+    mapping.businessKey
+  ]).filter((value) => Boolean(value));
+  return variableCandidatesFromValues(values);
+}
+function variableCandidatesFromValues(values) {
+  const candidates = /* @__PURE__ */ new Set();
+  for (const value of values) {
+    for (const candidate of extractVariableCandidates(value)) {
+      candidates.add(candidate);
+    }
+  }
+  return [...candidates].sort((a, b) => a.localeCompare(b));
+}
+function extractVariableCandidates(value) {
+  const withoutStrings = value.replace(/'[^']*'|"[^"]*"/g, " ");
+  const tokens = withoutStrings.match(/[A-Za-z_][A-Za-z0-9_.]*/g) ?? [];
+  const reserved = /* @__PURE__ */ new Set(["all", "and", "or", "not", "true", "false", "null"]);
+  return tokens.filter((token) => !reserved.has(token));
+}
+function booleanValue2(value) {
+  if (typeof value === "boolean") {
+    return value;
+  }
+  if (value === "true") {
+    return true;
+  }
+  if (value === "false") {
+    return false;
+  }
+  return void 0;
+}
+function idOf2(value) {
+  if (typeof value === "string" && value.trim() !== "") {
+    return value;
+  }
+  if (isRecord2(value) && typeof value.id === "string" && value.id.trim() !== "") {
+    return value.id;
+  }
+  return null;
+}
+function nameOf(value) {
+  return isRecord2(value) ? stringValue(value.name) : null;
+}
+function clean(value) {
+  return Object.fromEntries(Object.entries(value).filter(([, item]) => item !== void 0));
+}
+function isRecord2(value) {
+  return typeof value === "object" && value !== null;
+}
+
 // src/query/element.ts
 function getElement(indexes, args) {
   const element = indexes.byId.get(args.id);
@@ -8619,7 +8793,8 @@ function getElement(indexes, args) {
         ...element,
         source: indexes.byId.get(sequenceFlow.sourceId) ?? null,
         target: indexes.byId.get(sequenceFlow.targetId) ?? null,
-        condition: sequenceFlow.condition
+        condition: sequenceFlow.condition,
+        details: getElementDetails(indexes, element)
       }
     };
   }
@@ -8631,7 +8806,8 @@ function getElement(indexes, args) {
       implementations: indexes.implementationsByElementId.get(element.id) ?? [],
       boundaryEvents: indexes.boundaryEventsByAttachedToId.get(element.id) ?? [],
       laneIds: (indexes.lanesByElementId.get(element.id) ?? []).map((lane) => lane.id),
-      participantId: element.processId ? indexes.participantByProcessId.get(element.processId)?.id ?? null : null
+      participantId: element.processId ? indexes.participantByProcessId.get(element.processId)?.id ?? null : null,
+      details: getElementDetails(indexes, element)
     }
   };
 }
@@ -8806,7 +8982,7 @@ function getEvents(model, indexes, args) {
 function summarizeEvent(element, indexes) {
   const id = String(element.id);
   const type = String(element.$type);
-  const attachedToId = idOf2(element.attachedToRef);
+  const attachedToId = idOf3(element.attachedToRef);
   return {
     id,
     type,
@@ -8849,7 +9025,7 @@ function categoryFor(type) {
   return "other";
 }
 function summarizeEventDefinition(definition) {
-  const value = timerValue(definition);
+  const value = timerValue2(definition);
   const ref = refValue(definition);
   return {
     type: String(definition.$type),
@@ -8858,10 +9034,10 @@ function summarizeEventDefinition(definition) {
     ...ref.name ? { refName: ref.name } : {}
   };
 }
-function timerValue(definition) {
+function timerValue2(definition) {
   for (const key of ["timeDuration", "timeDate", "timeCycle"]) {
     const candidate = definition[key];
-    if (isRecord2(candidate)) {
+    if (isRecord3(candidate)) {
       const value = stringValue(candidate.body);
       if (value) {
         return value;
@@ -8873,23 +9049,23 @@ function timerValue(definition) {
 function refValue(definition) {
   for (const key of ["messageRef", "errorRef", "signalRef", "escalationRef"]) {
     const candidate = definition[key];
-    const id = idOf2(candidate);
+    const id = idOf3(candidate);
     if (id) {
-      return { id, name: isRecord2(candidate) ? stringValue(candidate.name) : null };
+      return { id, name: isRecord3(candidate) ? stringValue(candidate.name) : null };
     }
   }
   return { id: null, name: null };
 }
-function idOf2(value) {
+function idOf3(value) {
   if (typeof value === "string" && value.trim() !== "") {
     return value;
   }
-  if (isRecord2(value) && typeof value.id === "string") {
+  if (isRecord3(value) && typeof value.id === "string") {
     return value.id;
   }
   return null;
 }
-function isRecord2(value) {
+function isRecord3(value) {
   return typeof value === "object" && value !== null;
 }
 function sortById(a, b) {
@@ -9091,7 +9267,7 @@ function getParticipants(model, indexes) {
     const participants = arrayOf2(collaboration.participants).map((participant) => ({
       id: String(participant.id),
       name: stringValue(participant.name),
-      processId: idOf3(participant.processRef)
+      processId: idOf4(participant.processRef)
     })).sort(sortById3);
     for (const participant of participants) {
       if (participant.processId) {
@@ -9110,7 +9286,7 @@ function getParticipants(model, indexes) {
     unreferencedProcesses: model.processes.map((process2) => ({ id: String(process2.id), name: stringValue(process2.name) })).filter((process2) => !referencedProcessIds.has(process2.id)).sort(sortById3)
   };
 }
-function idOf3(value) {
+function idOf4(value) {
   if (typeof value === "string" && value.trim() !== "") {
     return value;
   }
@@ -10384,7 +10560,7 @@ function resolveCompressionConfig(input) {
   if (input === void 0) {
     return getPresetConfig("base");
   }
-  if (!isRecord3(input)) {
+  if (!isRecord4(input)) {
     throw new Error("Compression config must be an object");
   }
   const config = input;
@@ -10425,7 +10601,7 @@ function validateConfig(config) {
 function isCompressionPresetName(value) {
   return PRESET_NAMES.includes(value);
 }
-function isRecord3(value) {
+function isRecord4(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
@@ -10450,7 +10626,7 @@ function compactCondition(value) {
   if (typeof value === "string") {
     return value;
   }
-  if (!isRecord4(value)) {
+  if (!isRecord5(value)) {
     return void 0;
   }
   const body = typeof value.body === "string" && value.body !== "" ? value.body : void 0;
@@ -10460,7 +10636,7 @@ function compactCondition(value) {
   }
   return language ? `${body}@${language}` : body;
 }
-function isRecord4(value) {
+function isRecord5(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 function cleanRecord(value) {
@@ -10471,7 +10647,7 @@ function cleanRecord(value) {
     if (Array.isArray(item)) {
       return item.length > 0;
     }
-    return !(isRecord4(item) && Object.keys(item).length === 0);
+    return !(isRecord5(item) && Object.keys(item).length === 0);
   });
   return entries.length > 0 ? Object.fromEntries(entries) : void 0;
 }
@@ -10489,7 +10665,7 @@ var compactCallMappingsOptimization = {
     const next = cloneModel(model);
     const processes = Array.isArray(next.processes) ? next.processes : [];
     for (const process2 of processes) {
-      if (!isRecord4(process2) || !Array.isArray(process2.elements)) {
+      if (!isRecord5(process2) || !Array.isArray(process2.elements)) {
         continue;
       }
       process2.elements = process2.elements.map(compactElementMappings);
@@ -10498,7 +10674,7 @@ var compactCallMappingsOptimization = {
   }
 };
 function compactElementMappings(value) {
-  if (!isRecord4(value) || !isRecord4(value.extensions)) {
+  if (!isRecord5(value) || !isRecord5(value.extensions)) {
     return value;
   }
   const extensions = { ...value.extensions };
@@ -10521,7 +10697,7 @@ function compactMappings(value) {
   return mappings.length > 0 ? mappings : void 0;
 }
 function compactMapping(value) {
-  if (!isRecord4(value)) {
+  if (!isRecord5(value)) {
     return void 0;
   }
   const variables = stringValue2(value.variables);
@@ -10550,7 +10726,7 @@ var compactConditionsOptimization = {
     const next = cloneModel(model);
     const processes = Array.isArray(next.processes) ? next.processes : [];
     for (const process2 of processes) {
-      if (!isRecord4(process2) || !Array.isArray(process2.flows)) {
+      if (!isRecord5(process2) || !Array.isArray(process2.flows)) {
         continue;
       }
       process2.flows = process2.flows.map(compactFlowCondition);
@@ -10559,7 +10735,7 @@ var compactConditionsOptimization = {
   }
 };
 function compactFlowCondition(value) {
-  if (!isRecord4(value)) {
+  if (!isRecord5(value)) {
     return value;
   }
   return cleanRecord({
@@ -10581,7 +10757,7 @@ var compactElementMetaOptimization = {
     const next = cloneModel(model);
     const processes = Array.isArray(next.processes) ? next.processes : [];
     for (const process2 of processes) {
-      if (!isRecord4(process2) || !Array.isArray(process2.elements)) {
+      if (!isRecord5(process2) || !Array.isArray(process2.elements)) {
         continue;
       }
       process2.type = compactBpmnType(process2.type);
@@ -10591,10 +10767,10 @@ var compactElementMetaOptimization = {
   }
 };
 function compactElement(value) {
-  if (!isRecord4(value)) {
+  if (!isRecord5(value)) {
     return value;
   }
-  const execution = isRecord4(value.execution) ? { ...value.execution } : void 0;
+  const execution = isRecord5(value.execution) ? { ...value.execution } : void 0;
   const extras = [];
   const implementation = extractImplementation(execution);
   if (implementation) {
@@ -10680,7 +10856,7 @@ var compactFlowsOptimization = {
     const next = cloneModel(model);
     const processes = Array.isArray(next.processes) ? next.processes : [];
     for (const process2 of processes) {
-      if (!isRecord4(process2) || !Array.isArray(process2.flows)) {
+      if (!isRecord5(process2) || !Array.isArray(process2.flows)) {
         continue;
       }
       process2.flows = process2.flows.map(compactFlow).filter((flow) => Boolean(flow));
@@ -10689,7 +10865,7 @@ var compactFlowsOptimization = {
   }
 };
 function compactFlow(value) {
-  if (!isRecord4(value)) {
+  if (!isRecord5(value)) {
     return void 0;
   }
   return formatCsvLine([
@@ -10710,7 +10886,7 @@ var omitRedundantGraphRefsOptimization = {
     const next = cloneModel(model);
     const processes = Array.isArray(next.processes) ? next.processes : [];
     for (const process2 of processes) {
-      if (!isRecord4(process2) || !Array.isArray(process2.elements)) {
+      if (!isRecord5(process2) || !Array.isArray(process2.elements)) {
         continue;
       }
       process2.elements = process2.elements.map(omitElementGraphRefs);
@@ -10719,7 +10895,7 @@ var omitRedundantGraphRefsOptimization = {
   }
 };
 function omitElementGraphRefs(value) {
-  if (!isRecord4(value)) {
+  if (!isRecord5(value)) {
     return value;
   }
   return cleanRecord({
@@ -10757,7 +10933,7 @@ function stripValue(value) {
   if (Array.isArray(value)) {
     return value.map(stripValue);
   }
-  if (!isRecord4(value)) {
+  if (!isRecord5(value)) {
     return value;
   }
   return Object.fromEntries(Object.entries(value).map(([key, item]) => [
@@ -10855,7 +11031,7 @@ function projectCollaboration(collaboration) {
     participants: sortItems(arrayOf4(collaboration.participants).map((participant) => cleanValue({
       id: participant.id,
       name: participant.name,
-      processRef: idOf4(participant.processRef)
+      processRef: idOf5(participant.processRef)
     })))
   });
 }
@@ -10891,8 +11067,8 @@ function projectSequenceFlow(flow) {
     id: flow.id,
     type: flow.$type,
     name: flow.name,
-    sourceRef: idOf4(flow.sourceRef),
-    targetRef: idOf4(flow.targetRef),
+    sourceRef: idOf5(flow.sourceRef),
+    targetRef: idOf5(flow.targetRef),
     condition: projectExpression(flow.conditionExpression),
     execution: projectExecution(flow)
   });
@@ -10911,7 +11087,7 @@ function projectExecution(element) {
   return cleanValue(execution);
 }
 function projectExtensions(value) {
-  const extensionElements = isRecord5(value) ? arrayOf4(value.values) : [];
+  const extensionElements = isRecord6(value) ? arrayOf4(value.values) : [];
   const grouped = {};
   const fallback = [];
   for (const element of extensionElements) {
@@ -10947,13 +11123,13 @@ function projectScript(value) {
   if (typeof value === "string") {
     return stringValue5(value);
   }
-  if (isRecord5(value)) {
+  if (isRecord6(value)) {
     return stringValue5(value.body ?? value.value);
   }
   return void 0;
 }
 function projectExpression(value) {
-  if (!isRecord5(value)) {
+  if (!isRecord6(value)) {
     return void 0;
   }
   return cleanValue({
@@ -10979,7 +11155,7 @@ function removePath(value, path) {
   if (Array.isArray(value)) {
     return value.map((item) => removePath(item, path));
   }
-  if (!isRecord5(value)) {
+  if (!isRecord6(value)) {
     return value;
   }
   const [head, ...tail] = path;
@@ -10999,13 +11175,13 @@ function removePath(value, path) {
   return next;
 }
 function idsOf(value) {
-  return arrayOf4(value).map(idOf4).filter((id) => Boolean(id)).sort();
+  return arrayOf4(value).map(idOf5).filter((id) => Boolean(id)).sort();
 }
-function idOf4(value) {
+function idOf5(value) {
   if (typeof value === "string") {
     return stringValue5(value);
   }
-  if (isRecord5(value) && typeof value.id === "string") {
+  if (isRecord6(value) && typeof value.id === "string") {
     return stringValue5(value.id);
   }
   return void 0;
@@ -11017,7 +11193,7 @@ function primitiveOrId(value) {
   if (typeof value === "number" || typeof value === "boolean") {
     return value;
   }
-  return idOf4(value);
+  return idOf5(value);
 }
 function isExcludedElement(element) {
   return Boolean(element.$type && EXCLUDED_TYPES.has(element.$type));
@@ -11029,7 +11205,7 @@ function sortObject(value) {
   return Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b)));
 }
 function sortKey2(value) {
-  if (!isRecord5(value)) {
+  if (!isRecord6(value)) {
     return String(value);
   }
   return [value.id, value.type ?? value.$type, value.name].map((part) => typeof part === "string" ? part : "").join("|");
@@ -11039,7 +11215,7 @@ function cleanValue(value) {
     const cleaned = value.map(cleanValue).filter((item) => item !== void 0);
     return cleaned.length > 0 ? cleaned : void 0;
   }
-  if (!isRecord5(value)) {
+  if (!isRecord6(value)) {
     if (value === void 0 || value === null || value === "") {
       return void 0;
     }
@@ -11060,7 +11236,7 @@ function arrayOf4(value) {
 function stringValue5(value) {
   return typeof value === "string" && value.trim() !== "" ? value : void 0;
 }
-function isRecord5(value) {
+function isRecord6(value) {
   return typeof value === "object" && value !== null;
 }
 
