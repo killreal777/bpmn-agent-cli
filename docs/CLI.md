@@ -162,6 +162,18 @@ bpmn-agent-cli format process.bpmn --write -o tmp/formatted.bpmn
 
 Formats BPMN XML by parsing with `bpmn-moddle` and serializing the model with formatting enabled. Dry-run is the default and reports byte counts plus whether serialized XML differs from input. No file is written unless `--write` is provided. `-o` is allowed only with `--write`.
 
+## insert-task-between
+
+```bash
+bpmn-agent-cli insert-task-between process.bpmn --flow Flow_A_B --id Task_New --name "Review"
+bpmn-agent-cli insert-task-between process.bpmn --flow Flow_A_B --id Task_New --name "Review" --type userTask --write
+bpmn-agent-cli insert-task-between process.bpmn --flow Flow_A_B --id Task_New --name "Review" --type serviceTask --write -o tmp/inserted.bpmn
+```
+
+Splits one existing `bpmn:SequenceFlow` and inserts one task-like node between the original source and target. `--type` accepts `task`, `userTask`, and `serviceTask`; default is `task`. Dry-run is the default. No file is written unless `--write` is provided. `-o` is allowed only with `--write`.
+
+P3-A updates semantic BPMN only and does not update BPMNDI layout. Successful results include a `DI_NOT_UPDATED` warning.
+
 ## validate
 
 ```bash

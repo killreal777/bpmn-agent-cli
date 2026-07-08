@@ -68,7 +68,12 @@ All write commands default to dry-run and require explicit `--write`.
 
 Structural write commands:
 
+P3-A implemented:
+
 - `insert-task-between`
+
+Remaining structural write commands:
+
 - `connect`
 - `delete-safe`
 - `add-boundary-event`

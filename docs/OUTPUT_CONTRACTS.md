@@ -275,6 +275,29 @@ type FormatResult = {
 
 `format` uses the success envelope. Dry-run is default and reports byte counts plus whether moddle serialization differs from the input XML. Formatted XML is not emitted to stdout.
 
+## InsertTaskBetweenResult
+
+```ts
+type InsertTaskBetweenResult = {
+  dryRun: boolean;
+  written: boolean;
+  file: string;
+  outputFile: string | null;
+  inserted: ElementSummary;
+  replacedFlow: SequenceFlowSummary;
+  newFlows: SequenceFlowSummary[];
+  warnings: Diagnostic[];
+  diff: Array<{
+    op: "replace" | "add";
+    path: string;
+    before: string | null;
+    after: string;
+  }>;
+};
+```
+
+`insert-task-between` uses the success envelope. Dry-run is default and reports the planned structural diff without writing files. P3-A does not update BPMNDI layout and returns `DI_NOT_UPDATED` in `warnings`.
+
 ## Element Type Contract
 
 `type` fields use canonical moddle types such as `bpmn:ServiceTask`. CLI aliases such as `serviceTask` are accepted only as input filters.

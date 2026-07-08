@@ -26,6 +26,7 @@ describe('documentation', () => {
     expect(cli).toContain('bpmn-agent-cli documentation process.bpmn --id Task_1 --text "Review"');
     expect(cli).toContain('bpmn-agent-cli implementation process.bpmn --id Service_1 --kind delegateExpression --value');
     expect(cli).toContain('bpmn-agent-cli format process.bpmn --write -o tmp/formatted.bpmn');
+    expect(cli).toContain('bpmn-agent-cli insert-task-between process.bpmn --flow Flow_A_B --id Task_New --name "Review"');
     expect(readme).toContain('bpmn-agent-cli path process.bpmn --from StartEvent_1 --to EndEvent_1');
     expect(readme).toContain('bpmn-agent-cli export process.bpmn --format markdown');
     expect(contracts).toContain('ELEMENT_NOT_FOUND');
@@ -40,6 +41,7 @@ describe('documentation', () => {
     expect(contracts).toContain('DocumentationResult');
     expect(contracts).toContain('ImplementationPatchResult');
     expect(contracts).toContain('FormatResult');
+    expect(contracts).toContain('InsertTaskBetweenResult');
     expect(roadmap).toContain('P0');
     expect(roadmap).toContain('P1-A');
     expect(roadmap).toContain('P1');
