@@ -10,6 +10,7 @@ import { exportCommand } from './commands/exportCommand.js';
 import { eventsCommand } from './commands/eventsCommand.js';
 import { findCommand } from './commands/findCommand.js';
 import { gatewayCommand } from './commands/gatewayCommand.js';
+import { implementationCommand } from './commands/implementationCommand.js';
 import { implementationsCommand } from './commands/implementationsCommand.js';
 import { lanesCommand } from './commands/lanesCommand.js';
 import { overviewCommand } from './commands/overviewCommand.js';
@@ -108,6 +109,11 @@ export async function main(args: string[] = process.argv.slice(2)): Promise<void
 
     if (parsed.command === 'documentation') {
       writeJson(await documentationCommand(parsed), pretty);
+      return;
+    }
+
+    if (parsed.command === 'implementation') {
+      writeJson(await implementationCommand(parsed), pretty);
       return;
     }
 

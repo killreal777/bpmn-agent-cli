@@ -252,6 +252,42 @@ describe('CLI overview and validate', () => {
     expect(written).toContain('<bpmn:documentation>Documents task</bpmn:documentation>');
   });
 
+  it('prints implementation dry-run envelope without modifying input', async () => {
+    const before = await readFile('test/fixtures/camunda-implementations.bpmn', 'utf8');
+    const { stdout } = await execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'implementation', 'test/fixtures/camunda-implementations.bpmn', '--id', 'Service_Delegate', '--kind', 'delegateExpression', '--value', '${newDelegate}']);
+    const after = await readFile('test/fixtures/camunda-implementations.bpmn', 'utf8');
+
+    expect(JSON.parse(stdout)).toMatchObject({
+      ok: true,
+      command: 'implementation',
+      result: {
+        dryRun: true,
+        written: false,
+        kind: 'delegateExpression',
+        before: { 'camunda:delegateExpression': '${checkClientDelegate}' },
+        after: { 'camunda:delegateExpression': '${newDelegate}' }
+      }
+    });
+    expect(after).toBe(before);
+  });
+
+  it('writes implementation output to explicit path', async () => {
+    const input = 'tmp/implementation-input.bpmn';
+    const output = 'tmp/implementation-output.bpmn';
+    await copyFile('test/fixtures/camunda-implementations.bpmn', input);
+
+    const { stdout } = await execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'implementation', input, '--id', 'Service_External', '--kind', 'externalTask', '--value', 'score-v2', '--write', '-o', output]);
+    const written = await readFile(output, 'utf8');
+
+    expect(JSON.parse(stdout)).toMatchObject({
+      ok: true,
+      command: 'implementation',
+      result: { dryRun: false, written: true, outputFile: output, kind: 'externalTask' }
+    });
+    expect(written).toContain('camunda:type="external"');
+    expect(written).toContain('camunda:topic="score-v2"');
+  });
+
   it('exits 1 for validation errors', async () => {
     await expect(execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'validate', 'test/fixtures/broken-reference.bpmn'])).rejects.toMatchObject({
       code: 1,
@@ -289,6 +325,13 @@ describe('CLI overview and validate', () => {
 
   it('exits 2 when documentation dry-run uses output path', async () => {
     await expect(execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'documentation', 'test/fixtures/simple-linear.bpmn', '--id', 'Task_1', '--text', 'Docs', '-o', 'tmp/invalid-doc.bpmn'])).rejects.toMatchObject({
+      code: 2,
+      stdout: expect.stringContaining('INVALID_OPTION_VALUE')
+    });
+  });
+
+  it('exits 2 when implementation dry-run uses output path', async () => {
+    await expect(execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'implementation', 'test/fixtures/camunda-implementations.bpmn', '--id', 'Service_Delegate', '--kind', 'delegateExpression', '--value', '${newDelegate}', '-o', 'tmp/invalid-implementation.bpmn'])).rejects.toMatchObject({
       code: 2,
       stdout: expect.stringContaining('INVALID_OPTION_VALUE')
     });
