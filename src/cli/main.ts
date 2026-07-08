@@ -9,6 +9,7 @@ import { elementCommand } from './commands/elementCommand.js';
 import { exportCommand } from './commands/exportCommand.js';
 import { eventsCommand } from './commands/eventsCommand.js';
 import { findCommand } from './commands/findCommand.js';
+import { formatCommand } from './commands/formatCommand.js';
 import { gatewayCommand } from './commands/gatewayCommand.js';
 import { implementationCommand } from './commands/implementationCommand.js';
 import { implementationsCommand } from './commands/implementationsCommand.js';
@@ -114,6 +115,11 @@ export async function main(args: string[] = process.argv.slice(2)): Promise<void
 
     if (parsed.command === 'implementation') {
       writeJson(await implementationCommand(parsed), pretty);
+      return;
+    }
+
+    if (parsed.command === 'format') {
+      writeJson(await formatCommand(parsed), pretty);
       return;
     }
 
