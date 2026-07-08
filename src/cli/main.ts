@@ -13,6 +13,7 @@ import { formatCommand } from './commands/formatCommand.js';
 import { gatewayCommand } from './commands/gatewayCommand.js';
 import { implementationCommand } from './commands/implementationCommand.js';
 import { implementationsCommand } from './commands/implementationsCommand.js';
+import { insertTaskBetweenCommand } from './commands/insertTaskBetweenCommand.js';
 import { lanesCommand } from './commands/lanesCommand.js';
 import { overviewCommand } from './commands/overviewCommand.js';
 import { pathCommand } from './commands/pathCommand.js';
@@ -120,6 +121,11 @@ export async function main(args: string[] = process.argv.slice(2)): Promise<void
 
     if (parsed.command === 'format') {
       writeJson(await formatCommand(parsed), pretty);
+      return;
+    }
+
+    if (parsed.command === 'insert-task-between') {
+      writeJson(await insertTaskBetweenCommand(parsed), pretty);
       return;
     }
 

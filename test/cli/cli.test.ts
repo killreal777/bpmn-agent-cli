@@ -322,6 +322,40 @@ describe('CLI overview and validate', () => {
     expect(written).toContain('<bpmn:definitions');
   });
 
+  it('prints insert-task-between dry-run envelope without modifying input', async () => {
+    const before = await readFile('test/fixtures/simple-linear.bpmn', 'utf8');
+    const { stdout } = await execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'insert-task-between', 'test/fixtures/simple-linear.bpmn', '--flow', 'Flow_Start_To_Task', '--id', 'Task_Review', '--name', 'Review', '--type', 'userTask']);
+    const after = await readFile('test/fixtures/simple-linear.bpmn', 'utf8');
+
+    expect(JSON.parse(stdout)).toMatchObject({
+      ok: true,
+      command: 'insert-task-between',
+      result: {
+        dryRun: true,
+        written: false,
+        inserted: { id: 'Task_Review', type: 'bpmn:UserTask' },
+        warnings: [expect.objectContaining({ code: 'DI_NOT_UPDATED' })]
+      }
+    });
+    expect(after).toBe(before);
+  });
+
+  it('writes insert-task-between output to explicit path', async () => {
+    const input = 'tmp/insert-input.bpmn';
+    const output = 'tmp/insert-output.bpmn';
+    await copyFile('test/fixtures/simple-linear.bpmn', input);
+
+    const { stdout } = await execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'insert-task-between', input, '--flow', 'Flow_Start_To_Task', '--id', 'Task_Review', '--name', 'Review', '--type', 'userTask', '--write', '-o', output]);
+    const written = await readFile(output, 'utf8');
+
+    expect(JSON.parse(stdout)).toMatchObject({
+      ok: true,
+      command: 'insert-task-between',
+      result: { dryRun: false, written: true, outputFile: output }
+    });
+    expect(written).toContain('<bpmn:userTask id="Task_Review" name="Review">');
+  });
+
   it('exits 1 for validation errors', async () => {
     await expect(execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'validate', 'test/fixtures/broken-reference.bpmn'])).rejects.toMatchObject({
       code: 1,
@@ -373,6 +407,13 @@ describe('CLI overview and validate', () => {
 
   it('exits 2 when format dry-run uses output path', async () => {
     await expect(execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'format', 'test/fixtures/simple-linear.bpmn', '-o', 'tmp/invalid-format.bpmn'])).rejects.toMatchObject({
+      code: 2,
+      stdout: expect.stringContaining('INVALID_OPTION_VALUE')
+    });
+  });
+
+  it('exits 2 when insert-task-between dry-run uses output path', async () => {
+    await expect(execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'insert-task-between', 'test/fixtures/simple-linear.bpmn', '--flow', 'Flow_Start_To_Task', '--id', 'Task_Review', '--name', 'Review', '-o', 'tmp/invalid-insert.bpmn'])).rejects.toMatchObject({
       code: 2,
       stdout: expect.stringContaining('INVALID_OPTION_VALUE')
     });
