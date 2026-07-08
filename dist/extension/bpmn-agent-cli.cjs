@@ -11286,6 +11286,158 @@ async function validateCommand(args) {
   });
 }
 
+// src/query/variables.ts
+function getVariables(indexes, args) {
+  const usages = [];
+  const callActivityMappings = [];
+  for (const element of [...indexes.byId.values()].sort(compareElement)) {
+    if (args.element && element.id !== args.element) {
+      continue;
+    }
+    const details = getElementDetails(indexes, element);
+    if (!details) {
+      continue;
+    }
+    if (details.kind === "callActivity") {
+      const mappings = [...details.inputMappings, ...details.outputMappings];
+      const mappingVariables = variableCandidatesFromMappings(mappings);
+      if (details.outputMappings.some((mapping) => mapping.variables === "all")) {
+        mappingVariables.unshift("*");
+      }
+      callActivityMappings.push({
+        element,
+        calledElement: details.calledElement,
+        inputMappings: details.inputMappings,
+        outputMappings: details.outputMappings,
+        variables: [...new Set(mappingVariables)].sort((a, b) => a.localeCompare(b)),
+        warnings: details.warnings
+      });
+      for (const mapping of mappings) {
+        const direction = mapping.variables === "all" ? "pass-through" : mapping.direction;
+        const names = mapping.variables === "all" ? ["*"] : variableCandidatesFromMappings([mapping]);
+        for (const name2 of names) {
+          usages.push(cleanUsage({
+            name: name2,
+            direction,
+            source: "callActivityMapping",
+            element,
+            expression: mapping.sourceExpression,
+            mapping
+          }));
+        }
+      }
+    }
+    if (details.kind === "sequenceFlow" && details.condition) {
+      for (const name2 of details.variableCandidates) {
+        usages.push({
+          name: name2,
+          direction: "read",
+          source: "sequenceFlowCondition",
+          element,
+          expression: details.condition
+        });
+      }
+    }
+    if (details.kind === "serviceTask") {
+      const values = [
+        details.implementation.delegateExpression,
+        details.implementation.class,
+        details.implementation.expression
+      ].filter((value) => Boolean(value));
+      for (const name2 of variableCandidatesFromValues(values)) {
+        usages.push({
+          name: name2,
+          direction: "unknown",
+          source: "implementationExpression",
+          element
+        });
+      }
+    }
+    if (details.kind === "userTask" && details.formKey) {
+      for (const name2 of details.variableCandidates) {
+        usages.push({
+          name: name2,
+          direction: "unknown",
+          source: "formKey",
+          element
+        });
+      }
+    }
+  }
+  const filteredUsages = args.name ? usages.filter((usage) => usage.name === args.name) : usages;
+  const filteredCallActivityMappings = args.name ? callActivityMappings.map((summary) => ({
+    ...summary,
+    inputMappings: summary.inputMappings.filter((mapping) => mappingHasName(mapping, args.name)),
+    outputMappings: summary.outputMappings.filter((mapping) => mappingHasName(mapping, args.name)),
+    variables: summary.variables.filter((name2) => name2 === args.name)
+  })).filter((summary) => summary.inputMappings.length > 0 || summary.outputMappings.length > 0 || summary.variables.includes(args.name)) : callActivityMappings;
+  return {
+    variables: summarizeVariables(filteredUsages),
+    usages: filteredUsages.sort(compareUsage),
+    callActivityMappings: filteredCallActivityMappings.sort((a, b) => a.element.id.localeCompare(b.element.id)),
+    warnings: []
+  };
+}
+function mappingHasName(mapping, name2) {
+  if (mapping.variables === "all" && name2 === "*") {
+    return true;
+  }
+  return variableCandidatesFromMappings([mapping]).includes(name2);
+}
+function summarizeVariables(usages) {
+  const byName = /* @__PURE__ */ new Map();
+  for (const usage of usages) {
+    byName.set(usage.name, [...byName.get(usage.name) ?? [], usage]);
+  }
+  return [...byName.entries()].map(([name2, items]) => ({
+    name: name2,
+    usageCount: items.length,
+    directions: [...new Set(items.map((item) => item.direction))].sort(compareDirection),
+    elements: uniqueElements(items.map((item) => item.element))
+  })).sort((a, b) => a.name.localeCompare(b.name));
+}
+function uniqueElements(elements) {
+  const byId = /* @__PURE__ */ new Map();
+  for (const element of elements) {
+    byId.set(element.id, element);
+  }
+  return [...byId.values()].sort(compareElement);
+}
+function cleanUsage(usage) {
+  return Object.fromEntries(Object.entries(usage).filter(([, value]) => value !== void 0));
+}
+function compareUsage(a, b) {
+  return a.name.localeCompare(b.name) || a.element.id.localeCompare(b.element.id) || compareDirection(a.direction, b.direction) || a.source.localeCompare(b.source);
+}
+function compareElement(a, b) {
+  return a.id.localeCompare(b.id);
+}
+function compareDirection(a, b) {
+  const order = ["in", "out", "read", "write", "pass-through", "unknown"];
+  return order.indexOf(a) - order.indexOf(b);
+}
+
+// src/cli/commands/variablesCommand.ts
+async function variablesCommand(args) {
+  if (!args.file) {
+    throw new BpmnCliError("MISSING_FILE_ARGUMENT", "variables requires a BPMN file", 2);
+  }
+  const element = args.options.get("--element");
+  const name2 = args.options.get("--name");
+  if (element !== void 0 && typeof element !== "string") {
+    throw new BpmnCliError("INVALID_OPTION_VALUE", "variables --element requires a value", 2);
+  }
+  if (name2 !== void 0 && typeof name2 !== "string") {
+    throw new BpmnCliError("INVALID_OPTION_VALUE", "variables --name requires a value", 2);
+  }
+  const model = await loadBpmn(args.file);
+  return successEnvelope({
+    command: "variables",
+    file: args.file,
+    result: getVariables(buildIndexes(model), { element, name: name2 })
+  });
+}
+
 // src/cli/main.ts
 async function main(args = process.argv.slice(2)) {
   if (args.includes("--help") || args.length === 0) {
@@ -11320,6 +11472,10 @@ async function main(args = process.argv.slice(2)) {
     }
     if (parsed.command === "element") {
       writeJson(await elementCommand(parsed), pretty);
+      return;
+    }
+    if (parsed.command === "variables") {
+      writeJson(await variablesCommand(parsed), pretty);
       return;
     }
     if (parsed.command === "gateway") {
