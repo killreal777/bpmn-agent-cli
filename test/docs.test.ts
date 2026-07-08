@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 
 describe('documentation', () => {
@@ -11,6 +11,8 @@ describe('documentation', () => {
     const vision = await readFile('docs/PRODUCT_VISION.md', 'utf8');
     const backlog = await readFile('docs/BACKLOG.md', 'utf8');
     const readingMetrics = await readFile('docs/READING_METRICS_STRATEGY.md', 'utf8');
+    const benchmarkFixtures = await readdir('benchmarks/fixtures');
+    const benchmarkTasks = await readdir('benchmarks/tasks');
 
     expect(readme).toContain('bpmn-agent-cli');
     expect(readme).toContain('/extensions install https://github.com/killreal777/bpmn-agent-cli');
@@ -70,5 +72,7 @@ describe('documentation', () => {
     expect(readingMetrics).toContain('Reading Optimization Metrics Strategy');
     expect(readingMetrics).toContain('tokens_per_successful_task');
     expect(readingMetrics).toContain('xml_fallback_rate');
+    expect(benchmarkFixtures.filter((file) => file.endsWith('.bpmn')).length).toBeGreaterThanOrEqual(5);
+    expect(benchmarkTasks.filter((file) => file.endsWith('.json')).length).toBeGreaterThanOrEqual(20);
   });
 });

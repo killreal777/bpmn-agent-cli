@@ -1,0 +1,13 @@
+{
+  "id": "T9-variables-call-activity",
+  "title": "Identify variables passed through call activity",
+  "fixture": "subprocess-call-activity.bpmn",
+  "category": "variables-data-flow",
+  "prompt": "Identify variables passed into and out of the risk check call activity.",
+  "allowedTools": ["bpmn-agent-cli"],
+  "cliCalls": [
+    ["element", "$fixture", "--id", "CallActivity_RiskCheck"]
+  ],
+  "successCriteria": ["mentions customerId", "mentions requestedAmount", "mentions riskScore"],
+  "scoring": { "maxScore": 3, "manualReviewRequired": true }
+}

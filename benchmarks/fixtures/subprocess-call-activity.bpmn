@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" id="Definitions_SubprocessCallActivity" targetNamespace="http://bpmn-agent-cli/benchmarks">
+  <bpmn:process id="Process_SubprocessCallActivity" name="Subprocess and call activity benchmark" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_Subprocess" name="Start">
+      <bpmn:outgoing>Flow_Start_Prepare</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:subProcess id="SubProcess_PrepareApplication" name="Prepare application">
+      <bpmn:incoming>Flow_Start_Prepare</bpmn:incoming>
+      <bpmn:outgoing>Flow_Prepare_CallRisk</bpmn:outgoing>
+      <bpmn:startEvent id="StartEvent_Prepare" name="Prepare start">
+        <bpmn:outgoing>Flow_PrepareStart_Normalize</bpmn:outgoing>
+      </bpmn:startEvent>
+      <bpmn:serviceTask id="Task_NormalizeApplication" name="Normalize application" camunda:delegateExpression="${normalizeApplication}">
+        <bpmn:incoming>Flow_PrepareStart_Normalize</bpmn:incoming>
+        <bpmn:outgoing>Flow_Normalize_PrepareEnd</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:endEvent id="EndEvent_Prepare" name="Prepared">
+        <bpmn:incoming>Flow_Normalize_PrepareEnd</bpmn:incoming>
+      </bpmn:endEvent>
+      <bpmn:sequenceFlow id="Flow_PrepareStart_Normalize" sourceRef="StartEvent_Prepare" targetRef="Task_NormalizeApplication" />
+      <bpmn:sequenceFlow id="Flow_Normalize_PrepareEnd" sourceRef="Task_NormalizeApplication" targetRef="EndEvent_Prepare" />
+    </bpmn:subProcess>
+    <bpmn:callActivity id="CallActivity_RiskCheck" name="Run risk check" calledElement="Process_RiskCheck">
+      <bpmn:extensionElements>
+        <camunda:in source="customerId" target="customerId" />
+        <camunda:in sourceExpression="${application.amount}" target="requestedAmount" />
+        <camunda:out source="riskScore" target="riskScore" />
+        <camunda:out variables="all" local="true" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Prepare_CallRisk</bpmn:incoming>
+      <bpmn:outgoing>Flow_CallRisk_End</bpmn:outgoing>
+    </bpmn:callActivity>
+    <bpmn:endEvent id="EndEvent_Subprocess" name="Done">
+      <bpmn:incoming>Flow_CallRisk_End</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_Start_Prepare" sourceRef="StartEvent_Subprocess" targetRef="SubProcess_PrepareApplication" />
+    <bpmn:sequenceFlow id="Flow_Prepare_CallRisk" sourceRef="SubProcess_PrepareApplication" targetRef="CallActivity_RiskCheck" />
+    <bpmn:sequenceFlow id="Flow_CallRisk_End" sourceRef="CallActivity_RiskCheck" targetRef="EndEvent_Subprocess" />
+  </bpmn:process>
+</bpmn:definitions>

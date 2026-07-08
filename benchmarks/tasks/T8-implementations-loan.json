@@ -1,0 +1,13 @@
+{
+  "id": "T8-implementations-loan",
+  "title": "List runtime integrations in loan process",
+  "fixture": "gateway-loan-process.bpmn",
+  "category": "runtime-implementations",
+  "prompt": "List delegates, external topics, and user forms in the loan process.",
+  "allowedTools": ["bpmn-agent-cli"],
+  "cliCalls": [
+    ["implementations", "$fixture"]
+  ],
+  "successCriteria": ["mentions WorkingCapitalRiskDelegate", "mentions loan-approval topic", "mentions loan-review form"],
+  "scoring": { "maxScore": 3, "manualReviewRequired": true }
+}

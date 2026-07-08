@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" id="Definitions_BoundaryEvents" targetNamespace="http://bpmn-agent-cli/benchmarks">
+  <bpmn:process id="Process_BoundaryEvents" name="Boundary event benchmark" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_Boundary" name="Start">
+      <bpmn:outgoing>Flow_Start_Wait</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:userTask id="Task_WaitForDocuments" name="Wait for documents" camunda:formKey="documents-form">
+      <bpmn:incoming>Flow_Start_Wait</bpmn:incoming>
+      <bpmn:outgoing>Flow_Wait_Verify</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:boundaryEvent id="Boundary_Timer" name="Document timeout" attachedToRef="Task_WaitForDocuments" cancelActivity="false">
+      <bpmn:outgoing>Flow_Timer_Reminder</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerDefinition_Documents">
+        <bpmn:timeDuration xsi:type="bpmn:tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">PT2D</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Boundary_Error" name="Document error" attachedToRef="Task_WaitForDocuments">
+      <bpmn:outgoing>Flow_Error_Reject</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="ErrorDefinition_Documents" />
+    </bpmn:boundaryEvent>
+    <bpmn:serviceTask id="Task_SendReminder" name="Send reminder" camunda:type="external" camunda:topic="document-reminder">
+      <bpmn:incoming>Flow_Timer_Reminder</bpmn:incoming>
+      <bpmn:outgoing>Flow_Reminder_End</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="Task_VerifyDocuments" name="Verify documents" camunda:delegateExpression="${verifyDocuments}">
+      <bpmn:incoming>Flow_Wait_Verify</bpmn:incoming>
+      <bpmn:outgoing>Flow_Verify_End</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="EndEvent_DocumentsVerified" name="Verified">
+      <bpmn:incoming>Flow_Verify_End</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="EndEvent_ReminderSent" name="Reminder sent">
+      <bpmn:incoming>Flow_Reminder_End</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="EndEvent_DocumentRejected" name="Rejected">
+      <bpmn:incoming>Flow_Error_Reject</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_Start_Wait" sourceRef="StartEvent_Boundary" targetRef="Task_WaitForDocuments" />
+    <bpmn:sequenceFlow id="Flow_Wait_Verify" sourceRef="Task_WaitForDocuments" targetRef="Task_VerifyDocuments" />
+    <bpmn:sequenceFlow id="Flow_Timer_Reminder" sourceRef="Boundary_Timer" targetRef="Task_SendReminder" />
+    <bpmn:sequenceFlow id="Flow_Error_Reject" sourceRef="Boundary_Error" targetRef="EndEvent_DocumentRejected" />
+    <bpmn:sequenceFlow id="Flow_Reminder_End" sourceRef="Task_SendReminder" targetRef="EndEvent_ReminderSent" />
+    <bpmn:sequenceFlow id="Flow_Verify_End" sourceRef="Task_VerifyDocuments" targetRef="EndEvent_DocumentsVerified" />
+  </bpmn:process>
+</bpmn:definitions>

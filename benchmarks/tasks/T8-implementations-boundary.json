@@ -1,0 +1,13 @@
+{
+  "id": "T8-implementations-boundary",
+  "title": "List runtime integrations in boundary event process",
+  "fixture": "boundary-events.bpmn",
+  "category": "runtime-implementations",
+  "prompt": "List implementations related to document handling and reminders.",
+  "allowedTools": ["bpmn-agent-cli"],
+  "cliCalls": [
+    ["implementations", "$fixture"]
+  ],
+  "successCriteria": ["mentions document-reminder topic", "mentions verifyDocuments delegate"],
+  "scoring": { "maxScore": 3, "manualReviewRequired": true }
+}

@@ -1,0 +1,14 @@
+{
+  "id": "T2-element-user-form",
+  "title": "Inspect the manual review user task",
+  "fixture": "gateway-loan-process.bpmn",
+  "category": "element-inspection",
+  "prompt": "Explain the Manual review task and identify form metadata if available.",
+  "allowedTools": ["bpmn-agent-cli"],
+  "cliCalls": [
+    ["element", "$fixture", "--id", "Task_ManualReview"],
+    ["implementations", "$fixture"]
+  ],
+  "successCriteria": ["mentions Task_ManualReview", "mentions loan-review form key"],
+  "scoring": { "maxScore": 3, "manualReviewRequired": true }
+}

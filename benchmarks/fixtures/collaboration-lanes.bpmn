@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="Definitions_CollaborationLanes" targetNamespace="http://bpmn-agent-cli/benchmarks">
+  <bpmn:collaboration id="Collaboration_Loan">
+    <bpmn:participant id="Participant_Bank" name="Bank" processRef="Process_Bank" />
+    <bpmn:participant id="Participant_Customer" name="Customer" processRef="Process_Customer" />
+    <bpmn:messageFlow id="MessageFlow_RequestDocs" name="Request documents" sourceRef="Task_RequestDocuments" targetRef="Task_SendDocuments" />
+  </bpmn:collaboration>
+  <bpmn:process id="Process_Bank" name="Bank process" isExecutable="true">
+    <bpmn:laneSet id="LaneSet_Bank">
+      <bpmn:lane id="Lane_Operations" name="Operations">
+        <bpmn:flowNodeRef>Task_RequestDocuments</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Risk" name="Risk">
+        <bpmn:flowNodeRef>Task_AssessRisk</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="StartEvent_Bank" name="Start">
+      <bpmn:outgoing>Flow_Bank_Request</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:userTask id="Task_RequestDocuments" name="Request documents">
+      <bpmn:incoming>Flow_Bank_Request</bpmn:incoming>
+      <bpmn:outgoing>Flow_Request_Risk</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Task_AssessRisk" name="Assess risk">
+      <bpmn:incoming>Flow_Request_Risk</bpmn:incoming>
+      <bpmn:outgoing>Flow_Risk_End</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="EndEvent_Bank" name="Done">
+      <bpmn:incoming>Flow_Risk_End</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_Bank_Request" sourceRef="StartEvent_Bank" targetRef="Task_RequestDocuments" />
+    <bpmn:sequenceFlow id="Flow_Request_Risk" sourceRef="Task_RequestDocuments" targetRef="Task_AssessRisk" />
+    <bpmn:sequenceFlow id="Flow_Risk_End" sourceRef="Task_AssessRisk" targetRef="EndEvent_Bank" />
+  </bpmn:process>
+  <bpmn:process id="Process_Customer" name="Customer process">
+    <bpmn:startEvent id="StartEvent_Customer" name="Request received">
+      <bpmn:outgoing>Flow_Customer_Send</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:userTask id="Task_SendDocuments" name="Send documents">
+      <bpmn:incoming>Flow_Customer_Send</bpmn:incoming>
+      <bpmn:outgoing>Flow_Customer_End</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:endEvent id="EndEvent_Customer" name="Sent">
+      <bpmn:incoming>Flow_Customer_End</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_Customer_Send" sourceRef="StartEvent_Customer" targetRef="Task_SendDocuments" />
+    <bpmn:sequenceFlow id="Flow_Customer_End" sourceRef="Task_SendDocuments" targetRef="EndEvent_Customer" />
+  </bpmn:process>
+</bpmn:definitions>

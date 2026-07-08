@@ -1,0 +1,14 @@
+{
+  "id": "T1-overview-linear",
+  "title": "Summarize the linear benchmark process",
+  "fixture": "simple-linear.bpmn",
+  "category": "overview",
+  "prompt": "Summarize the process structure and identify start, work task, end event, and implementation metadata.",
+  "allowedTools": ["bpmn-agent-cli"],
+  "cliCalls": [
+    ["overview", "$fixture"],
+    ["implementations", "$fixture"]
+  ],
+  "successCriteria": ["mentions Task_DoWork", "mentions workDelegate", "does not read raw BPMN XML"],
+  "scoring": { "maxScore": 3, "manualReviewRequired": true }
+}

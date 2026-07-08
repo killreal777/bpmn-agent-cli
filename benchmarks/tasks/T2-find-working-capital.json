@@ -1,0 +1,15 @@
+{
+  "id": "T2-find-working-capital",
+  "title": "Find the working capital risk task",
+  "fixture": "gateway-loan-process.bpmn",
+  "category": "element-lookup",
+  "prompt": "Find the task responsible for working capital risk and identify its implementation.",
+  "allowedTools": ["bpmn-agent-cli"],
+  "cliCalls": [
+    ["find", "$fixture", "--query", "working capital risk"],
+    ["element", "$fixture", "--id", "Task_WorkingCapitalRisk"],
+    ["implementations", "$fixture"]
+  ],
+  "successCriteria": ["returns Task_WorkingCapitalRisk", "mentions com.example.WorkingCapitalRiskDelegate"],
+  "scoring": { "maxScore": 3, "manualReviewRequired": true }
+}

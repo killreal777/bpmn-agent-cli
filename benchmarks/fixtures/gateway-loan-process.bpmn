@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" id="Definitions_GatewayLoan" targetNamespace="http://bpmn-agent-cli/benchmarks">
+  <bpmn:process id="Process_GatewayLoan" name="Gateway-heavy loan process" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_Loan" name="Application received">
+      <bpmn:outgoing>Flow_Start_Product</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:exclusiveGateway id="Gateway_ProductType" name="Product type?">
+      <bpmn:incoming>Flow_Start_Product</bpmn:incoming>
+      <bpmn:outgoing>Flow_Product_WorkingCapital</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Product_Mortgage</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Product_Manual</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:serviceTask id="Task_WorkingCapitalRisk" name="Check working capital risk" camunda:class="com.example.WorkingCapitalRiskDelegate">
+      <bpmn:incoming>Flow_Product_WorkingCapital</bpmn:incoming>
+      <bpmn:outgoing>Flow_Risk_Eligibility</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="Gateway_Eligibility" name="Eligible?">
+      <bpmn:incoming>Flow_Risk_Eligibility</bpmn:incoming>
+      <bpmn:outgoing>Flow_Eligible_Approve</bpmn:outgoing>
+      <bpmn:outgoing>Flow_NotEligible_Reject</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:serviceTask id="Task_MortgageRisk" name="Check mortgage risk" camunda:delegateExpression="${mortgageRiskDelegate}">
+      <bpmn:incoming>Flow_Product_Mortgage</bpmn:incoming>
+      <bpmn:outgoing>Flow_Mortgage_Manual</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="Task_ManualReview" name="Manual review" camunda:formKey="loan-review">
+      <bpmn:incoming>Flow_Product_Manual</bpmn:incoming>
+      <bpmn:incoming>Flow_Mortgage_Manual</bpmn:incoming>
+      <bpmn:outgoing>Flow_Manual_End</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Task_ApproveLoan" name="Approve loan" camunda:type="external" camunda:topic="loan-approval">
+      <bpmn:incoming>Flow_Eligible_Approve</bpmn:incoming>
+      <bpmn:outgoing>Flow_Approve_End</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="EndEvent_Approved" name="Approved">
+      <bpmn:incoming>Flow_Approve_End</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="EndEvent_Rejected" name="Rejected">
+      <bpmn:incoming>Flow_NotEligible_Reject</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="EndEvent_Manual" name="Manual decision">
+      <bpmn:incoming>Flow_Manual_End</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_Start_Product" sourceRef="StartEvent_Loan" targetRef="Gateway_ProductType" />
+    <bpmn:sequenceFlow id="Flow_Product_WorkingCapital" name="working capital" sourceRef="Gateway_ProductType" targetRef="Task_WorkingCapitalRisk">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">${productType == 'WORKING_CAPITAL'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Product_Mortgage" name="mortgage" sourceRef="Gateway_ProductType" targetRef="Task_MortgageRisk">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">${productType == 'MORTGAGE'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Product_Manual" name="manual fallback" sourceRef="Gateway_ProductType" targetRef="Task_ManualReview" />
+    <bpmn:sequenceFlow id="Flow_Risk_Eligibility" sourceRef="Task_WorkingCapitalRisk" targetRef="Gateway_Eligibility" />
+    <bpmn:sequenceFlow id="Flow_Eligible_Approve" name="risk acceptable" sourceRef="Gateway_Eligibility" targetRef="Task_ApproveLoan">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">${riskScore &lt; 700}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_NotEligible_Reject" name="risk too high" sourceRef="Gateway_Eligibility" targetRef="EndEvent_Rejected">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">${riskScore &gt;= 700}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Mortgage_Manual" sourceRef="Task_MortgageRisk" targetRef="Task_ManualReview" />
+    <bpmn:sequenceFlow id="Flow_Manual_End" sourceRef="Task_ManualReview" targetRef="EndEvent_Manual" />
+    <bpmn:sequenceFlow id="Flow_Approve_End" sourceRef="Task_ApproveLoan" targetRef="EndEvent_Approved" />
+  </bpmn:process>
+</bpmn:definitions>

@@ -1,0 +1,14 @@
+{
+  "id": "T3-context-boundary-task",
+  "title": "Explain local context around a task with boundary events",
+  "fixture": "boundary-events.bpmn",
+  "category": "local-context",
+  "prompt": "Explain normal and boundary-event context around Wait for documents.",
+  "allowedTools": ["bpmn-agent-cli"],
+  "cliCalls": [
+    ["context", "$fixture", "--id", "Task_WaitForDocuments", "--before", "1", "--after", "2"],
+    ["events", "$fixture", "--type", "boundary"]
+  ],
+  "successCriteria": ["mentions Boundary_Timer", "mentions Boundary_Error", "mentions normal verification path"],
+  "scoring": { "maxScore": 3, "manualReviewRequired": true }
+}

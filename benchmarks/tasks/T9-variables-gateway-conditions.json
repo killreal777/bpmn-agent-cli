@@ -1,0 +1,14 @@
+{
+  "id": "T9-variables-gateway-conditions",
+  "title": "Identify variables used by gateway conditions",
+  "fixture": "gateway-loan-process.bpmn",
+  "category": "variables-data-flow",
+  "prompt": "Identify variables that influence product routing and eligibility.",
+  "allowedTools": ["bpmn-agent-cli"],
+  "cliCalls": [
+    ["gateway", "$fixture", "--id", "Gateway_ProductType"],
+    ["gateway", "$fixture", "--id", "Gateway_Eligibility"]
+  ],
+  "successCriteria": ["mentions productType", "mentions riskScore"],
+  "scoring": { "maxScore": 3, "manualReviewRequired": true }
+}

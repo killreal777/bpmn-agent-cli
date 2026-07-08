@@ -1,0 +1,14 @@
+{
+  "id": "T1-overview-loan",
+  "title": "Summarize the gateway-heavy loan process",
+  "fixture": "gateway-loan-process.bpmn",
+  "category": "overview",
+  "prompt": "Summarize major tasks, gateways, events, and runtime integrations in the loan process.",
+  "allowedTools": ["bpmn-agent-cli"],
+  "cliCalls": [
+    ["overview", "$fixture"],
+    ["gateway", "$fixture", "--id", "Gateway_ProductType"]
+  ],
+  "successCriteria": ["mentions product type gateway", "mentions working capital and mortgage branches", "does not read raw BPMN XML"],
+  "scoring": { "maxScore": 3, "manualReviewRequired": true }
+}

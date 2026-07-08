@@ -1,0 +1,15 @@
+{
+  "id": "T10-composite-collaboration",
+  "title": "Composite collaboration and lane reasoning",
+  "fixture": "collaboration-lanes.bpmn",
+  "category": "composite",
+  "prompt": "Explain participant, lane, and message-flow context for requesting customer documents.",
+  "allowedTools": ["bpmn-agent-cli"],
+  "cliCalls": [
+    ["participants", "$fixture"],
+    ["lanes", "$fixture", "--element", "Task_RequestDocuments"],
+    ["element", "$fixture", "--id", "Task_RequestDocuments"]
+  ],
+  "successCriteria": ["mentions Bank participant", "mentions Customer participant", "mentions Operations lane", "mentions Request documents message flow"],
+  "scoring": { "maxScore": 3, "manualReviewRequired": true }
+}

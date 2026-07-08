@@ -1,0 +1,14 @@
+{
+  "id": "T6-boundary-events-list",
+  "title": "List boundary events in document collection",
+  "fixture": "boundary-events.bpmn",
+  "category": "events",
+  "prompt": "List boundary events attached to Wait for documents and explain where they go.",
+  "allowedTools": ["bpmn-agent-cli"],
+  "cliCalls": [
+    ["events", "$fixture", "--type", "boundary"],
+    ["context", "$fixture", "--id", "Task_WaitForDocuments", "--after", "2"]
+  ],
+  "successCriteria": ["mentions timer boundary", "mentions error boundary", "mentions reminder handler"],
+  "scoring": { "maxScore": 3, "manualReviewRequired": true }
+}

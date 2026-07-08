@@ -1,0 +1,13 @@
+{
+  "id": "T7-subprocess-contents",
+  "title": "Inspect embedded subprocess contents",
+  "fixture": "subprocess-call-activity.bpmn",
+  "category": "subprocess-call-activity",
+  "prompt": "Explain what is inside Prepare application.",
+  "allowedTools": ["bpmn-agent-cli"],
+  "cliCalls": [
+    ["subprocess", "$fixture", "--id", "SubProcess_PrepareApplication"]
+  ],
+  "successCriteria": ["mentions Task_NormalizeApplication", "mentions normalizeApplication delegate"],
+  "scoring": { "maxScore": 3, "manualReviewRequired": true }
+}

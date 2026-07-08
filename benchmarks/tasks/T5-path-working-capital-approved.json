@@ -1,0 +1,15 @@
+{
+  "id": "T5-path-working-capital-approved",
+  "title": "Trace reachable approved path for working capital loan",
+  "fixture": "gateway-loan-process.bpmn",
+  "category": "path-reachability",
+  "prompt": "Determine whether the working capital branch can reach the Approved end event and show path reasoning.",
+  "allowedTools": ["bpmn-agent-cli"],
+  "cliCalls": [
+    ["path", "$fixture", "--from", "Gateway_ProductType", "--to", "EndEvent_Approved", "--max-paths", "10"],
+    ["gateway", "$fixture", "--id", "Gateway_ProductType"],
+    ["gateway", "$fixture", "--id", "Gateway_Eligibility"]
+  ],
+  "successCriteria": ["path reaches EndEvent_Approved", "mentions Task_WorkingCapitalRisk", "mentions risk condition"],
+  "scoring": { "maxScore": 3, "manualReviewRequired": true }
+}

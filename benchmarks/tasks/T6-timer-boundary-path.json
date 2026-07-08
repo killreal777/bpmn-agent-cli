@@ -1,0 +1,14 @@
+{
+  "id": "T6-timer-boundary-path",
+  "title": "Trace timer boundary handler",
+  "fixture": "boundary-events.bpmn",
+  "category": "events",
+  "prompt": "Trace what happens after the document timeout boundary event.",
+  "allowedTools": ["bpmn-agent-cli"],
+  "cliCalls": [
+    ["path", "$fixture", "--from", "Boundary_Timer", "--to", "EndEvent_ReminderSent"],
+    ["element", "$fixture", "--id", "Boundary_Timer"]
+  ],
+  "successCriteria": ["mentions Task_SendReminder", "mentions EndEvent_ReminderSent"],
+  "scoring": { "maxScore": 3, "manualReviewRequired": true }
+}

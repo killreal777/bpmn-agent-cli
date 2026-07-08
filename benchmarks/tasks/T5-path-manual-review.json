@@ -1,0 +1,13 @@
+{
+  "id": "T5-path-manual-review",
+  "title": "Trace manual review reachability",
+  "fixture": "gateway-loan-process.bpmn",
+  "category": "path-reachability",
+  "prompt": "Determine which paths can reach Manual review.",
+  "allowedTools": ["bpmn-agent-cli"],
+  "cliCalls": [
+    ["path", "$fixture", "--from", "Gateway_ProductType", "--to", "Task_ManualReview", "--max-paths", "10"]
+  ],
+  "successCriteria": ["mentions manual fallback", "mentions mortgage path"],
+  "scoring": { "maxScore": 3, "manualReviewRequired": true }
+}

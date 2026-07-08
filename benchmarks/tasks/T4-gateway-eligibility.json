@@ -1,0 +1,13 @@
+{
+  "id": "T4-gateway-eligibility",
+  "title": "Explain eligibility gateway branches",
+  "fixture": "gateway-loan-process.bpmn",
+  "category": "gateway-reasoning",
+  "prompt": "Explain how risk score controls approval or rejection.",
+  "allowedTools": ["bpmn-agent-cli"],
+  "cliCalls": [
+    ["gateway", "$fixture", "--id", "Gateway_Eligibility"]
+  ],
+  "successCriteria": ["mentions riskScore less than 700", "mentions riskScore greater than or equal to 700"],
+  "scoring": { "maxScore": 3, "manualReviewRequired": true }
+}

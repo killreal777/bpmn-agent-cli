@@ -1,0 +1,15 @@
+{
+  "id": "T10-composite-working-capital",
+  "title": "Composite working capital runtime reasoning",
+  "fixture": "gateway-loan-process.bpmn",
+  "category": "composite",
+  "prompt": "List service delegates and external topics that may execute for a working capital loan. Include branch reasoning and excluded branches.",
+  "allowedTools": ["bpmn-agent-cli"],
+  "cliCalls": [
+    ["gateway", "$fixture", "--id", "Gateway_ProductType"],
+    ["path", "$fixture", "--from", "Gateway_ProductType", "--to", "EndEvent_Approved", "--max-paths", "10"],
+    ["implementations", "$fixture"]
+  ],
+  "successCriteria": ["includes working capital delegate", "includes loan approval topic", "excludes mortgage delegate for working capital branch"],
+  "scoring": { "maxScore": 3, "manualReviewRequired": true }
+}
