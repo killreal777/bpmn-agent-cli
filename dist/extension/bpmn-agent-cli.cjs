@@ -8998,6 +8998,259 @@ async function implementationsCommand(args) {
   });
 }
 
+// src/cli/commands/insertTaskBetweenCommand.ts
+var import_promises6 = require("node:fs/promises");
+var import_node_path5 = require("node:path");
+
+// src/write/insertTaskBetween.ts
+function insertTaskBetweenXml(args) {
+  const replacedFlow = args.indexes.sequenceFlowById.get(args.flowId);
+  if (!replacedFlow) {
+    throw new BpmnCliError("REFERENCE_NOT_FOUND", "Sequence flow not found", 1, { flowId: args.flowId });
+  }
+  if (replacedFlow.condition) {
+    throw new BpmnCliError("UNSUPPORTED_BPMN_ELEMENT_TYPE", "Conditioned sequence flows are not supported by insert-task-between in P3-A", 1, { flowId: args.flowId });
+  }
+  const taskType = parseTaskType(args.type ?? "task");
+  const incomingFlowId = args.incomingFlowId ?? `${args.flowId}_to_${args.elementId}`;
+  const outgoingFlowId = args.outgoingFlowId ?? `${args.elementId}_to_${replacedFlow.targetId}`;
+  assertNewId(args.indexes, args.elementId, "elementId");
+  assertNewId(args.indexes, incomingFlowId, "incomingFlowId");
+  assertNewId(args.indexes, outgoingFlowId, "outgoingFlowId");
+  const inserted = {
+    id: args.elementId,
+    type: taskType.canonicalType,
+    name: args.name,
+    processId: args.indexes.byId.get(replacedFlow.sourceId)?.processId ?? args.indexes.byId.get(replacedFlow.targetId)?.processId ?? null
+  };
+  const newFlows = [
+    {
+      id: incomingFlowId,
+      type: "bpmn:SequenceFlow",
+      name: null,
+      sourceId: replacedFlow.sourceId,
+      sourceName: replacedFlow.sourceName,
+      targetId: args.elementId,
+      targetName: args.name,
+      condition: null
+    },
+    {
+      id: outgoingFlowId,
+      type: "bpmn:SequenceFlow",
+      name: null,
+      sourceId: args.elementId,
+      sourceName: args.name,
+      targetId: replacedFlow.targetId,
+      targetName: replacedFlow.targetName,
+      condition: null
+    }
+  ];
+  let xml2 = args.xml;
+  xml2 = replaceNodeReference(xml2, replacedFlow.sourceId, "outgoing", args.flowId, incomingFlowId);
+  xml2 = replaceNodeReference(xml2, replacedFlow.targetId, "incoming", args.flowId, outgoingFlowId);
+  xml2 = replaceSequenceFlow(xml2, args.flowId, taskType.xmlTag, args.elementId, args.name, newFlows);
+  return {
+    xml: xml2,
+    result: {
+      dryRun: args.dryRun ?? true,
+      written: args.written ?? false,
+      file: args.file,
+      outputFile: args.outputFile ?? null,
+      inserted,
+      replacedFlow,
+      newFlows,
+      warnings: [{
+        severity: "warning",
+        code: "DI_NOT_UPDATED",
+        message: "BPMNDI layout is not updated in P3-A"
+      }],
+      diff: [
+        {
+          op: "replace",
+          path: `/sequenceFlows/${args.flowId}`,
+          before: `${replacedFlow.sourceId}->${replacedFlow.targetId}`,
+          after: `${replacedFlow.sourceId}->${args.elementId}->${replacedFlow.targetId}`
+        },
+        {
+          op: "add",
+          path: `/elements/${args.elementId}`,
+          before: null,
+          after: args.name
+        },
+        {
+          op: "add",
+          path: `/sequenceFlows/${incomingFlowId}`,
+          before: null,
+          after: `${replacedFlow.sourceId}->${args.elementId}`
+        },
+        {
+          op: "add",
+          path: `/sequenceFlows/${outgoingFlowId}`,
+          before: null,
+          after: `${args.elementId}->${replacedFlow.targetId}`
+        }
+      ]
+    }
+  };
+}
+function parseTaskType(type) {
+  if (type === "task") {
+    return { canonicalType: "bpmn:Task", xmlTag: "task" };
+  }
+  if (type === "userTask") {
+    return { canonicalType: "bpmn:UserTask", xmlTag: "userTask" };
+  }
+  if (type === "serviceTask") {
+    return { canonicalType: "bpmn:ServiceTask", xmlTag: "serviceTask" };
+  }
+  throw new BpmnCliError("INVALID_OPTION_VALUE", `Unsupported insert task type: ${type}`, 2, { type });
+}
+function assertNewId(indexes, id, field) {
+  if (indexes.byId.has(id) || indexes.sequenceFlowById.has(id)) {
+    throw new BpmnCliError("INVALID_OPTION_VALUE", `Duplicate id for ${field}`, 2, { [field]: id });
+  }
+}
+function replaceNodeReference(xml2, elementId, direction, oldFlowId, newFlowId) {
+  const escapedId = escapeRegExp3(elementId);
+  const openPattern = new RegExp(`<([^!?/\\s>]+)([^>]*\\bid="${escapedId}"[^>]*)>`);
+  const open = xml2.match(openPattern);
+  if (!open || open.index === void 0) {
+    throw new BpmnCliError("UNSUPPORTED_BPMN_ELEMENT_TYPE", "Could not find flow node opening tag", 1, { elementId });
+  }
+  const fullOpenTag = open[0];
+  const tagName = open[1];
+  const closeTag = `</${tagName}>`;
+  const closeIndex = xml2.indexOf(closeTag, open.index + fullOpenTag.length);
+  if (closeIndex === -1) {
+    throw new BpmnCliError("UNSUPPORTED_BPMN_ELEMENT_TYPE", "Could not find flow node closing tag", 1, { elementId });
+  }
+  const bodyStart = open.index + fullOpenTag.length;
+  const body = xml2.slice(bodyStart, closeIndex);
+  const reference = `<bpmn:${direction}>${oldFlowId}</bpmn:${direction}>`;
+  if (!body.includes(reference)) {
+    throw new BpmnCliError("UNSUPPORTED_BPMN_ELEMENT_TYPE", `Could not find ${direction} reference on flow node`, 1, {
+      elementId,
+      flowId: oldFlowId
+    });
+  }
+  const updatedBody = body.replace(reference, `<bpmn:${direction}>${newFlowId}</bpmn:${direction}>`);
+  return `${xml2.slice(0, bodyStart)}${updatedBody}${xml2.slice(closeIndex)}`;
+}
+function replaceSequenceFlow(xml2, flowId, taskXmlTag, elementId, name2, newFlows) {
+  const escapedId = escapeRegExp3(flowId);
+  const flowPattern = new RegExp(`<bpmn:sequenceFlow\\b[^>]*\\bid="${escapedId}"[^>]*>`);
+  const flow = xml2.match(flowPattern);
+  if (!flow || flow.index === void 0) {
+    throw new BpmnCliError("UNSUPPORTED_BPMN_ELEMENT_TYPE", "Could not find sequence flow tag", 1, { flowId });
+  }
+  if (!flow[0].endsWith("/>")) {
+    throw new BpmnCliError("UNSUPPORTED_BPMN_ELEMENT_TYPE", "Only self-closing sequence flows are supported by insert-task-between in P3-A", 1, { flowId });
+  }
+  const lineStart = xml2.lastIndexOf("\n", flow.index) + 1;
+  const indent = xml2.slice(lineStart, flow.index).match(/^\s*/)?.[0] ?? "";
+  const task = [
+    `<bpmn:${taskXmlTag} id="${escapeAttribute2(elementId)}" name="${escapeAttribute2(name2)}">`,
+    `${indent}  <bpmn:incoming>${newFlows[0].id}</bpmn:incoming>`,
+    `${indent}  <bpmn:outgoing>${newFlows[1].id}</bpmn:outgoing>`,
+    `${indent}</bpmn:${taskXmlTag}>`
+  ].join("\n");
+  const replacement = [
+    `<bpmn:sequenceFlow id="${escapeAttribute2(newFlows[0].id)}" sourceRef="${escapeAttribute2(newFlows[0].sourceId)}" targetRef="${escapeAttribute2(newFlows[0].targetId)}" />`,
+    task,
+    `<bpmn:sequenceFlow id="${escapeAttribute2(newFlows[1].id)}" sourceRef="${escapeAttribute2(newFlows[1].sourceId)}" targetRef="${escapeAttribute2(newFlows[1].targetId)}" />`
+  ].join(`
+${indent}`);
+  return `${xml2.slice(0, flow.index)}${replacement}${xml2.slice(flow.index + flow[0].length)}`;
+}
+function escapeAttribute2(value) {
+  return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+function escapeRegExp3(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// src/cli/commands/insertTaskBetweenCommand.ts
+async function insertTaskBetweenCommand(args) {
+  if (!args.file) {
+    throw new BpmnCliError("MISSING_FILE_ARGUMENT", "insert-task-between requires a BPMN file", 2);
+  }
+  const flowId = requiredString(args, "--flow", "insert-task-between requires --flow");
+  const elementId = requiredString(args, "--id", "insert-task-between requires --id");
+  const name2 = requiredString(args, "--name", "insert-task-between requires --name");
+  const type = args.options.get("--type");
+  const incomingFlowId = args.options.get("--incoming-flow-id");
+  const outgoingFlowId = args.options.get("--outgoing-flow-id");
+  if (type !== void 0 && typeof type !== "string") {
+    throw new BpmnCliError("INVALID_OPTION_VALUE", "--type requires a value", 2);
+  }
+  if (incomingFlowId !== void 0 && typeof incomingFlowId !== "string") {
+    throw new BpmnCliError("INVALID_OPTION_VALUE", "--incoming-flow-id requires a value", 2);
+  }
+  if (outgoingFlowId !== void 0 && typeof outgoingFlowId !== "string") {
+    throw new BpmnCliError("INVALID_OPTION_VALUE", "--outgoing-flow-id requires a value", 2);
+  }
+  const write = args.options.get("--write") === true;
+  const outputPath = args.options.get("-o");
+  if (outputPath !== void 0 && typeof outputPath !== "string") {
+    throw new BpmnCliError("INVALID_OPTION_VALUE", "-o requires an output path", 2);
+  }
+  if (!write && outputPath) {
+    throw new BpmnCliError("INVALID_OPTION_VALUE", "-o is only allowed with --write", 2);
+  }
+  const model = await loadBpmn(args.file);
+  const targetPath = outputPath || args.file;
+  const plan = insertTaskBetweenXml({
+    xml: model.xml,
+    indexes: buildIndexes(model),
+    flowId,
+    elementId,
+    name: name2,
+    type: type ?? "task",
+    incomingFlowId: incomingFlowId ?? null,
+    outgoingFlowId: outgoingFlowId ?? null,
+    file: args.file,
+    outputFile: write ? targetPath : null,
+    dryRun: !write,
+    written: write
+  });
+  await validateXml4(plan.xml);
+  if (write) {
+    await writeOutput5(targetPath, plan.xml);
+  }
+  return successEnvelope({
+    command: "insert-task-between",
+    file: args.file,
+    result: plan.result
+  });
+}
+function requiredString(args, key, message) {
+  const value = args.options.get(key);
+  if (typeof value !== "string") {
+    throw new BpmnCliError("INVALID_OPTION_VALUE", message, 2);
+  }
+  return value;
+}
+async function validateXml4(xml2) {
+  try {
+    await createBpmnModdle().fromXML(xml2);
+  } catch (error3) {
+    throw new BpmnCliError("BPMN_PARSE_ERROR", "Patched BPMN XML did not parse", 4, {
+      cause: error3 instanceof Error ? error3.message : String(error3)
+    });
+  }
+}
+async function writeOutput5(path, payload) {
+  try {
+    await (0, import_promises6.mkdir)((0, import_node_path5.dirname)(path), { recursive: true });
+    await (0, import_promises6.writeFile)(path, payload, "utf8");
+  } catch (error3) {
+    throw new BpmnCliError("OUTPUT_WRITE_ERROR", "Failed to write inserted BPMN", 1, {
+      path,
+      cause: error3 instanceof Error ? error3.message : String(error3)
+    });
+  }
+}
+
 // src/cli/commands/lanesCommand.ts
 async function lanesCommand(args) {
   if (!args.file) {
@@ -9158,8 +9411,8 @@ async function participantsCommand(args) {
 }
 
 // src/cli/commands/renameCommand.ts
-var import_promises6 = require("node:fs/promises");
-var import_node_path5 = require("node:path");
+var import_promises7 = require("node:fs/promises");
+var import_node_path6 = require("node:path");
 
 // src/write/renameElement.ts
 function renameElementXml(args) {
@@ -9188,14 +9441,14 @@ function renameElementXml(args) {
   };
 }
 function patchOpeningTag2(xml2, elementId, name2) {
-  const escapedId = escapeRegExp3(elementId);
+  const escapedId = escapeRegExp4(elementId);
   const tagPattern = new RegExp(`<[^!?/][^>]*\\bid="${escapedId}"[^>]*>`);
   const match = xml2.match(tagPattern);
   if (!match || match.index === void 0) {
     throw new BpmnCliError("UNSUPPORTED_BPMN_ELEMENT_TYPE", "Could not find target element opening tag", 1, { elementId });
   }
   const tag = match[0];
-  const escapedName = escapeAttribute2(name2);
+  const escapedName = escapeAttribute3(name2);
   const namePattern = /\bname="[^"]*"/;
   const operation = namePattern.test(tag) ? "replace" : "add";
   const updatedTag = operation === "replace" ? tag.replace(namePattern, `name="${escapedName}"`) : tag.replace(/\/?>$/, (suffix) => ` name="${escapedName}"${suffix}`);
@@ -9204,10 +9457,10 @@ function patchOpeningTag2(xml2, elementId, name2) {
     operation
   };
 }
-function escapeAttribute2(value) {
+function escapeAttribute3(value) {
   return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
-function escapeRegExp3(value) {
+function escapeRegExp4(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
@@ -9244,9 +9497,9 @@ async function renameCommand(args) {
     dryRun: !write,
     written: write
   });
-  await validateXml4(plan.xml);
+  await validateXml5(plan.xml);
   if (write) {
-    await writeOutput5(targetPath, plan.xml);
+    await writeOutput6(targetPath, plan.xml);
   }
   return successEnvelope({
     command: "rename",
@@ -9254,7 +9507,7 @@ async function renameCommand(args) {
     result: plan.result
   });
 }
-async function validateXml4(xml2) {
+async function validateXml5(xml2) {
   try {
     await createBpmnModdle().fromXML(xml2);
   } catch (error3) {
@@ -9263,10 +9516,10 @@ async function validateXml4(xml2) {
     });
   }
 }
-async function writeOutput5(path, payload) {
+async function writeOutput6(path, payload) {
   try {
-    await (0, import_promises6.mkdir)((0, import_node_path5.dirname)(path), { recursive: true });
-    await (0, import_promises6.writeFile)(path, payload, "utf8");
+    await (0, import_promises7.mkdir)((0, import_node_path6.dirname)(path), { recursive: true });
+    await (0, import_promises7.writeFile)(path, payload, "utf8");
   } catch (error3) {
     throw new BpmnCliError("OUTPUT_WRITE_ERROR", "Failed to write renamed BPMN", 1, {
       path,
@@ -9330,8 +9583,8 @@ function numberOption4(args, name2, fallback) {
 }
 
 // src/cli/commands/toJsonCommand.ts
-var import_promises7 = require("node:fs/promises");
-var import_node_path6 = require("node:path");
+var import_promises8 = require("node:fs/promises");
+var import_node_path7 = require("node:path");
 
 // src/legacy/optimizations/ids.ts
 var OPTIMIZATION_IDS = {
@@ -10077,7 +10330,7 @@ async function toJsonCommand(args, pretty) {
   if (!args.file) {
     throw new BpmnCliError("MISSING_FILE_ARGUMENT", "to-json requires a BPMN file", 2);
   }
-  const xml2 = await (0, import_promises7.readFile)(args.file, "utf8");
+  const xml2 = await (0, import_promises8.readFile)(args.file, "utf8");
   const converted = await convertBpmnToJson(xml2, { preset: stringOption5(args, "--preset") });
   const output = `${JSON.stringify(converted, null, pretty ? 2 : 0)}
 `;
@@ -10086,8 +10339,8 @@ async function toJsonCommand(args, pretty) {
     process.stdout.write(output);
     return;
   }
-  await (0, import_promises7.mkdir)((0, import_node_path6.dirname)(outputPath), { recursive: true });
-  await (0, import_promises7.writeFile)(outputPath, output, "utf8");
+  await (0, import_promises8.mkdir)((0, import_node_path7.dirname)(outputPath), { recursive: true });
+  await (0, import_promises8.writeFile)(outputPath, output, "utf8");
 }
 function stringOption5(args, name2) {
   const value = args.options.get(name2);
@@ -10191,6 +10444,10 @@ async function main(args = process.argv.slice(2)) {
     }
     if (parsed.command === "format") {
       writeJson(await formatCommand(parsed), pretty);
+      return;
+    }
+    if (parsed.command === "insert-task-between") {
+      writeJson(await insertTaskBetweenCommand(parsed), pretty);
       return;
     }
     if (parsed.command === "to-json") {
