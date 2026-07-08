@@ -50,9 +50,12 @@ P2-A implemented:
 
 - `rename`
 
-Remaining safe write commands:
+P2-B implemented:
 
 - `documentation`
+
+Remaining safe write commands:
+
 - `implementation`
 - `format`
 

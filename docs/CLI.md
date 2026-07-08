@@ -130,6 +130,16 @@ bpmn-agent-cli rename process.bpmn --id Task_1 --name "Review" --write -o tmp/re
 
 Renames one indexed BPMN element. Dry-run is the default. No file is written unless `--write` is provided. `-o` is allowed only with `--write`.
 
+## documentation
+
+```bash
+bpmn-agent-cli documentation process.bpmn --id Task_1 --text "Review"
+bpmn-agent-cli documentation process.bpmn --id Task_1 --text "Review" --write
+bpmn-agent-cli documentation process.bpmn --id Task_1 --text "Review" --write -o tmp/documented.bpmn
+```
+
+Adds or replaces one `bpmn:documentation` child for an indexed BPMN element. Dry-run is the default. No file is written unless `--write` is provided. `-o` is allowed only with `--write`.
+
 ## validate
 
 ```bash

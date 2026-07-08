@@ -207,6 +207,28 @@ type RenameResult = {
 
 `rename` uses the success envelope. Dry-run is default and reports the planned diff without writing files.
 
+## DocumentationResult
+
+```ts
+type DocumentationResult = {
+  dryRun: boolean;
+  written: boolean;
+  file: string;
+  outputFile: string | null;
+  element: ElementSummary;
+  before: { documentation: string | null };
+  after: { documentation: string };
+  diff: Array<{
+    op: "replace" | "add";
+    path: string;
+    before: string | null;
+    after: string;
+  }>;
+};
+```
+
+`documentation` uses the success envelope. Dry-run is default and reports the planned documentation diff without writing files.
+
 ## Element Type Contract
 
 `type` fields use canonical moddle types such as `bpmn:ServiceTask`. CLI aliases such as `serviceTask` are accepted only as input filters.

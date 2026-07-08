@@ -23,6 +23,7 @@ describe('documentation', () => {
     expect(cli).toContain('bpmn-agent-cli path process.bpmn --from StartEvent_1 --to EndEvent_1');
     expect(cli).toContain('bpmn-agent-cli export process.bpmn --format markdown');
     expect(cli).toContain('bpmn-agent-cli rename process.bpmn --id Task_1 --name "Review"');
+    expect(cli).toContain('bpmn-agent-cli documentation process.bpmn --id Task_1 --text "Review"');
     expect(readme).toContain('bpmn-agent-cli path process.bpmn --from StartEvent_1 --to EndEvent_1');
     expect(readme).toContain('bpmn-agent-cli export process.bpmn --format markdown');
     expect(contracts).toContain('ELEMENT_NOT_FOUND');
@@ -34,6 +35,7 @@ describe('documentation', () => {
     expect(contracts).toContain('PathResult');
     expect(contracts).toContain('ExportResult');
     expect(contracts).toContain('RenameResult');
+    expect(contracts).toContain('DocumentationResult');
     expect(roadmap).toContain('P0');
     expect(roadmap).toContain('P1-A');
     expect(roadmap).toContain('P1');
