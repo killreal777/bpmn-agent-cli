@@ -219,6 +219,39 @@ describe('CLI overview and validate', () => {
     expect(written).toContain('id="Task_1" name="Review"');
   });
 
+  it('prints documentation dry-run envelope without modifying input', async () => {
+    const before = await readFile('test/fixtures/simple-linear.bpmn', 'utf8');
+    const { stdout } = await execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'documentation', 'test/fixtures/simple-linear.bpmn', '--id', 'Task_1', '--text', 'Documents task']);
+    const after = await readFile('test/fixtures/simple-linear.bpmn', 'utf8');
+
+    expect(JSON.parse(stdout)).toMatchObject({
+      ok: true,
+      command: 'documentation',
+      result: {
+        dryRun: true,
+        written: false,
+        after: { documentation: 'Documents task' }
+      }
+    });
+    expect(after).toBe(before);
+  });
+
+  it('writes documentation output to explicit path', async () => {
+    const input = 'tmp/documentation-input.bpmn';
+    const output = 'tmp/documentation-output.bpmn';
+    await copyFile('test/fixtures/simple-linear.bpmn', input);
+
+    const { stdout } = await execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'documentation', input, '--id', 'Task_1', '--text', 'Documents task', '--write', '-o', output]);
+    const written = await readFile(output, 'utf8');
+
+    expect(JSON.parse(stdout)).toMatchObject({
+      ok: true,
+      command: 'documentation',
+      result: { dryRun: false, written: true, outputFile: output }
+    });
+    expect(written).toContain('<bpmn:documentation>Documents task</bpmn:documentation>');
+  });
+
   it('exits 1 for validation errors', async () => {
     await expect(execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'validate', 'test/fixtures/broken-reference.bpmn'])).rejects.toMatchObject({
       code: 1,
@@ -249,6 +282,13 @@ describe('CLI overview and validate', () => {
 
   it('exits 2 when rename dry-run uses output path', async () => {
     await expect(execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'rename', 'test/fixtures/simple-linear.bpmn', '--id', 'Task_1', '--name', 'Review', '-o', 'tmp/invalid.bpmn'])).rejects.toMatchObject({
+      code: 2,
+      stdout: expect.stringContaining('INVALID_OPTION_VALUE')
+    });
+  });
+
+  it('exits 2 when documentation dry-run uses output path', async () => {
+    await expect(execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'documentation', 'test/fixtures/simple-linear.bpmn', '--id', 'Task_1', '--text', 'Docs', '-o', 'tmp/invalid-doc.bpmn'])).rejects.toMatchObject({
       code: 2,
       stdout: expect.stringContaining('INVALID_OPTION_VALUE')
     });
