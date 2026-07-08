@@ -87,7 +87,7 @@ function parseArgs(args) {
       continue;
     }
     const next = optionArgs[index + 1];
-    if (next && !next.startsWith("--")) {
+    if (next && !next.startsWith("-")) {
       options.set(item, next);
       index += 1;
     } else {
@@ -8738,6 +8738,124 @@ async function participantsCommand(args) {
   });
 }
 
+// src/cli/commands/renameCommand.ts
+var import_promises3 = require("node:fs/promises");
+var import_node_path2 = require("node:path");
+
+// src/write/renameElement.ts
+function renameElementXml(args) {
+  const element = args.indexes.byId.get(args.elementId);
+  if (!element) {
+    throw new BpmnCliError("ELEMENT_NOT_FOUND", "Element not found", 1, { elementId: args.elementId });
+  }
+  const patch = patchOpeningTag(args.xml, args.elementId, args.name);
+  return {
+    xml: patch.xml,
+    result: {
+      dryRun: args.dryRun ?? true,
+      written: args.written ?? false,
+      file: args.file,
+      outputFile: args.outputFile ?? null,
+      element,
+      before: { name: element.name },
+      after: { name: args.name },
+      diff: [{
+        op: patch.operation,
+        path: `/elements/${args.elementId}/name`,
+        before: element.name,
+        after: args.name
+      }]
+    }
+  };
+}
+function patchOpeningTag(xml2, elementId, name2) {
+  const escapedId = escapeRegExp(elementId);
+  const tagPattern = new RegExp(`<[^!?/][^>]*\\bid="${escapedId}"[^>]*>`);
+  const match = xml2.match(tagPattern);
+  if (!match || match.index === void 0) {
+    throw new BpmnCliError("UNSUPPORTED_BPMN_ELEMENT_TYPE", "Could not find target element opening tag", 1, { elementId });
+  }
+  const tag = match[0];
+  const escapedName = escapeAttribute(name2);
+  const namePattern = /\bname="[^"]*"/;
+  const operation = namePattern.test(tag) ? "replace" : "add";
+  const updatedTag = operation === "replace" ? tag.replace(namePattern, `name="${escapedName}"`) : tag.replace(/\/?>$/, (suffix) => ` name="${escapedName}"${suffix}`);
+  return {
+    xml: `${xml2.slice(0, match.index)}${updatedTag}${xml2.slice(match.index + tag.length)}`,
+    operation
+  };
+}
+function escapeAttribute(value) {
+  return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// src/cli/commands/renameCommand.ts
+async function renameCommand(args) {
+  if (!args.file) {
+    throw new BpmnCliError("MISSING_FILE_ARGUMENT", "rename requires a BPMN file", 2);
+  }
+  const elementId = args.options.get("--id");
+  if (typeof elementId !== "string") {
+    throw new BpmnCliError("INVALID_OPTION_VALUE", "rename requires --id", 2);
+  }
+  const name2 = args.options.get("--name");
+  if (typeof name2 !== "string") {
+    throw new BpmnCliError("INVALID_OPTION_VALUE", "rename requires --name", 2);
+  }
+  const write = args.options.get("--write") === true;
+  const outputPath = args.options.get("-o");
+  if (outputPath !== void 0 && typeof outputPath !== "string") {
+    throw new BpmnCliError("INVALID_OPTION_VALUE", "-o requires an output path", 2);
+  }
+  if (!write && outputPath) {
+    throw new BpmnCliError("INVALID_OPTION_VALUE", "-o is only allowed with --write", 2);
+  }
+  const model = await loadBpmn(args.file);
+  const targetPath = outputPath || args.file;
+  const plan = renameElementXml({
+    xml: model.xml,
+    indexes: buildIndexes(model),
+    elementId,
+    name: name2,
+    file: args.file,
+    outputFile: write ? targetPath : null,
+    dryRun: !write,
+    written: write
+  });
+  await validateXml(plan.xml);
+  if (write) {
+    await writeOutput2(targetPath, plan.xml);
+  }
+  return successEnvelope({
+    command: "rename",
+    file: args.file,
+    result: plan.result
+  });
+}
+async function validateXml(xml2) {
+  try {
+    await createBpmnModdle().fromXML(xml2);
+  } catch (error3) {
+    throw new BpmnCliError("BPMN_PARSE_ERROR", "Patched BPMN XML did not parse", 4, {
+      cause: error3 instanceof Error ? error3.message : String(error3)
+    });
+  }
+}
+async function writeOutput2(path, payload) {
+  try {
+    await (0, import_promises3.mkdir)((0, import_node_path2.dirname)(path), { recursive: true });
+    await (0, import_promises3.writeFile)(path, payload, "utf8");
+  } catch (error3) {
+    throw new BpmnCliError("OUTPUT_WRITE_ERROR", "Failed to write renamed BPMN", 1, {
+      path,
+      cause: error3 instanceof Error ? error3.message : String(error3)
+    });
+  }
+}
+
 // src/cli/commands/subprocessCommand.ts
 async function subprocessCommand(args) {
   if (!args.file) {
@@ -8793,8 +8911,8 @@ function numberOption4(args, name2, fallback) {
 }
 
 // src/cli/commands/toJsonCommand.ts
-var import_promises3 = require("node:fs/promises");
-var import_node_path2 = require("node:path");
+var import_promises4 = require("node:fs/promises");
+var import_node_path3 = require("node:path");
 
 // src/legacy/optimizations/ids.ts
 var OPTIMIZATION_IDS = {
@@ -9540,7 +9658,7 @@ async function toJsonCommand(args, pretty) {
   if (!args.file) {
     throw new BpmnCliError("MISSING_FILE_ARGUMENT", "to-json requires a BPMN file", 2);
   }
-  const xml2 = await (0, import_promises3.readFile)(args.file, "utf8");
+  const xml2 = await (0, import_promises4.readFile)(args.file, "utf8");
   const converted = await convertBpmnToJson(xml2, { preset: stringOption5(args, "--preset") });
   const output = `${JSON.stringify(converted, null, pretty ? 2 : 0)}
 `;
@@ -9549,8 +9667,8 @@ async function toJsonCommand(args, pretty) {
     process.stdout.write(output);
     return;
   }
-  await (0, import_promises3.mkdir)((0, import_node_path2.dirname)(outputPath), { recursive: true });
-  await (0, import_promises3.writeFile)(outputPath, output, "utf8");
+  await (0, import_promises4.mkdir)((0, import_node_path3.dirname)(outputPath), { recursive: true });
+  await (0, import_promises4.writeFile)(outputPath, output, "utf8");
 }
 function stringOption5(args, name2) {
   const value = args.options.get(name2);
@@ -9638,6 +9756,10 @@ async function main(args = process.argv.slice(2)) {
     }
     if (parsed.command === "export") {
       await exportCommand(parsed, pretty);
+      return;
+    }
+    if (parsed.command === "rename") {
+      writeJson(await renameCommand(parsed), pretty);
       return;
     }
     if (parsed.command === "to-json") {
