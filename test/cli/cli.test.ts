@@ -390,6 +390,42 @@ describe('CLI overview and validate', () => {
     expect(written).toContain('<bpmn:sequenceFlow id="Flow_Start_To_End" sourceRef="StartEvent_1" targetRef="EndEvent_1" />');
   });
 
+  it('prints delete-safe dry-run envelope without modifying input', async () => {
+    const before = await readFile('test/fixtures/simple-linear.bpmn', 'utf8');
+    const { stdout } = await execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'delete-safe', 'test/fixtures/simple-linear.bpmn', '--id', 'Task_1']);
+    const after = await readFile('test/fixtures/simple-linear.bpmn', 'utf8');
+
+    expect(JSON.parse(stdout)).toMatchObject({
+      ok: true,
+      command: 'delete-safe',
+      result: {
+        dryRun: true,
+        written: false,
+        deleted: { id: 'Task_1' },
+        replacementFlow: { sourceId: 'StartEvent_1', targetId: 'EndEvent_1' },
+        warnings: [expect.objectContaining({ code: 'DI_NOT_UPDATED' })]
+      }
+    });
+    expect(after).toBe(before);
+  });
+
+  it('writes delete-safe output to explicit path', async () => {
+    const input = 'tmp/delete-input.bpmn';
+    const output = 'tmp/delete-output.bpmn';
+    await copyFile('test/fixtures/simple-linear.bpmn', input);
+
+    const { stdout } = await execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'delete-safe', input, '--id', 'Task_1', '--write', '-o', output]);
+    const written = await readFile(output, 'utf8');
+
+    expect(JSON.parse(stdout)).toMatchObject({
+      ok: true,
+      command: 'delete-safe',
+      result: { dryRun: false, written: true, outputFile: output }
+    });
+    expect(written).not.toContain('<bpmn:task id="Task_1"');
+    expect(written).toContain('sourceRef="StartEvent_1" targetRef="EndEvent_1"');
+  });
+
   it('exits 1 for validation errors', async () => {
     await expect(execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'validate', 'test/fixtures/broken-reference.bpmn'])).rejects.toMatchObject({
       code: 1,
@@ -455,6 +491,13 @@ describe('CLI overview and validate', () => {
 
   it('exits 2 when connect dry-run uses output path', async () => {
     await expect(execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'connect', 'test/fixtures/simple-linear.bpmn', '--from', 'StartEvent_1', '--to', 'EndEvent_1', '--id', 'Flow_Start_To_End', '-o', 'tmp/invalid-connect.bpmn'])).rejects.toMatchObject({
+      code: 2,
+      stdout: expect.stringContaining('INVALID_OPTION_VALUE')
+    });
+  });
+
+  it('exits 2 when delete-safe dry-run uses output path', async () => {
+    await expect(execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'delete-safe', 'test/fixtures/simple-linear.bpmn', '--id', 'Task_1', '-o', 'tmp/invalid-delete.bpmn'])).rejects.toMatchObject({
       code: 2,
       stdout: expect.stringContaining('INVALID_OPTION_VALUE')
     });

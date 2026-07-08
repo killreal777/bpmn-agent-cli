@@ -5,6 +5,7 @@ import { errorEnvelope, toExitCode, writeJson } from '../output/jsonOutput.js';
 import { parseArgs } from './args.js';
 import { connectCommand } from './commands/connectCommand.js';
 import { contextCommand } from './commands/contextCommand.js';
+import { deleteSafeCommand } from './commands/deleteSafeCommand.js';
 import { documentationCommand } from './commands/documentationCommand.js';
 import { elementCommand } from './commands/elementCommand.js';
 import { exportCommand } from './commands/exportCommand.js';
@@ -132,6 +133,11 @@ export async function main(args: string[] = process.argv.slice(2)): Promise<void
 
     if (parsed.command === 'connect') {
       writeJson(await connectCommand(parsed), pretty);
+      return;
+    }
+
+    if (parsed.command === 'delete-safe') {
+      writeJson(await deleteSafeCommand(parsed), pretty);
       return;
     }
 
