@@ -31,6 +31,7 @@ describe('documentation', () => {
     expect(cli).toContain('bpmn-agent-cli insert-task-between process.bpmn --flow Flow_A_B --id Task_New --name "Review"');
     expect(cli).toContain('bpmn-agent-cli connect process.bpmn --from Task_A --to Task_B --id Flow_A_B');
     expect(cli).toContain('bpmn-agent-cli delete-safe process.bpmn --id Task_1');
+    expect(cli).toContain('bpmn-agent-cli add-boundary-event process.bpmn --attached-to Task_1 --id Boundary_Timeout');
     expect(readme).toContain('bpmn-agent-cli path process.bpmn --from StartEvent_1 --to EndEvent_1');
     expect(readme).toContain('bpmn-agent-cli export process.bpmn --format markdown');
     expect(contracts).toContain('ELEMENT_NOT_FOUND');
@@ -48,6 +49,7 @@ describe('documentation', () => {
     expect(contracts).toContain('InsertTaskBetweenResult');
     expect(contracts).toContain('ConnectResult');
     expect(contracts).toContain('DeleteSafeResult');
+    expect(contracts).toContain('AddBoundaryEventResult');
     expect(roadmap).toContain('P0');
     expect(roadmap).toContain('P1-A');
     expect(roadmap).toContain('P1');

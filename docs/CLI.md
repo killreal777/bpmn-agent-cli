@@ -198,6 +198,18 @@ Deletes one safe linear flow node with exactly one incoming and one outgoing seq
 
 P3-C refuses gateways, events, subprocess-like nodes, call activities, sequence flows, and nodes with non-linear connectivity. It removes BPMNDI entries that explicitly referenced deleted ids, but does not generate layout for the replacement flow, so successful results include `DI_NOT_UPDATED`.
 
+## add-boundary-event
+
+```bash
+bpmn-agent-cli add-boundary-event process.bpmn --attached-to Task_1 --id Boundary_Timeout --target EndEvent_1 --flow-id Flow_Timeout_To_End --duration PT10M
+bpmn-agent-cli add-boundary-event process.bpmn --attached-to Task_1 --id Boundary_Timeout --target EndEvent_1 --flow-id Flow_Timeout_To_End --duration PT10M --non-interrupting --write
+bpmn-agent-cli add-boundary-event process.bpmn --attached-to Task_1 --id Boundary_Timeout --target EndEvent_1 --flow-id Flow_Timeout_To_End --duration PT10M --write -o tmp/boundary.bpmn
+```
+
+Adds one timer boundary event to an activity-like node and connects it to an existing target flow node. `--duration` is written as `bpmn:timeDuration`. Boundary events are interrupting by default; `--non-interrupting` writes `cancelActivity="false"`. Dry-run is the default. No file is written unless `--write` is provided. `-o` is allowed only with `--write`.
+
+P3-D updates semantic BPMN only and does not update BPMNDI layout. Successful results include a `DI_NOT_UPDATED` warning.
+
 ## validate
 
 ```bash

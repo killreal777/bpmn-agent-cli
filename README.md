@@ -55,6 +55,7 @@ bpmn-agent-cli format process.bpmn --write -o tmp/formatted.bpmn
 bpmn-agent-cli insert-task-between process.bpmn --flow Flow_A_B --id Task_New --name "Review"
 bpmn-agent-cli connect process.bpmn --from Task_A --to Task_B --id Flow_A_B
 bpmn-agent-cli delete-safe process.bpmn --id Task_1
+bpmn-agent-cli add-boundary-event process.bpmn --attached-to Task_1 --id Boundary_Timeout --target EndEvent_1 --flow-id Flow_Timeout_To_End --duration PT10M
 bpmn-agent-cli validate process.bpmn
 bpmn-agent-cli to-json process.bpmn --preset optimized
 ```
@@ -122,6 +123,8 @@ P3-A adds structural `insert-task-between` for splitting one sequence flow and i
 P3-B adds structural `connect` for adding one sequence flow between existing nodes. BPMNDI layout is not updated in P3-B.
 
 P3-C adds structural `delete-safe` for removing one linear flow node and reconnecting source to target. BPMNDI layout is not updated in P3-C.
+
+P3-D adds structural `add-boundary-event` for timer boundary events. BPMNDI layout is not updated in P3-D.
 
 Product direction is documented in `docs/PRODUCT_VISION.md`. P1/P2/P3 status is documented in `docs/ROADMAP.md`. Future ideas are tracked in `docs/BACKLOG.md`.
 

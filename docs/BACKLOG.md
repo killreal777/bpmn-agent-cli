@@ -31,16 +31,16 @@ Implemented scope:
 ### BL-002: `add-boundary-event`
 
 Priority: `P3`
-Status: `ready-for-spec`
+Status: `implemented`
 
 Attach a boundary event to an existing activity and connect it to a handler target.
 
-Acceptance direction:
+Implemented scope:
 
 - Support timer boundary event first.
 - Optional interrupting/non-interrupting flag.
-- Create boundary event, event definition, outgoing sequence flow, and target incoming reference.
-- Return `DI_NOT_UPDATED` until layout support exists.
+- Creates boundary event, timer event definition, outgoing sequence flow, and target incoming reference.
+- Returns `DI_NOT_UPDATED` until layout support exists.
 
 ### BL-003: Structural Write Safety Matrix
 

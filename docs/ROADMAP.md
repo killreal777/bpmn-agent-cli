@@ -82,6 +82,6 @@ P3-C implemented:
 
 - `delete-safe`
 
-Remaining structural write commands:
+P3-D implemented:
 
 - `add-boundary-event`
