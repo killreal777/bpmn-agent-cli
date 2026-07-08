@@ -88,14 +88,31 @@ type LanesResult = {
 };
 ```
 
-When `--element <id>` is provided, `lanes` includes only lanes containing that element and `elementLanes` contains one entry for the requested element. Unknown element ids return `ELEMENT_NOT_FOUND`.
+Without `--element`:
+
+- `lanes` contains all lanes, including lanes without `flowNodeRef` values.
+- `elementLanes` is an empty array.
+
+With `--element <id>`:
+
+- `lanes` contains only lanes containing the requested element.
+- `elementLanes` contains exactly one entry for the requested element.
+- unknown element ids return `ELEMENT_NOT_FOUND`.
 
 ### EventsResult
 
 ```ts
+type EventDefinitionSummary = {
+  type: string;
+  value?: string | null;
+  refId?: string | null;
+  refName?: string | null;
+};
+
 type EventsResult = {
   events: Array<EventSummary & {
     category: "start" | "end" | "boundary" | "intermediate" | "other";
+    eventDefinitions: EventDefinitionSummary[];
     attachedTo?: ElementSummary | null;
     outgoing: SequenceFlowSummary[];
     incoming: SequenceFlowSummary[];
@@ -104,6 +121,18 @@ type EventsResult = {
 ```
 
 `--type` accepts `start`, `end`, `boundary`, `intermediate`, and `other`. Invalid values return `INVALID_OPTION_VALUE`.
+
+Event category mapping:
+
+- `start`: `bpmn:StartEvent`
+- `end`: `bpmn:EndEvent`
+- `boundary`: `bpmn:BoundaryEvent`
+- `intermediate`: `bpmn:IntermediateCatchEvent` and `bpmn:IntermediateThrowEvent`
+- `other`: event-like elements not covered by the categories above
+
+`bpmn:EventBasedGateway` is a gateway, not an event, and must not appear in `events`.
+
+`eventDefinitions` contains one entry per BPMN event definition where available. The `type` field is the canonical moddle type, for example `bpmn:TimerEventDefinition` or `bpmn:MessageEventDefinition`. `value` is used for direct timer/expression text when trivially available from moddle. `refId` and `refName` are used for referenced definitions such as message, error, signal, or escalation references.
 
 ### SubprocessResult
 
@@ -122,6 +151,14 @@ type SubprocessResult = {
 ```
 
 When `--id <id>` is provided, the command returns only that subprocess. Unknown ids return `ELEMENT_NOT_FOUND`. Existing non-subprocess ids return `UNSUPPORTED_BPMN_ELEMENT_TYPE`.
+
+Supported subprocess-like types in P1-A:
+
+- `bpmn:SubProcess`
+- `bpmn:AdHocSubProcess`
+- `bpmn:Transaction`
+
+`children` contains direct children only. `nestedSubprocesses` contains direct child subprocess-like elements only. Recursive subtree export is outside P1-A.
 
 ## Architecture
 
@@ -150,14 +187,15 @@ Existing indexes already cover many needs:
 - `lanesByElementId`
 - `messageFlowById`
 
-P1-A may add:
+P1-A must add:
 
 ```ts
 lanesById: Map<string, LaneSummary>
+lanesByProcessId: Map<string, LaneSummary[]>
 subprocessParentByChildId: Map<string, string>
 ```
 
-Only add these if tests show they reduce query complexity without making the model inconsistent.
+`lanesById` and `lanesByProcessId` are required so `lanes` can return all lanes, including empty lanes. `subprocessParentByChildId` is required because `SubprocessResult.parentSubprocessId` is part of the stable result schema.
 
 ## Ordering
 
