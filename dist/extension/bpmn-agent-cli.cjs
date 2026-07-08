@@ -7766,6 +7766,129 @@ async function elementCommand(args) {
   });
 }
 
+// src/cli/commands/exportCommand.ts
+var import_promises2 = require("node:fs/promises");
+var import_node_path = require("node:path");
+
+// src/export/renderMarkdown.ts
+function renderMarkdown(model) {
+  const lines = ["# BPMN Export", ""];
+  if (model.overview) {
+    lines.push("## Overview", "", `- Definitions: ${model.overview.definitions.id ?? "(none)"}`);
+    for (const process2 of model.overview.processes) {
+      lines.push(`- Process ${process2.id}: ${process2.name ?? "(unnamed)"}; nodes ${process2.flowNodes}; flows ${process2.sequenceFlows}`);
+    }
+    lines.push("");
+  }
+  if (model.participants) {
+    lines.push("## Participants", "");
+    for (const collaboration of model.participants.collaborations) {
+      lines.push(`- Collaboration ${collaboration.id}: ${collaboration.name ?? "(unnamed)"}`);
+      for (const participant of collaboration.participants) {
+        lines.push(`  - Participant ${participant.id}: ${participant.name ?? "(unnamed)"} -> ${participant.processId ?? "(no process)"}`);
+      }
+      for (const flow of collaboration.messageFlows) {
+        lines.push(`  - MessageFlow ${flow.id}: ${flow.sourceId ?? "?"} -> ${flow.targetId ?? "?"}`);
+      }
+    }
+    lines.push("");
+  }
+  if (model.lanes) {
+    lines.push("## Lanes", "");
+    for (const lane of model.lanes.lanes) {
+      lines.push(`- Lane ${lane.id}: ${lane.name ?? "(unnamed)"}; nodes ${lane.flowNodes.map((node) => node.id).join(", ") || "(empty)"}`);
+    }
+    lines.push("");
+  }
+  if (model.events) {
+    lines.push("## Events", "");
+    for (const event of model.events.events) {
+      const definitions = event.eventDefinitions.map((definition) => definition.value ?? definition.refId ?? definition.type).join(", ");
+      lines.push(`- Event ${event.id}: ${event.category}; ${definitions || "no definition"}`);
+    }
+    lines.push("");
+  }
+  if (model.subprocess) {
+    lines.push("## Subprocesses", "");
+    for (const subprocess of model.subprocess.subprocesses) {
+      lines.push(`- Subprocess ${subprocess.element.id}: children ${subprocess.children.map((child) => child.id).join(", ") || "(none)"}`);
+    }
+    lines.push("");
+  }
+  if (model.implementations) {
+    lines.push("## Implementations", "");
+    const implementations = [
+      ...model.implementations.serviceTasks,
+      ...model.implementations.callActivities,
+      ...model.implementations.listeners,
+      ...model.implementations.forms
+    ];
+    for (const implementation of implementations) {
+      lines.push(`- ${implementation.elementId}: ${implementation.kind}${implementation.value ? ` ${implementation.value}` : ""}${implementation.topic ? ` topic=${implementation.topic}` : ""}`);
+    }
+    lines.push("");
+  }
+  return `${lines.join("\n").trimEnd()}
+`;
+}
+
+// src/export/renderText.ts
+function renderText(model) {
+  const lines = ["BPMN Export", ""];
+  if (model.overview) {
+    lines.push("OVERVIEW", `Definitions: ${model.overview.definitions.id ?? "(none)"}`);
+    for (const process2 of model.overview.processes) {
+      lines.push(`Process ${process2.id}: ${process2.name ?? "(unnamed)"}; nodes ${process2.flowNodes}; flows ${process2.sequenceFlows}`);
+    }
+    lines.push("");
+  }
+  if (model.participants) {
+    lines.push("PARTICIPANTS");
+    for (const collaboration of model.participants.collaborations) {
+      lines.push(`Collaboration ${collaboration.id}: ${collaboration.name ?? "(unnamed)"}`);
+      for (const participant of collaboration.participants) {
+        lines.push(`Participant ${participant.id}: ${participant.name ?? "(unnamed)"} -> ${participant.processId ?? "(no process)"}`);
+      }
+    }
+    lines.push("");
+  }
+  if (model.lanes) {
+    lines.push("LANES");
+    for (const lane of model.lanes.lanes) {
+      lines.push(`Lane ${lane.id}: ${lane.flowNodes.map((node) => node.id).join(", ") || "(empty)"}`);
+    }
+    lines.push("");
+  }
+  if (model.events) {
+    lines.push("EVENTS");
+    for (const event of model.events.events) {
+      lines.push(`Event ${event.id}: ${event.category}`);
+    }
+    lines.push("");
+  }
+  if (model.subprocess) {
+    lines.push("SUBPROCESSES");
+    for (const subprocess of model.subprocess.subprocesses) {
+      lines.push(`Subprocess ${subprocess.element.id}: children ${subprocess.children.map((child) => child.id).join(", ") || "(none)"}`);
+    }
+    lines.push("");
+  }
+  if (model.implementations) {
+    lines.push("IMPLEMENTATIONS");
+    for (const implementation of [
+      ...model.implementations.serviceTasks,
+      ...model.implementations.callActivities,
+      ...model.implementations.listeners,
+      ...model.implementations.forms
+    ]) {
+      lines.push(`${implementation.elementId}: ${implementation.kind}`);
+    }
+    lines.push("");
+  }
+  return `${lines.join("\n").trimEnd()}
+`;
+}
+
 // src/query/events.ts
 var EVENT_TYPES = /* @__PURE__ */ new Set([
   "bpmn:StartEvent",
@@ -7877,6 +8000,350 @@ function isRecord2(value) {
 }
 function sortById(a, b) {
   return a.id.localeCompare(b.id);
+}
+
+// src/query/implementations.ts
+function listImplementations(indexes, args) {
+  const all = [...indexes.implementationsByElementId.values()].flat();
+  const filtered = args.type ? all.filter((implementation) => implementation.kind === args.type) : all;
+  return {
+    serviceTasks: filtered.filter((implementation) => implementation.elementType === "bpmn:ServiceTask" && !["listener", "form"].includes(implementation.kind)),
+    callActivities: filtered.filter((implementation) => implementation.kind === "callActivity"),
+    listeners: filtered.filter((implementation) => implementation.kind === "listener"),
+    forms: filtered.filter((implementation) => implementation.kind === "form")
+  };
+}
+
+// src/query/lanes.ts
+function getLanes(indexes, args) {
+  if (args.elementId) {
+    const element = indexes.byId.get(args.elementId);
+    if (!element) {
+      throw new BpmnCliError("ELEMENT_NOT_FOUND", "Element not found", 1, { elementId: args.elementId });
+    }
+    const lanes = [...indexes.lanesByElementId.get(args.elementId) ?? []].sort(sortById2);
+    return {
+      lanes: lanes.map((lane) => expandLane(indexes, lane)),
+      elementLanes: [{ element, lanes }]
+    };
+  }
+  return {
+    lanes: [...indexes.lanesById.values()].sort(sortById2).map((lane) => expandLane(indexes, lane)),
+    elementLanes: []
+  };
+}
+function expandLane(indexes, lane) {
+  return {
+    id: lane.id,
+    name: lane.name,
+    processId: lane.processId,
+    flowNodes: lane.flowNodeIds.map((id) => indexes.byId.get(id)).filter((element) => Boolean(element)).sort(sortById2)
+  };
+}
+function sortById2(a, b) {
+  return a.id.localeCompare(b.id);
+}
+
+// src/validate/validateModel.ts
+function validateModel(model, indexes) {
+  const errors = [];
+  const warnings = [];
+  for (const process2 of model.processes) {
+    for (const element of arrayOf2(process2.flowElements)) {
+      if (element.$type !== "bpmn:SequenceFlow" || !element.id) {
+        continue;
+      }
+      if (!element.sourceRef) {
+        errors.push({
+          severity: "error",
+          code: "BROKEN_SEQUENCE_FLOW_SOURCE",
+          message: "Sequence flow source does not exist",
+          elementId: element.id
+        });
+      }
+      if (!element.targetRef) {
+        errors.push({
+          severity: "error",
+          code: "BROKEN_SEQUENCE_FLOW_TARGET",
+          message: "Sequence flow target does not exist",
+          elementId: element.id
+        });
+      }
+    }
+  }
+  for (const flow of indexes.sequenceFlowById.values()) {
+    if (!indexes.byId.has(flow.sourceId)) {
+      errors.push({
+        severity: "error",
+        code: "BROKEN_SEQUENCE_FLOW_SOURCE",
+        message: "Sequence flow source does not exist",
+        elementId: flow.id,
+        details: { sourceRef: flow.sourceId }
+      });
+    }
+    if (!indexes.byId.has(flow.targetId)) {
+      errors.push({
+        severity: "error",
+        code: "BROKEN_SEQUENCE_FLOW_TARGET",
+        message: "Sequence flow target does not exist",
+        elementId: flow.id,
+        details: { targetRef: flow.targetId }
+      });
+    }
+  }
+  for (const element of indexes.byId.values()) {
+    if (element.type.endsWith("Task")) {
+      const incoming = indexes.incomingByNodeId.get(element.id)?.length ?? 0;
+      const outgoing = indexes.outgoingByNodeId.get(element.id)?.length ?? 0;
+      if (incoming === 0 || outgoing === 0) {
+        warnings.push({
+          severity: "warning",
+          code: "TASK_WITHOUT_COMPLETE_FLOW",
+          message: "Task has no incoming or outgoing sequence flow",
+          elementId: element.id,
+          details: { incoming, outgoing }
+        });
+      }
+    }
+  }
+  return {
+    valid: errors.length === 0,
+    errors,
+    warnings,
+    infos: []
+  };
+}
+
+// src/query/overview.ts
+var TASK_TYPES = /* @__PURE__ */ new Set([
+  "bpmn:Task",
+  "bpmn:UserTask",
+  "bpmn:ServiceTask",
+  "bpmn:ScriptTask",
+  "bpmn:BusinessRuleTask",
+  "bpmn:SendTask",
+  "bpmn:ReceiveTask",
+  "bpmn:ManualTask"
+]);
+var GATEWAY_TYPES = /* @__PURE__ */ new Set([
+  "bpmn:ExclusiveGateway",
+  "bpmn:ParallelGateway",
+  "bpmn:InclusiveGateway",
+  "bpmn:EventBasedGateway"
+]);
+var EVENT_TYPES2 = /* @__PURE__ */ new Set([
+  "bpmn:StartEvent",
+  "bpmn:EndEvent",
+  "bpmn:IntermediateCatchEvent",
+  "bpmn:IntermediateThrowEvent",
+  "bpmn:BoundaryEvent"
+]);
+function getOverview(model, indexes) {
+  const diagnostics = validateModel(model, indexes);
+  return {
+    definitions: { id: stringOrNull(model.definitions.id) },
+    processes: model.processes.map((process2) => summarizeProcess(process2)).sort((a, b) => a.id.localeCompare(b.id)),
+    collaborations: model.collaborations.map((collaboration) => ({
+      id: String(collaboration.id),
+      name: stringOrNull(collaboration.name),
+      participants: arrayOf3(collaboration.participants).length,
+      messageFlows: arrayOf3(collaboration.messageFlows).length
+    })).sort((a, b) => a.id.localeCompare(b.id)),
+    counts: {
+      tasks: countTypes(indexes, TASK_TYPES),
+      gateways: countTypes(indexes, GATEWAY_TYPES),
+      events: countTypes(indexes, EVENT_TYPES2),
+      sequenceFlows: indexes.sequenceFlowById.size,
+      messageFlows: indexes.messageFlowById.size
+    },
+    extensions: detectExtensions(model),
+    diagnosticsSummary: {
+      errors: diagnostics.errors.length,
+      warnings: diagnostics.warnings.length,
+      infos: diagnostics.infos.length
+    },
+    warnings: diagnostics.warnings
+  };
+}
+function summarizeProcess(process2) {
+  const flowElements = arrayOf3(process2.flowElements);
+  return {
+    id: String(process2.id),
+    name: stringOrNull(process2.name),
+    flowNodes: flowElements.filter((element) => element.$type !== "bpmn:SequenceFlow").length,
+    sequenceFlows: flowElements.filter((element) => element.$type === "bpmn:SequenceFlow").length
+  };
+}
+function countTypes(indexes, types2) {
+  return Object.fromEntries([...types2].map((type) => [type, indexes.byType.get(type)?.length ?? 0]).filter(([, count]) => count > 0).sort(([a], [b]) => a.localeCompare(b)));
+}
+function detectExtensions(model) {
+  const serialized = model.xml;
+  return [
+    serialized.includes("camunda.org/schema") ? "camunda" : null
+  ].filter((item) => item !== null);
+}
+function stringOrNull(value) {
+  return typeof value === "string" && value.trim() !== "" ? value : null;
+}
+function arrayOf3(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+// src/query/participants.ts
+function getParticipants(model, indexes) {
+  const referencedProcessIds = /* @__PURE__ */ new Set();
+  const collaborations = model.collaborations.map((collaboration) => {
+    const participants = arrayOf2(collaboration.participants).map((participant) => ({
+      id: String(participant.id),
+      name: stringValue(participant.name),
+      processId: idOf3(participant.processRef)
+    })).sort(sortById3);
+    for (const participant of participants) {
+      if (participant.processId) {
+        referencedProcessIds.add(participant.processId);
+      }
+    }
+    return {
+      id: String(collaboration.id),
+      name: stringValue(collaboration.name),
+      participants,
+      messageFlows: arrayOf2(collaboration.messageFlows).map((flow) => indexes.messageFlowById.get(String(flow.id))).filter((flow) => Boolean(flow)).sort(sortById3)
+    };
+  }).sort(sortById3);
+  return {
+    collaborations,
+    unreferencedProcesses: model.processes.map((process2) => ({ id: String(process2.id), name: stringValue(process2.name) })).filter((process2) => !referencedProcessIds.has(process2.id)).sort(sortById3)
+  };
+}
+function idOf3(value) {
+  if (typeof value === "string" && value.trim() !== "") {
+    return value;
+  }
+  if (typeof value === "object" && value !== null && "id" in value && typeof value.id === "string") {
+    return value.id;
+  }
+  return null;
+}
+function sortById3(a, b) {
+  return a.id.localeCompare(b.id);
+}
+
+// src/query/subprocess.ts
+var SUBPROCESS_TYPES2 = /* @__PURE__ */ new Set(["bpmn:SubProcess", "bpmn:AdHocSubProcess", "bpmn:Transaction"]);
+function getSubprocesses(indexes, args) {
+  if (args.id) {
+    const element = indexes.byId.get(args.id);
+    if (!element) {
+      throw new BpmnCliError("ELEMENT_NOT_FOUND", "Element not found", 1, { elementId: args.id });
+    }
+    if (!SUBPROCESS_TYPES2.has(element.type)) {
+      throw new BpmnCliError("UNSUPPORTED_BPMN_ELEMENT_TYPE", "Element is not a subprocess", 1, {
+        elementId: args.id,
+        type: element.type
+      });
+    }
+    return { subprocesses: [summarizeSubprocess(indexes, element)] };
+  }
+  return {
+    subprocesses: [...indexes.byId.values()].filter((element) => SUBPROCESS_TYPES2.has(element.type)).sort(sortById4).map((element) => summarizeSubprocess(indexes, element))
+  };
+}
+function summarizeSubprocess(indexes, element) {
+  const children = [...indexes.childrenBySubprocessId.get(element.id) ?? []].sort(sortById4);
+  return {
+    element,
+    parentSubprocessId: indexes.subprocessParentByChildId.get(element.id) ?? null,
+    children,
+    nestedSubprocesses: children.filter((child) => SUBPROCESS_TYPES2.has(child.type)).sort(sortById4),
+    incoming: indexes.incomingByNodeId.get(element.id) ?? [],
+    outgoing: indexes.outgoingByNodeId.get(element.id) ?? [],
+    boundaryEvents: indexes.boundaryEventsByAttachedToId.get(element.id) ?? []
+  };
+}
+function sortById4(a, b) {
+  return a.id.localeCompare(b.id);
+}
+
+// src/query/exportModel.ts
+var EXPORT_SECTIONS = ["overview", "participants", "lanes", "events", "subprocess", "implementations"];
+function buildExportModel(model, sections) {
+  const indexes = buildIndexes(model);
+  const result = {
+    format: "json",
+    sections: [...sections]
+  };
+  for (const section of sections) {
+    if (section === "overview") {
+      result.overview = getOverview(model, indexes);
+    } else if (section === "participants") {
+      result.participants = getParticipants(model, indexes);
+    } else if (section === "lanes") {
+      result.lanes = getLanes(indexes, {});
+    } else if (section === "events") {
+      result.events = getEvents(model, indexes, {});
+    } else if (section === "subprocess") {
+      result.subprocess = getSubprocesses(indexes, {});
+    } else if (section === "implementations") {
+      result.implementations = listImplementations(indexes, {});
+    }
+  }
+  return result;
+}
+
+// src/cli/commands/exportCommand.ts
+var FORMATS = /* @__PURE__ */ new Set(["markdown", "text", "json"]);
+async function exportCommand(args, pretty) {
+  if (!args.file) {
+    throw new BpmnCliError("MISSING_FILE_ARGUMENT", "export requires a BPMN file", 2);
+  }
+  const format = parseFormat(args.options.get("--format"));
+  const sections = parseSections(args.options.get("--section"));
+  const outputPath = args.options.get("-o");
+  if (outputPath !== void 0 && typeof outputPath !== "string") {
+    throw new BpmnCliError("INVALID_OPTION_VALUE", "-o requires an output path", 2);
+  }
+  const model = await loadBpmn(args.file);
+  const exportModel = buildExportModel(model, sections);
+  const payload = format === "json" ? JSON.stringify(successEnvelope({ command: "export", file: args.file, result: exportModel }), null, pretty ? 2 : 0) : render(format, exportModel);
+  if (outputPath) {
+    await writeOutput(outputPath, payload);
+    return;
+  }
+  if (format === "json") {
+    writeJson(successEnvelope({ command: "export", file: args.file, result: exportModel }), pretty);
+    return;
+  }
+  process.stdout.write(payload);
+}
+function parseFormat(value) {
+  if (value === void 0) {
+    return "markdown";
+  }
+  if (typeof value !== "string" || !FORMATS.has(value)) {
+    throw new BpmnCliError("INVALID_OPTION_VALUE", "--format must be markdown, text, or json", 2, { option: "--format", value });
+  }
+  return value;
+}
+function parseSections(value) {
+  if (value === void 0 || value === "all") {
+    return [...EXPORT_SECTIONS];
+  }
+  if (typeof value !== "string" || !EXPORT_SECTIONS.includes(value)) {
+    throw new BpmnCliError("INVALID_OPTION_VALUE", "--section must be all or a supported export section", 2, { option: "--section", value });
+  }
+  return [value];
+}
+function render(format, model) {
+  return format === "markdown" ? renderMarkdown(model) : renderText(model);
+}
+async function writeOutput(path, payload) {
+  try {
+    await (0, import_promises2.mkdir)((0, import_node_path.dirname)(path), { recursive: true });
+    await (0, import_promises2.writeFile)(path, payload, "utf8");
+  } catch (error3) {
+    throw new BpmnCliError("OUTPUT_WRITE_ERROR", "Failed to write export output", 1, { path, cause: error3 instanceof Error ? error3.message : String(error3) });
+  }
 }
 
 // src/cli/commands/eventsCommand.ts
@@ -8097,18 +8564,6 @@ async function gatewayCommand(args) {
   });
 }
 
-// src/query/implementations.ts
-function listImplementations(indexes, args) {
-  const all = [...indexes.implementationsByElementId.values()].flat();
-  const filtered = args.type ? all.filter((implementation) => implementation.kind === args.type) : all;
-  return {
-    serviceTasks: filtered.filter((implementation) => implementation.elementType === "bpmn:ServiceTask" && !["listener", "form"].includes(implementation.kind)),
-    callActivities: filtered.filter((implementation) => implementation.kind === "callActivity"),
-    listeners: filtered.filter((implementation) => implementation.kind === "listener"),
-    forms: filtered.filter((implementation) => implementation.kind === "form")
-  };
-}
-
 // src/cli/commands/implementationsCommand.ts
 async function implementationsCommand(args) {
   if (!args.file) {
@@ -8122,36 +8577,6 @@ async function implementationsCommand(args) {
       type: typeof args.options.get("--type") === "string" ? String(args.options.get("--type")) : void 0
     })
   });
-}
-
-// src/query/lanes.ts
-function getLanes(indexes, args) {
-  if (args.elementId) {
-    const element = indexes.byId.get(args.elementId);
-    if (!element) {
-      throw new BpmnCliError("ELEMENT_NOT_FOUND", "Element not found", 1, { elementId: args.elementId });
-    }
-    const lanes = [...indexes.lanesByElementId.get(args.elementId) ?? []].sort(sortById2);
-    return {
-      lanes: lanes.map((lane) => expandLane(indexes, lane)),
-      elementLanes: [{ element, lanes }]
-    };
-  }
-  return {
-    lanes: [...indexes.lanesById.values()].sort(sortById2).map((lane) => expandLane(indexes, lane)),
-    elementLanes: []
-  };
-}
-function expandLane(indexes, lane) {
-  return {
-    id: lane.id,
-    name: lane.name,
-    processId: lane.processId,
-    flowNodes: lane.flowNodeIds.map((id) => indexes.byId.get(id)).filter((element) => Boolean(element)).sort(sortById2)
-  };
-}
-function sortById2(a, b) {
-  return a.id.localeCompare(b.id);
 }
 
 // src/cli/commands/lanesCommand.ts
@@ -8170,152 +8595,6 @@ async function lanesCommand(args) {
 }
 function stringOption3(value) {
   return typeof value === "string" ? value : void 0;
-}
-
-// src/validate/validateModel.ts
-function validateModel(model, indexes) {
-  const errors = [];
-  const warnings = [];
-  for (const process2 of model.processes) {
-    for (const element of arrayOf2(process2.flowElements)) {
-      if (element.$type !== "bpmn:SequenceFlow" || !element.id) {
-        continue;
-      }
-      if (!element.sourceRef) {
-        errors.push({
-          severity: "error",
-          code: "BROKEN_SEQUENCE_FLOW_SOURCE",
-          message: "Sequence flow source does not exist",
-          elementId: element.id
-        });
-      }
-      if (!element.targetRef) {
-        errors.push({
-          severity: "error",
-          code: "BROKEN_SEQUENCE_FLOW_TARGET",
-          message: "Sequence flow target does not exist",
-          elementId: element.id
-        });
-      }
-    }
-  }
-  for (const flow of indexes.sequenceFlowById.values()) {
-    if (!indexes.byId.has(flow.sourceId)) {
-      errors.push({
-        severity: "error",
-        code: "BROKEN_SEQUENCE_FLOW_SOURCE",
-        message: "Sequence flow source does not exist",
-        elementId: flow.id,
-        details: { sourceRef: flow.sourceId }
-      });
-    }
-    if (!indexes.byId.has(flow.targetId)) {
-      errors.push({
-        severity: "error",
-        code: "BROKEN_SEQUENCE_FLOW_TARGET",
-        message: "Sequence flow target does not exist",
-        elementId: flow.id,
-        details: { targetRef: flow.targetId }
-      });
-    }
-  }
-  for (const element of indexes.byId.values()) {
-    if (element.type.endsWith("Task")) {
-      const incoming = indexes.incomingByNodeId.get(element.id)?.length ?? 0;
-      const outgoing = indexes.outgoingByNodeId.get(element.id)?.length ?? 0;
-      if (incoming === 0 || outgoing === 0) {
-        warnings.push({
-          severity: "warning",
-          code: "TASK_WITHOUT_COMPLETE_FLOW",
-          message: "Task has no incoming or outgoing sequence flow",
-          elementId: element.id,
-          details: { incoming, outgoing }
-        });
-      }
-    }
-  }
-  return {
-    valid: errors.length === 0,
-    errors,
-    warnings,
-    infos: []
-  };
-}
-
-// src/query/overview.ts
-var TASK_TYPES = /* @__PURE__ */ new Set([
-  "bpmn:Task",
-  "bpmn:UserTask",
-  "bpmn:ServiceTask",
-  "bpmn:ScriptTask",
-  "bpmn:BusinessRuleTask",
-  "bpmn:SendTask",
-  "bpmn:ReceiveTask",
-  "bpmn:ManualTask"
-]);
-var GATEWAY_TYPES = /* @__PURE__ */ new Set([
-  "bpmn:ExclusiveGateway",
-  "bpmn:ParallelGateway",
-  "bpmn:InclusiveGateway",
-  "bpmn:EventBasedGateway"
-]);
-var EVENT_TYPES2 = /* @__PURE__ */ new Set([
-  "bpmn:StartEvent",
-  "bpmn:EndEvent",
-  "bpmn:IntermediateCatchEvent",
-  "bpmn:IntermediateThrowEvent",
-  "bpmn:BoundaryEvent"
-]);
-function getOverview(model, indexes) {
-  const diagnostics = validateModel(model, indexes);
-  return {
-    definitions: { id: stringOrNull(model.definitions.id) },
-    processes: model.processes.map((process2) => summarizeProcess(process2)).sort((a, b) => a.id.localeCompare(b.id)),
-    collaborations: model.collaborations.map((collaboration) => ({
-      id: String(collaboration.id),
-      name: stringOrNull(collaboration.name),
-      participants: arrayOf3(collaboration.participants).length,
-      messageFlows: arrayOf3(collaboration.messageFlows).length
-    })).sort((a, b) => a.id.localeCompare(b.id)),
-    counts: {
-      tasks: countTypes(indexes, TASK_TYPES),
-      gateways: countTypes(indexes, GATEWAY_TYPES),
-      events: countTypes(indexes, EVENT_TYPES2),
-      sequenceFlows: indexes.sequenceFlowById.size,
-      messageFlows: indexes.messageFlowById.size
-    },
-    extensions: detectExtensions(model),
-    diagnosticsSummary: {
-      errors: diagnostics.errors.length,
-      warnings: diagnostics.warnings.length,
-      infos: diagnostics.infos.length
-    },
-    warnings: diagnostics.warnings
-  };
-}
-function summarizeProcess(process2) {
-  const flowElements = arrayOf3(process2.flowElements);
-  return {
-    id: String(process2.id),
-    name: stringOrNull(process2.name),
-    flowNodes: flowElements.filter((element) => element.$type !== "bpmn:SequenceFlow").length,
-    sequenceFlows: flowElements.filter((element) => element.$type === "bpmn:SequenceFlow").length
-  };
-}
-function countTypes(indexes, types2) {
-  return Object.fromEntries([...types2].map((type) => [type, indexes.byType.get(type)?.length ?? 0]).filter(([, count]) => count > 0).sort(([a], [b]) => a.localeCompare(b)));
-}
-function detectExtensions(model) {
-  const serialized = model.xml;
-  return [
-    serialized.includes("camunda.org/schema") ? "camunda" : null
-  ].filter((item) => item !== null);
-}
-function stringOrNull(value) {
-  return typeof value === "string" && value.trim() !== "" ? value : null;
-}
-function arrayOf3(value) {
-  return Array.isArray(value) ? value : [];
 }
 
 // src/cli/commands/overviewCommand.ts
@@ -8446,45 +8725,6 @@ function numberOption3(args, name2, fallback) {
   return Number(value);
 }
 
-// src/query/participants.ts
-function getParticipants(model, indexes) {
-  const referencedProcessIds = /* @__PURE__ */ new Set();
-  const collaborations = model.collaborations.map((collaboration) => {
-    const participants = arrayOf2(collaboration.participants).map((participant) => ({
-      id: String(participant.id),
-      name: stringValue(participant.name),
-      processId: idOf3(participant.processRef)
-    })).sort(sortById3);
-    for (const participant of participants) {
-      if (participant.processId) {
-        referencedProcessIds.add(participant.processId);
-      }
-    }
-    return {
-      id: String(collaboration.id),
-      name: stringValue(collaboration.name),
-      participants,
-      messageFlows: arrayOf2(collaboration.messageFlows).map((flow) => indexes.messageFlowById.get(String(flow.id))).filter((flow) => Boolean(flow)).sort(sortById3)
-    };
-  }).sort(sortById3);
-  return {
-    collaborations,
-    unreferencedProcesses: model.processes.map((process2) => ({ id: String(process2.id), name: stringValue(process2.name) })).filter((process2) => !referencedProcessIds.has(process2.id)).sort(sortById3)
-  };
-}
-function idOf3(value) {
-  if (typeof value === "string" && value.trim() !== "") {
-    return value;
-  }
-  if (typeof value === "object" && value !== null && "id" in value && typeof value.id === "string") {
-    return value.id;
-  }
-  return null;
-}
-function sortById3(a, b) {
-  return a.id.localeCompare(b.id);
-}
-
 // src/cli/commands/participantsCommand.ts
 async function participantsCommand(args) {
   if (!args.file) {
@@ -8496,42 +8736,6 @@ async function participantsCommand(args) {
     file: args.file,
     result: getParticipants(model, buildIndexes(model))
   });
-}
-
-// src/query/subprocess.ts
-var SUBPROCESS_TYPES2 = /* @__PURE__ */ new Set(["bpmn:SubProcess", "bpmn:AdHocSubProcess", "bpmn:Transaction"]);
-function getSubprocesses(indexes, args) {
-  if (args.id) {
-    const element = indexes.byId.get(args.id);
-    if (!element) {
-      throw new BpmnCliError("ELEMENT_NOT_FOUND", "Element not found", 1, { elementId: args.id });
-    }
-    if (!SUBPROCESS_TYPES2.has(element.type)) {
-      throw new BpmnCliError("UNSUPPORTED_BPMN_ELEMENT_TYPE", "Element is not a subprocess", 1, {
-        elementId: args.id,
-        type: element.type
-      });
-    }
-    return { subprocesses: [summarizeSubprocess(indexes, element)] };
-  }
-  return {
-    subprocesses: [...indexes.byId.values()].filter((element) => SUBPROCESS_TYPES2.has(element.type)).sort(sortById4).map((element) => summarizeSubprocess(indexes, element))
-  };
-}
-function summarizeSubprocess(indexes, element) {
-  const children = [...indexes.childrenBySubprocessId.get(element.id) ?? []].sort(sortById4);
-  return {
-    element,
-    parentSubprocessId: indexes.subprocessParentByChildId.get(element.id) ?? null,
-    children,
-    nestedSubprocesses: children.filter((child) => SUBPROCESS_TYPES2.has(child.type)).sort(sortById4),
-    incoming: indexes.incomingByNodeId.get(element.id) ?? [],
-    outgoing: indexes.outgoingByNodeId.get(element.id) ?? [],
-    boundaryEvents: indexes.boundaryEventsByAttachedToId.get(element.id) ?? []
-  };
-}
-function sortById4(a, b) {
-  return a.id.localeCompare(b.id);
 }
 
 // src/cli/commands/subprocessCommand.ts
@@ -8589,8 +8793,8 @@ function numberOption4(args, name2, fallback) {
 }
 
 // src/cli/commands/toJsonCommand.ts
-var import_promises2 = require("node:fs/promises");
-var import_node_path = require("node:path");
+var import_promises3 = require("node:fs/promises");
+var import_node_path2 = require("node:path");
 
 // src/legacy/optimizations/ids.ts
 var OPTIMIZATION_IDS = {
@@ -9336,7 +9540,7 @@ async function toJsonCommand(args, pretty) {
   if (!args.file) {
     throw new BpmnCliError("MISSING_FILE_ARGUMENT", "to-json requires a BPMN file", 2);
   }
-  const xml2 = await (0, import_promises2.readFile)(args.file, "utf8");
+  const xml2 = await (0, import_promises3.readFile)(args.file, "utf8");
   const converted = await convertBpmnToJson(xml2, { preset: stringOption5(args, "--preset") });
   const output = `${JSON.stringify(converted, null, pretty ? 2 : 0)}
 `;
@@ -9345,8 +9549,8 @@ async function toJsonCommand(args, pretty) {
     process.stdout.write(output);
     return;
   }
-  await (0, import_promises2.mkdir)((0, import_node_path.dirname)(outputPath), { recursive: true });
-  await (0, import_promises2.writeFile)(outputPath, output, "utf8");
+  await (0, import_promises3.mkdir)((0, import_node_path2.dirname)(outputPath), { recursive: true });
+  await (0, import_promises3.writeFile)(outputPath, output, "utf8");
 }
 function stringOption5(args, name2) {
   const value = args.options.get(name2);
@@ -9430,6 +9634,10 @@ async function main(args = process.argv.slice(2)) {
     }
     if (parsed.command === "path") {
       writeJson(await pathCommand(parsed), pretty);
+      return;
+    }
+    if (parsed.command === "export") {
+      await exportCommand(parsed, pretty);
       return;
     }
     if (parsed.command === "to-json") {
