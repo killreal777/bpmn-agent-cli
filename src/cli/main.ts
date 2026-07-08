@@ -3,6 +3,7 @@
 import { BpmnCliError } from '../bpmn/errors.js';
 import { errorEnvelope, toExitCode, writeJson } from '../output/jsonOutput.js';
 import { parseArgs } from './args.js';
+import { addBoundaryEventCommand } from './commands/addBoundaryEventCommand.js';
 import { connectCommand } from './commands/connectCommand.js';
 import { contextCommand } from './commands/contextCommand.js';
 import { deleteSafeCommand } from './commands/deleteSafeCommand.js';
@@ -138,6 +139,11 @@ export async function main(args: string[] = process.argv.slice(2)): Promise<void
 
     if (parsed.command === 'delete-safe') {
       writeJson(await deleteSafeCommand(parsed), pretty);
+      return;
+    }
+
+    if (parsed.command === 'add-boundary-event') {
+      writeJson(await addBoundaryEventCommand(parsed), pretty);
       return;
     }
 

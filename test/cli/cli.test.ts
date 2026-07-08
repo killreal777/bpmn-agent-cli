@@ -426,6 +426,41 @@ describe('CLI overview and validate', () => {
     expect(written).toContain('sourceRef="StartEvent_1" targetRef="EndEvent_1"');
   });
 
+  it('prints add-boundary-event dry-run envelope without modifying input', async () => {
+    const before = await readFile('test/fixtures/simple-linear.bpmn', 'utf8');
+    const { stdout } = await execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'add-boundary-event', 'test/fixtures/simple-linear.bpmn', '--attached-to', 'Task_1', '--id', 'Boundary_Timeout', '--target', 'EndEvent_1', '--flow-id', 'Flow_Timeout_To_End', '--duration', 'PT10M']);
+    const after = await readFile('test/fixtures/simple-linear.bpmn', 'utf8');
+
+    expect(JSON.parse(stdout)).toMatchObject({
+      ok: true,
+      command: 'add-boundary-event',
+      result: {
+        dryRun: true,
+        written: false,
+        boundaryEvent: { id: 'Boundary_Timeout' },
+        timer: { duration: 'PT10M', cancelActivity: true },
+        warnings: [expect.objectContaining({ code: 'DI_NOT_UPDATED' })]
+      }
+    });
+    expect(after).toBe(before);
+  });
+
+  it('writes add-boundary-event output to explicit path', async () => {
+    const input = 'tmp/boundary-input.bpmn';
+    const output = 'tmp/boundary-output.bpmn';
+    await copyFile('test/fixtures/simple-linear.bpmn', input);
+
+    const { stdout } = await execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'add-boundary-event', input, '--attached-to', 'Task_1', '--id', 'Boundary_Timeout', '--target', 'EndEvent_1', '--flow-id', 'Flow_Timeout_To_End', '--duration', 'PT10M', '--write', '-o', output]);
+    const written = await readFile(output, 'utf8');
+
+    expect(JSON.parse(stdout)).toMatchObject({
+      ok: true,
+      command: 'add-boundary-event',
+      result: { dryRun: false, written: true, outputFile: output }
+    });
+    expect(written).toContain('<bpmn:boundaryEvent id="Boundary_Timeout" attachedToRef="Task_1">');
+  });
+
   it('exits 1 for validation errors', async () => {
     await expect(execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'validate', 'test/fixtures/broken-reference.bpmn'])).rejects.toMatchObject({
       code: 1,
@@ -498,6 +533,13 @@ describe('CLI overview and validate', () => {
 
   it('exits 2 when delete-safe dry-run uses output path', async () => {
     await expect(execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'delete-safe', 'test/fixtures/simple-linear.bpmn', '--id', 'Task_1', '-o', 'tmp/invalid-delete.bpmn'])).rejects.toMatchObject({
+      code: 2,
+      stdout: expect.stringContaining('INVALID_OPTION_VALUE')
+    });
+  });
+
+  it('exits 2 when add-boundary-event dry-run uses output path', async () => {
+    await expect(execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'add-boundary-event', 'test/fixtures/simple-linear.bpmn', '--attached-to', 'Task_1', '--id', 'Boundary_Timeout', '--target', 'EndEvent_1', '--flow-id', 'Flow_Timeout_To_End', '--duration', 'PT10M', '-o', 'tmp/invalid-boundary.bpmn'])).rejects.toMatchObject({
       code: 2,
       stdout: expect.stringContaining('INVALID_OPTION_VALUE')
     });
