@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { BpmnCliError } from '../bpmn/errors.js';
+import { appendTraceMetricsEntry, buildTraceMetricsEntry } from '../metrics/traceMetrics.js';
 import { errorEnvelope, toExitCode, writeJson } from '../output/jsonOutput.js';
 import { parseArgs } from './args.js';
 import { addBoundaryEventCommand } from './commands/addBoundaryEventCommand.js';
@@ -35,6 +36,18 @@ export async function main(args: string[] = process.argv.slice(2)): Promise<void
 
   const parsed = parseArgs(args);
   const pretty = parsed.options.get('--pretty') === true;
+  const traceMetricsPath = parsed.options.get('--trace-metrics');
+  const startedAt = Date.now();
+  let stdoutBytes = 0;
+  let errorCode: string | null = null;
+  const originalStdoutWrite = process.stdout.write.bind(process.stdout);
+
+  if (typeof traceMetricsPath === 'string') {
+    process.stdout.write = ((chunk: string | Uint8Array, ...rest: unknown[]) => {
+      stdoutBytes += typeof chunk === 'string' ? Buffer.byteLength(chunk, 'utf8') : chunk.byteLength;
+      return originalStdoutWrite(chunk as string, ...(rest as []));
+    }) as typeof process.stdout.write;
+  }
 
   try {
     if (parsed.command === 'overview') {
@@ -154,8 +167,25 @@ export async function main(args: string[] = process.argv.slice(2)): Promise<void
 
     throw new BpmnCliError('INVALID_COMMAND', `Unknown command: ${parsed.command}`, 2);
   } catch (error: unknown) {
+    errorCode = error instanceof BpmnCliError ? error.code : 'INTERNAL_ERROR';
     writeJson(errorEnvelope(error), pretty);
     process.exitCode = process.exitCode ?? toExitCode(error);
+  } finally {
+    process.stdout.write = originalStdoutWrite as typeof process.stdout.write;
+
+    if (typeof traceMetricsPath === 'string') {
+      const exitCode = typeof process.exitCode === 'number' ? process.exitCode : 0;
+      const entry = await buildTraceMetricsEntry({
+        command: parsed.command,
+        file: parsed.file,
+        args,
+        durationMs: Date.now() - startedAt,
+        exitCode,
+        stdoutBytes,
+        errorCode
+      });
+      await appendTraceMetricsEntry(traceMetricsPath, entry);
+    }
   }
 }
 

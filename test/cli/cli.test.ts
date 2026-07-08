@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { copyFile, readFile } from 'node:fs/promises';
+import { copyFile, readFile, rm } from 'node:fs/promises';
 import { promisify } from 'node:util';
 import { describe, expect, it } from 'vitest';
 
@@ -16,6 +16,27 @@ describe('CLI overview and validate', () => {
       file: 'test/fixtures/simple-linear.bpmn',
       result: { definitions: { id: 'Definitions_SimpleLinear' } }
     });
+  });
+
+  it('writes trace metrics without polluting JSON stdout', async () => {
+    const metricsPath = 'tmp/cli-trace-metrics.jsonl';
+    await rm(metricsPath, { force: true });
+
+    const { stdout } = await execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'overview', 'test/fixtures/simple-linear.bpmn', '--trace-metrics', metricsPath]);
+    const parsed = JSON.parse(stdout);
+    const metrics = (await readFile(metricsPath, 'utf8')).trim().split('\n').map((line) => JSON.parse(line));
+
+    expect(parsed).toMatchObject({ ok: true, command: 'overview' });
+    expect(metrics).toHaveLength(1);
+    expect(metrics[0]).toMatchObject({
+      command: 'overview',
+      fileHash: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+      argsHash: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+      exitCode: 0,
+      errorCode: null
+    });
+    expect(metrics[0].stdoutBytes).toBe(Buffer.byteLength(stdout, 'utf8'));
+    expect(JSON.stringify(metrics[0])).not.toContain('Definitions_SimpleLinear');
   });
 
   it('prints validate envelope as JSON', async () => {
