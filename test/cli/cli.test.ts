@@ -103,6 +103,19 @@ describe('CLI overview and validate', () => {
     });
   });
 
+  it('prints lanes envelope as JSON', async () => {
+    const { stdout } = await execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'lanes', 'test/fixtures/lanes.bpmn', '--element', 'Task_Review']);
+
+    expect(JSON.parse(stdout)).toMatchObject({
+      ok: true,
+      command: 'lanes',
+      result: {
+        lanes: [expect.objectContaining({ id: 'Lane_Operations' })],
+        elementLanes: [expect.objectContaining({ element: expect.objectContaining({ id: 'Task_Review' }) })]
+      }
+    });
+  });
+
   it('exits 1 for validation errors', async () => {
     await expect(execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'validate', 'test/fixtures/broken-reference.bpmn'])).rejects.toMatchObject({
       code: 1,

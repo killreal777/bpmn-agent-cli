@@ -8,6 +8,7 @@ import { elementCommand } from './commands/elementCommand.js';
 import { findCommand } from './commands/findCommand.js';
 import { gatewayCommand } from './commands/gatewayCommand.js';
 import { implementationsCommand } from './commands/implementationsCommand.js';
+import { lanesCommand } from './commands/lanesCommand.js';
 import { overviewCommand } from './commands/overviewCommand.js';
 import { participantsCommand } from './commands/participantsCommand.js';
 import { traceCommand } from './commands/traceCommand.js';
@@ -66,6 +67,11 @@ export async function main(args: string[] = process.argv.slice(2)): Promise<void
 
     if (parsed.command === 'participants') {
       writeJson(await participantsCommand(parsed), pretty);
+      return;
+    }
+
+    if (parsed.command === 'lanes') {
+      writeJson(await lanesCommand(parsed), pretty);
       return;
     }
 
