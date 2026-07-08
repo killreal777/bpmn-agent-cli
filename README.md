@@ -120,7 +120,7 @@ P3-A adds structural `insert-task-between` for splitting one sequence flow and i
 
 P3-B adds structural `connect` for adding one sequence flow between existing nodes. BPMNDI layout is not updated in P3-B.
 
-P1/P2/P3 scope is documented in `docs/ROADMAP.md`.
+Product direction is documented in `docs/PRODUCT_VISION.md`. P1/P2/P3 status is documented in `docs/ROADMAP.md`. Future ideas are tracked in `docs/BACKLOG.md`.
 
 ## Relationship To bpmn-to-json
 

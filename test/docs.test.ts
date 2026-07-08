@@ -8,6 +8,8 @@ describe('documentation', () => {
     const cli = await readFile('docs/CLI.md', 'utf8');
     const contracts = await readFile('docs/OUTPUT_CONTRACTS.md', 'utf8');
     const roadmap = await readFile('docs/ROADMAP.md', 'utf8');
+    const vision = await readFile('docs/PRODUCT_VISION.md', 'utf8');
+    const backlog = await readFile('docs/BACKLOG.md', 'utf8');
 
     expect(readme).toContain('bpmn-agent-cli');
     expect(readme).toContain('/extensions install https://github.com/killreal777/bpmn-agent-cli');
@@ -48,5 +50,11 @@ describe('documentation', () => {
     expect(roadmap).toContain('P1-A');
     expect(roadmap).toContain('P1');
     expect(roadmap).toContain('P2');
+    expect(vision).toContain('Product Vision');
+    expect(vision).toContain('Dry-run');
+    expect(backlog).toContain('Product Backlog');
+    expect(backlog).toContain('delete-safe');
+    expect(backlog).toContain('add-boundary-event');
+    expect(backlog).toContain('BPMN Lint Rules');
   });
 });

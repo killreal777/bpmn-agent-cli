@@ -1,5 +1,7 @@
 # Roadmap
 
+This file tracks committed implementation phases. Broader product ideas live in `docs/BACKLOG.md`.
+
 ## P0
 
 Read-only MVP:
