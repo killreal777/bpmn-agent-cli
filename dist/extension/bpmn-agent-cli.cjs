@@ -97,7 +97,7 @@ function parseArgs(args) {
   return { command: command ?? "", file, options };
 }
 
-// src/cli/commands/connectCommand.ts
+// src/cli/commands/addBoundaryEventCommand.ts
 var import_promises2 = require("node:fs/promises");
 var import_node_path = require("node:path");
 
@@ -7607,10 +7607,269 @@ function isRecord(value) {
   return typeof value === "object" && value !== null;
 }
 
+// src/write/addBoundaryEvent.ts
+var ACTIVITY_TYPES = /* @__PURE__ */ new Set([
+  "bpmn:Task",
+  "bpmn:UserTask",
+  "bpmn:ServiceTask",
+  "bpmn:ManualTask",
+  "bpmn:ScriptTask",
+  "bpmn:BusinessRuleTask",
+  "bpmn:SendTask",
+  "bpmn:ReceiveTask",
+  "bpmn:SubProcess",
+  "bpmn:AdHocSubProcess",
+  "bpmn:Transaction",
+  "bpmn:CallActivity"
+]);
+var XSI_NS = "http://www.w3.org/2001/XMLSchema-instance";
+function addBoundaryEventXml(args) {
+  const attachedTo = requireElement(args.indexes, args.attachedToId, "attachedToId");
+  const target = requireElement(args.indexes, args.targetId, "targetId");
+  if (!ACTIVITY_TYPES.has(attachedTo.type)) {
+    throw new BpmnCliError("UNSUPPORTED_BPMN_ELEMENT_TYPE", "Boundary events can only be attached to activity-like elements in P3-D", 1, {
+      attachedToId: args.attachedToId,
+      type: attachedTo.type
+    });
+  }
+  if (target.type === "bpmn:SequenceFlow") {
+    throw new BpmnCliError("UNSUPPORTED_BPMN_ELEMENT_TYPE", "Boundary event target must be a flow node", 1, { targetId: args.targetId });
+  }
+  assertNewId(args.indexes, args.boundaryEventId, "boundaryEventId");
+  assertNewId(args.indexes, args.flowId, "flowId");
+  const cancelActivity = args.cancelActivity ?? true;
+  const boundaryEvent = {
+    id: args.boundaryEventId,
+    type: "bpmn:BoundaryEvent",
+    name: args.name ?? null,
+    processId: attachedTo.processId,
+    eventDefinitionType: "bpmn:TimerEventDefinition"
+  };
+  const flow = {
+    id: args.flowId,
+    type: "bpmn:SequenceFlow",
+    name: null,
+    sourceId: args.boundaryEventId,
+    sourceName: args.name ?? null,
+    targetId: target.id,
+    targetName: target.name,
+    condition: null
+  };
+  let xml2 = args.xml;
+  xml2 = ensureXsiNamespace(xml2);
+  xml2 = appendIncoming(xml2, target.id, args.flowId);
+  xml2 = insertBoundaryAfterAttached(xml2, attachedTo.id, boundaryEvent, flow, args.duration, cancelActivity);
+  return {
+    xml: xml2,
+    result: {
+      dryRun: args.dryRun ?? true,
+      written: args.written ?? false,
+      file: args.file,
+      outputFile: args.outputFile ?? null,
+      boundaryEvent,
+      attachedTo,
+      target,
+      flow,
+      timer: {
+        duration: args.duration,
+        cancelActivity
+      },
+      warnings: [{
+        severity: "warning",
+        code: "DI_NOT_UPDATED",
+        message: "BPMNDI layout is not updated in P3-D"
+      }],
+      diff: [
+        {
+          op: "add",
+          path: `/boundaryEvents/${args.boundaryEventId}`,
+          before: null,
+          after: attachedTo.id
+        },
+        {
+          op: "add",
+          path: `/sequenceFlows/${args.flowId}`,
+          before: null,
+          after: `${args.boundaryEventId}->${target.id}`
+        },
+        {
+          op: "add",
+          path: `/elements/${target.id}/incoming`,
+          before: null,
+          after: args.flowId
+        }
+      ]
+    }
+  };
+}
+function requireElement(indexes, id, field) {
+  const element = indexes.byId.get(id);
+  if (!element) {
+    throw new BpmnCliError("ELEMENT_NOT_FOUND", "Element not found", 1, { [field]: id });
+  }
+  return element;
+}
+function assertNewId(indexes, id, field) {
+  if (indexes.byId.has(id) || indexes.sequenceFlowById.has(id)) {
+    throw new BpmnCliError("INVALID_OPTION_VALUE", `Duplicate id for ${field}`, 2, { [field]: id });
+  }
+}
+function ensureXsiNamespace(xml2) {
+  if (xml2.includes("xmlns:xsi=")) {
+    return xml2;
+  }
+  const definitionsPattern = /<bpmn:definitions\b[^>]*>/;
+  const match = xml2.match(definitionsPattern);
+  if (!match || match.index === void 0) {
+    throw new BpmnCliError("UNSUPPORTED_BPMN_ELEMENT_TYPE", "Could not find bpmn:definitions opening tag", 1);
+  }
+  const tag = match[0].replace(/>$/, ` xmlns:xsi="${XSI_NS}">`);
+  return `${xml2.slice(0, match.index)}${tag}${xml2.slice(match.index + match[0].length)}`;
+}
+function appendIncoming(xml2, targetId, flowId) {
+  const section = findElementSection(xml2, targetId);
+  const lineStart = xml2.lastIndexOf("\n", section.closeIndex) + 1;
+  const indent = xml2.slice(lineStart, section.closeIndex).match(/^\s*/)?.[0] ?? "";
+  const insertion = `${indent}  <bpmn:incoming>${escapeText(flowId)}</bpmn:incoming>
+`;
+  return `${xml2.slice(0, section.closeIndex)}${insertion}${xml2.slice(section.closeIndex)}`;
+}
+function insertBoundaryAfterAttached(xml2, attachedToId, boundaryEvent, flow, duration, cancelActivity) {
+  const section = findElementSection(xml2, attachedToId);
+  const afterClose = section.endIndex;
+  const lineStart = xml2.lastIndexOf("\n", section.openIndex) + 1;
+  const indent = xml2.slice(lineStart, section.openIndex).match(/^\s*/)?.[0] ?? "";
+  const name2 = boundaryEvent.name ? ` name="${escapeAttribute(boundaryEvent.name)}"` : "";
+  const cancel = cancelActivity ? "" : ' cancelActivity="false"';
+  const boundaryXml = [
+    `<bpmn:boundaryEvent id="${escapeAttribute(boundaryEvent.id)}"${name2} attachedToRef="${escapeAttribute(attachedToId)}"${cancel}>`,
+    `${indent}  <bpmn:outgoing>${escapeText(flow.id)}</bpmn:outgoing>`,
+    `${indent}  <bpmn:timerEventDefinition>`,
+    `${indent}    <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">${escapeText(duration)}</bpmn:timeDuration>`,
+    `${indent}  </bpmn:timerEventDefinition>`,
+    `${indent}</bpmn:boundaryEvent>`,
+    `${indent}<bpmn:sequenceFlow id="${escapeAttribute(flow.id)}" sourceRef="${escapeAttribute(flow.sourceId)}" targetRef="${escapeAttribute(flow.targetId)}" />`
+  ].join(`
+${indent}`);
+  return `${xml2.slice(0, afterClose)}
+${indent}${boundaryXml}${xml2.slice(afterClose)}`;
+}
+function findElementSection(xml2, elementId) {
+  const escapedId = escapeRegExp(elementId);
+  const openPattern = new RegExp(`<([^!?/\\s>]+)([^>]*\\bid="${escapedId}"[^>]*)>`);
+  const open = xml2.match(openPattern);
+  if (!open || open.index === void 0) {
+    throw new BpmnCliError("UNSUPPORTED_BPMN_ELEMENT_TYPE", "Could not find target XML element", 1, { elementId });
+  }
+  if (open[0].endsWith("/>")) {
+    throw new BpmnCliError("UNSUPPORTED_BPMN_ELEMENT_TYPE", "Self-closing target elements are not supported in P3-D", 1, { elementId });
+  }
+  const closeTag = `</${open[1]}>`;
+  const closeIndex = xml2.indexOf(closeTag, open.index + open[0].length);
+  if (closeIndex === -1) {
+    throw new BpmnCliError("UNSUPPORTED_BPMN_ELEMENT_TYPE", "Could not find target XML closing tag", 1, { elementId });
+  }
+  return {
+    openIndex: open.index,
+    closeIndex,
+    endIndex: closeIndex + closeTag.length
+  };
+}
+function escapeAttribute(value) {
+  return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+function escapeText(value) {
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// src/cli/commands/addBoundaryEventCommand.ts
+async function addBoundaryEventCommand(args) {
+  if (!args.file) {
+    throw new BpmnCliError("MISSING_FILE_ARGUMENT", "add-boundary-event requires a BPMN file", 2);
+  }
+  const attachedToId = requiredString(args, "--attached-to", "add-boundary-event requires --attached-to");
+  const boundaryEventId = requiredString(args, "--id", "add-boundary-event requires --id");
+  const targetId = requiredString(args, "--target", "add-boundary-event requires --target");
+  const flowId = requiredString(args, "--flow-id", "add-boundary-event requires --flow-id");
+  const duration = requiredString(args, "--duration", "add-boundary-event requires --duration");
+  const name2 = args.options.get("--name");
+  if (name2 !== void 0 && typeof name2 !== "string") {
+    throw new BpmnCliError("INVALID_OPTION_VALUE", "--name requires a value", 2);
+  }
+  const write = args.options.get("--write") === true;
+  const outputPath = args.options.get("-o");
+  if (outputPath !== void 0 && typeof outputPath !== "string") {
+    throw new BpmnCliError("INVALID_OPTION_VALUE", "-o requires an output path", 2);
+  }
+  if (!write && outputPath) {
+    throw new BpmnCliError("INVALID_OPTION_VALUE", "-o is only allowed with --write", 2);
+  }
+  const model = await loadBpmn(args.file);
+  const targetPath = outputPath || args.file;
+  const plan = addBoundaryEventXml({
+    xml: model.xml,
+    indexes: buildIndexes(model),
+    attachedToId,
+    boundaryEventId,
+    targetId,
+    flowId,
+    duration,
+    name: name2 ?? null,
+    cancelActivity: args.options.get("--non-interrupting") === true ? false : true,
+    file: args.file,
+    outputFile: write ? targetPath : null,
+    dryRun: !write,
+    written: write
+  });
+  await validateXml(plan.xml);
+  if (write) {
+    await writeOutput(targetPath, plan.xml);
+  }
+  return successEnvelope({
+    command: "add-boundary-event",
+    file: args.file,
+    result: plan.result
+  });
+}
+function requiredString(args, key, message) {
+  const value = args.options.get(key);
+  if (typeof value !== "string") {
+    throw new BpmnCliError("INVALID_OPTION_VALUE", message, 2);
+  }
+  return value;
+}
+async function validateXml(xml2) {
+  try {
+    await createBpmnModdle().fromXML(xml2);
+  } catch (error3) {
+    throw new BpmnCliError("BPMN_PARSE_ERROR", "Patched BPMN XML did not parse", 4, {
+      cause: error3 instanceof Error ? error3.message : String(error3)
+    });
+  }
+}
+async function writeOutput(path, payload) {
+  try {
+    await (0, import_promises2.mkdir)((0, import_node_path.dirname)(path), { recursive: true });
+    await (0, import_promises2.writeFile)(path, payload, "utf8");
+  } catch (error3) {
+    throw new BpmnCliError("OUTPUT_WRITE_ERROR", "Failed to write boundary event BPMN", 1, {
+      path,
+      cause: error3 instanceof Error ? error3.message : String(error3)
+    });
+  }
+}
+
+// src/cli/commands/connectCommand.ts
+var import_promises3 = require("node:fs/promises");
+var import_node_path2 = require("node:path");
+
 // src/write/connectElements.ts
 function connectElementsXml(args) {
-  const source = requireElement(args.indexes, args.sourceId, "sourceId");
-  const target = requireElement(args.indexes, args.targetId, "targetId");
+  const source = requireElement2(args.indexes, args.sourceId, "sourceId");
+  const target = requireElement2(args.indexes, args.targetId, "targetId");
   if (source.type === "bpmn:SequenceFlow" || target.type === "bpmn:SequenceFlow") {
     throw new BpmnCliError("UNSUPPORTED_BPMN_ELEMENT_TYPE", "connect endpoints must be flow nodes, not sequence flows", 1, {
       sourceId: args.sourceId,
@@ -7672,7 +7931,7 @@ function connectElementsXml(args) {
     }
   };
 }
-function requireElement(indexes, id, field) {
+function requireElement2(indexes, id, field) {
   const element = indexes.byId.get(id);
   if (!element) {
     throw new BpmnCliError("ELEMENT_NOT_FOUND", "Element not found", 1, { [field]: id });
@@ -7680,25 +7939,25 @@ function requireElement(indexes, id, field) {
   return element;
 }
 function appendFlowReference(xml2, elementId, direction, flowId) {
-  const section = findElementSection(xml2, elementId);
+  const section = findElementSection2(xml2, elementId);
   const lineStart = xml2.lastIndexOf("\n", section.closeIndex) + 1;
   const indent = xml2.slice(lineStart, section.closeIndex).match(/^\s*/)?.[0] ?? "";
-  const insertion = `${indent}  <bpmn:${direction}>${escapeText(flowId)}</bpmn:${direction}>
+  const insertion = `${indent}  <bpmn:${direction}>${escapeText2(flowId)}</bpmn:${direction}>
 `;
   return `${xml2.slice(0, section.closeIndex)}${insertion}${xml2.slice(section.closeIndex)}`;
 }
 function insertSequenceFlowAfterElement(xml2, sourceId, flow) {
-  const section = findElementSection(xml2, sourceId);
+  const section = findElementSection2(xml2, sourceId);
   const afterClose = section.closeIndex + section.closeTag.length;
   const lineStart = xml2.lastIndexOf("\n", section.openIndex) + 1;
   const indent = xml2.slice(lineStart, section.openIndex).match(/^\s*/)?.[0] ?? "";
-  const name2 = flow.name ? ` name="${escapeAttribute(flow.name)}"` : "";
+  const name2 = flow.name ? ` name="${escapeAttribute2(flow.name)}"` : "";
   const flowXml = `
-${indent}<bpmn:sequenceFlow id="${escapeAttribute(flow.id)}"${name2} sourceRef="${escapeAttribute(flow.sourceId)}" targetRef="${escapeAttribute(flow.targetId)}" />`;
+${indent}<bpmn:sequenceFlow id="${escapeAttribute2(flow.id)}"${name2} sourceRef="${escapeAttribute2(flow.sourceId)}" targetRef="${escapeAttribute2(flow.targetId)}" />`;
   return `${xml2.slice(0, afterClose)}${flowXml}${xml2.slice(afterClose)}`;
 }
-function findElementSection(xml2, elementId) {
-  const escapedId = escapeRegExp(elementId);
+function findElementSection2(xml2, elementId) {
+  const escapedId = escapeRegExp2(elementId);
   const openPattern = new RegExp(`<([^!?/\\s>]+)([^>]*\\bid="${escapedId}"[^>]*)>`);
   const open = xml2.match(openPattern);
   if (!open || open.index === void 0) {
@@ -7714,13 +7973,13 @@ function findElementSection(xml2, elementId) {
   }
   return { openIndex: open.index, closeIndex, closeTag };
 }
-function escapeAttribute(value) {
+function escapeAttribute2(value) {
   return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
-function escapeText(value) {
+function escapeText2(value) {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
-function escapeRegExp(value) {
+function escapeRegExp2(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
@@ -7729,9 +7988,9 @@ async function connectCommand(args) {
   if (!args.file) {
     throw new BpmnCliError("MISSING_FILE_ARGUMENT", "connect requires a BPMN file", 2);
   }
-  const sourceId = requiredString(args, "--from", "connect requires --from");
-  const targetId = requiredString(args, "--to", "connect requires --to");
-  const flowId = requiredString(args, "--id", "connect requires --id");
+  const sourceId = requiredString2(args, "--from", "connect requires --from");
+  const targetId = requiredString2(args, "--to", "connect requires --to");
+  const flowId = requiredString2(args, "--id", "connect requires --id");
   const name2 = args.options.get("--name");
   if (name2 !== void 0 && typeof name2 !== "string") {
     throw new BpmnCliError("INVALID_OPTION_VALUE", "--name requires a value", 2);
@@ -7758,9 +8017,9 @@ async function connectCommand(args) {
     dryRun: !write,
     written: write
   });
-  await validateXml(plan.xml);
+  await validateXml2(plan.xml);
   if (write) {
-    await writeOutput(targetPath, plan.xml);
+    await writeOutput2(targetPath, plan.xml);
   }
   return successEnvelope({
     command: "connect",
@@ -7768,14 +8027,14 @@ async function connectCommand(args) {
     result: plan.result
   });
 }
-function requiredString(args, key, message) {
+function requiredString2(args, key, message) {
   const value = args.options.get(key);
   if (typeof value !== "string") {
     throw new BpmnCliError("INVALID_OPTION_VALUE", message, 2);
   }
   return value;
 }
-async function validateXml(xml2) {
+async function validateXml2(xml2) {
   try {
     await createBpmnModdle().fromXML(xml2);
   } catch (error3) {
@@ -7784,10 +8043,10 @@ async function validateXml(xml2) {
     });
   }
 }
-async function writeOutput(path, payload) {
+async function writeOutput2(path, payload) {
   try {
-    await (0, import_promises2.mkdir)((0, import_node_path.dirname)(path), { recursive: true });
-    await (0, import_promises2.writeFile)(path, payload, "utf8");
+    await (0, import_promises3.mkdir)((0, import_node_path2.dirname)(path), { recursive: true });
+    await (0, import_promises3.writeFile)(path, payload, "utf8");
   } catch (error3) {
     throw new BpmnCliError("OUTPUT_WRITE_ERROR", "Failed to write connected BPMN", 1, {
       path,
@@ -7906,8 +8165,8 @@ function numberOption(args, name2, fallback) {
 }
 
 // src/cli/commands/deleteSafeCommand.ts
-var import_promises3 = require("node:fs/promises");
-var import_node_path2 = require("node:path");
+var import_promises4 = require("node:fs/promises");
+var import_node_path3 = require("node:path");
 
 // src/write/deleteSafe.ts
 var UNSAFE_DELETE_TYPES = /* @__PURE__ */ new Set([
@@ -8026,7 +8285,7 @@ function deleteSafeXml(args) {
   };
 }
 function replaceNodeReference(xml2, elementId, direction, oldFlowId, newFlowId) {
-  const section = findElementSection2(xml2, elementId);
+  const section = findElementSection3(xml2, elementId);
   const body = xml2.slice(section.bodyStart, section.closeIndex);
   const oldReference = `<bpmn:${direction}>${oldFlowId}</bpmn:${direction}>`;
   if (!body.includes(oldReference)) {
@@ -8039,14 +8298,14 @@ function replaceNodeReference(xml2, elementId, direction, oldFlowId, newFlowId) 
   return `${xml2.slice(0, section.bodyStart)}${updatedBody}${xml2.slice(section.closeIndex)}`;
 }
 function replaceSequenceFlowWithReplacement(xml2, flowId, replacementFlow) {
-  const section = findElementSection2(xml2, flowId);
+  const section = findElementSection3(xml2, flowId);
   const lineStart = xml2.lastIndexOf("\n", section.openIndex) + 1;
   const indent = xml2.slice(lineStart, section.openIndex).match(/^\s*/)?.[0] ?? "";
-  const replacement = `${indent}<bpmn:sequenceFlow id="${escapeAttribute2(replacementFlow.id)}" sourceRef="${escapeAttribute2(replacementFlow.sourceId)}" targetRef="${escapeAttribute2(replacementFlow.targetId)}" />`;
+  const replacement = `${indent}<bpmn:sequenceFlow id="${escapeAttribute3(replacementFlow.id)}" sourceRef="${escapeAttribute3(replacementFlow.sourceId)}" targetRef="${escapeAttribute3(replacementFlow.targetId)}" />`;
   return `${xml2.slice(0, lineStart)}${replacement}${xml2.slice(section.endIndex)}`;
 }
 function removeElementSection(xml2, elementId) {
-  const section = findElementSection2(xml2, elementId);
+  const section = findElementSection3(xml2, elementId);
   const lineStart = xml2.lastIndexOf("\n", section.openIndex) + 1;
   const lineEnd = xml2[section.endIndex] === "\n" ? section.endIndex + 1 : section.endIndex;
   return `${xml2.slice(0, lineStart)}${xml2.slice(lineEnd)}`;
@@ -8062,15 +8321,15 @@ function removeBpmndiByBpmnElement(xml2, ids) {
   return next;
 }
 function removeSelfClosingTagsByAttribute(xml2, tagName, attribute, value) {
-  const pattern = new RegExp(`^[ \\t]*<${escapeRegExp2(tagName)}\\b[^>]*\\b${escapeRegExp2(attribute)}="${escapeRegExp2(value)}"[^>]*/>\\n?`, "gm");
+  const pattern = new RegExp(`^[ \\t]*<${escapeRegExp3(tagName)}\\b[^>]*\\b${escapeRegExp3(attribute)}="${escapeRegExp3(value)}"[^>]*/>\\n?`, "gm");
   return xml2.replace(pattern, "");
 }
 function removePairedTagsByAttribute(xml2, tagName, attribute, value) {
-  const pattern = new RegExp(`^[ \\t]*<${escapeRegExp2(tagName)}\\b[^>]*\\b${escapeRegExp2(attribute)}="${escapeRegExp2(value)}"[^>]*>[\\s\\S]*?</${escapeRegExp2(tagName)}>\\n?`, "gm");
+  const pattern = new RegExp(`^[ \\t]*<${escapeRegExp3(tagName)}\\b[^>]*\\b${escapeRegExp3(attribute)}="${escapeRegExp3(value)}"[^>]*>[\\s\\S]*?</${escapeRegExp3(tagName)}>\\n?`, "gm");
   return xml2.replace(pattern, "");
 }
-function findElementSection2(xml2, elementId) {
-  const escapedId = escapeRegExp2(elementId);
+function findElementSection3(xml2, elementId) {
+  const escapedId = escapeRegExp3(elementId);
   const openPattern = new RegExp(`<([^!?/\\s>]+)([^>]*\\bid="${escapedId}"[^>]*)>`);
   const open = xml2.match(openPattern);
   if (!open || open.index === void 0) {
@@ -8096,10 +8355,10 @@ function findElementSection2(xml2, elementId) {
     endIndex: closeIndex + closeTag.length
   };
 }
-function escapeAttribute2(value) {
+function escapeAttribute3(value) {
   return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
-function escapeRegExp2(value) {
+function escapeRegExp3(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
@@ -8136,9 +8395,9 @@ async function deleteSafeCommand(args) {
     dryRun: !write,
     written: write
   });
-  await validateXml2(plan.xml);
+  await validateXml3(plan.xml);
   if (write) {
-    await writeOutput2(targetPath, plan.xml);
+    await writeOutput3(targetPath, plan.xml);
   }
   return successEnvelope({
     command: "delete-safe",
@@ -8146,7 +8405,7 @@ async function deleteSafeCommand(args) {
     result: plan.result
   });
 }
-async function validateXml2(xml2) {
+async function validateXml3(xml2) {
   try {
     await createBpmnModdle().fromXML(xml2);
   } catch (error3) {
@@ -8155,10 +8414,10 @@ async function validateXml2(xml2) {
     });
   }
 }
-async function writeOutput2(path, payload) {
+async function writeOutput3(path, payload) {
   try {
-    await (0, import_promises3.mkdir)((0, import_node_path2.dirname)(path), { recursive: true });
-    await (0, import_promises3.writeFile)(path, payload, "utf8");
+    await (0, import_promises4.mkdir)((0, import_node_path3.dirname)(path), { recursive: true });
+    await (0, import_promises4.writeFile)(path, payload, "utf8");
   } catch (error3) {
     throw new BpmnCliError("OUTPUT_WRITE_ERROR", "Failed to write delete-safe BPMN", 1, {
       path,
@@ -8168,8 +8427,8 @@ async function writeOutput2(path, payload) {
 }
 
 // src/cli/commands/documentationCommand.ts
-var import_promises4 = require("node:fs/promises");
-var import_node_path3 = require("node:path");
+var import_promises5 = require("node:fs/promises");
+var import_node_path4 = require("node:path");
 
 // src/write/documentElement.ts
 function documentElementXml(args) {
@@ -8198,7 +8457,7 @@ function documentElementXml(args) {
   };
 }
 function patchDocumentation(xml2, elementId, text) {
-  const escapedId = escapeRegExp3(elementId);
+  const escapedId = escapeRegExp4(elementId);
   const openPattern = new RegExp(`<([^!?/\\s>]+)([^>]*\\bid="${escapedId}"[^>]*)>`);
   const open = xml2.match(openPattern);
   if (!open || open.index === void 0) {
@@ -8207,7 +8466,7 @@ function patchDocumentation(xml2, elementId, text) {
   const fullOpenTag = open[0];
   const tagName = open[1];
   const start = open.index;
-  const escapedText = escapeText2(text);
+  const escapedText = escapeText3(text);
   if (fullOpenTag.endsWith("/>")) {
     const replacement = `${fullOpenTag.slice(0, -2)}><bpmn:documentation>${escapedText}</bpmn:documentation></${tagName}>`;
     return {
@@ -8242,13 +8501,13 @@ function patchDocumentation(xml2, elementId, text) {
     before: null
   };
 }
-function escapeText2(value) {
+function escapeText3(value) {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 function unescapeText(value) {
   return value.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
 }
-function escapeRegExp3(value) {
+function escapeRegExp4(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
@@ -8285,9 +8544,9 @@ async function documentationCommand(args) {
     dryRun: !write,
     written: write
   });
-  await validateXml3(plan.xml);
+  await validateXml4(plan.xml);
   if (write) {
-    await writeOutput3(targetPath, plan.xml);
+    await writeOutput4(targetPath, plan.xml);
   }
   return successEnvelope({
     command: "documentation",
@@ -8295,7 +8554,7 @@ async function documentationCommand(args) {
     result: plan.result
   });
 }
-async function validateXml3(xml2) {
+async function validateXml4(xml2) {
   try {
     await createBpmnModdle().fromXML(xml2);
   } catch (error3) {
@@ -8304,10 +8563,10 @@ async function validateXml3(xml2) {
     });
   }
 }
-async function writeOutput3(path, payload) {
+async function writeOutput4(path, payload) {
   try {
-    await (0, import_promises4.mkdir)((0, import_node_path3.dirname)(path), { recursive: true });
-    await (0, import_promises4.writeFile)(path, payload, "utf8");
+    await (0, import_promises5.mkdir)((0, import_node_path4.dirname)(path), { recursive: true });
+    await (0, import_promises5.writeFile)(path, payload, "utf8");
   } catch (error3) {
     throw new BpmnCliError("OUTPUT_WRITE_ERROR", "Failed to write documented BPMN", 1, {
       path,
@@ -8371,8 +8630,8 @@ async function elementCommand(args) {
 }
 
 // src/cli/commands/exportCommand.ts
-var import_promises5 = require("node:fs/promises");
-var import_node_path4 = require("node:path");
+var import_promises6 = require("node:fs/promises");
+var import_node_path5 = require("node:path");
 
 // src/export/renderMarkdown.ts
 function renderMarkdown(model) {
@@ -8911,7 +9170,7 @@ async function exportCommand(args, pretty) {
   const exportModel = buildExportModel(model, sections);
   const payload = format === "json" ? JSON.stringify(successEnvelope({ command: "export", file: args.file, result: exportModel }), null, pretty ? 2 : 0) : render(format, exportModel);
   if (outputPath) {
-    await writeOutput4(outputPath, payload);
+    await writeOutput5(outputPath, payload);
     return;
   }
   if (format === "json") {
@@ -8941,10 +9200,10 @@ function parseSections(value) {
 function render(format, model) {
   return format === "markdown" ? renderMarkdown(model) : renderText(model);
 }
-async function writeOutput4(path, payload) {
+async function writeOutput5(path, payload) {
   try {
-    await (0, import_promises5.mkdir)((0, import_node_path4.dirname)(path), { recursive: true });
-    await (0, import_promises5.writeFile)(path, payload, "utf8");
+    await (0, import_promises6.mkdir)((0, import_node_path5.dirname)(path), { recursive: true });
+    await (0, import_promises6.writeFile)(path, payload, "utf8");
   } catch (error3) {
     throw new BpmnCliError("OUTPUT_WRITE_ERROR", "Failed to write export output", 1, { path, cause: error3 instanceof Error ? error3.message : String(error3) });
   }
@@ -9104,8 +9363,8 @@ function numberOption2(args, name2, fallback) {
 }
 
 // src/cli/commands/formatCommand.ts
-var import_promises6 = require("node:fs/promises");
-var import_node_path5 = require("node:path");
+var import_promises7 = require("node:fs/promises");
+var import_node_path6 = require("node:path");
 
 // src/write/formatBpmn.ts
 async function formatBpmnModel(args) {
@@ -9155,9 +9414,9 @@ async function formatCommand(args) {
     dryRun: !write,
     written: write
   });
-  await validateXml4(plan.xml);
+  await validateXml5(plan.xml);
   if (write) {
-    await writeOutput5(targetPath, plan.xml);
+    await writeOutput6(targetPath, plan.xml);
   }
   return successEnvelope({
     command: "format",
@@ -9165,7 +9424,7 @@ async function formatCommand(args) {
     result: plan.result
   });
 }
-async function validateXml4(xml2) {
+async function validateXml5(xml2) {
   try {
     await createBpmnModdle().fromXML(xml2);
   } catch (error3) {
@@ -9174,10 +9433,10 @@ async function validateXml4(xml2) {
     });
   }
 }
-async function writeOutput5(path, payload) {
+async function writeOutput6(path, payload) {
   try {
-    await (0, import_promises6.mkdir)((0, import_node_path5.dirname)(path), { recursive: true });
-    await (0, import_promises6.writeFile)(path, payload, "utf8");
+    await (0, import_promises7.mkdir)((0, import_node_path6.dirname)(path), { recursive: true });
+    await (0, import_promises7.writeFile)(path, payload, "utf8");
   } catch (error3) {
     throw new BpmnCliError("OUTPUT_WRITE_ERROR", "Failed to write formatted BPMN", 1, {
       path,
@@ -9252,8 +9511,8 @@ async function gatewayCommand(args) {
 }
 
 // src/cli/commands/implementationCommand.ts
-var import_promises7 = require("node:fs/promises");
-var import_node_path6 = require("node:path");
+var import_promises8 = require("node:fs/promises");
+var import_node_path7 = require("node:path");
 
 // src/write/implementationElement.ts
 var CAMUNDA_NS = "http://camunda.org/schema/1.0/bpmn";
@@ -9312,7 +9571,7 @@ function patchesFor(kind, value) {
   return [{ name: "calledElement", value }];
 }
 function patchOpeningTag(xml2, elementId, patches) {
-  const escapedId = escapeRegExp4(elementId);
+  const escapedId = escapeRegExp5(elementId);
   const tagPattern = new RegExp(`<[^!?/][^>]*\\bid="${escapedId}"[^>]*>`);
   const match = xml2.match(tagPattern);
   if (!match || match.index === void 0) {
@@ -9339,12 +9598,12 @@ function patchOpeningTag(xml2, elementId, patches) {
   };
 }
 function readAttribute(tag, name2) {
-  const pattern = new RegExp(`\\s${escapeRegExp4(name2)}="([^"]*)"`);
+  const pattern = new RegExp(`\\s${escapeRegExp5(name2)}="([^"]*)"`);
   return tag.match(pattern)?.[1] ?? null;
 }
 function writeAttribute(tag, name2, value) {
-  const escapedValue = escapeAttribute3(value);
-  const pattern = new RegExp(`\\s${escapeRegExp4(name2)}="[^"]*"`);
+  const escapedValue = escapeAttribute4(value);
+  const pattern = new RegExp(`\\s${escapeRegExp5(name2)}="[^"]*"`);
   if (pattern.test(tag)) {
     return tag.replace(pattern, ` ${name2}="${escapedValue}"`);
   }
@@ -9362,10 +9621,10 @@ function ensureCamundaNamespace(xml2) {
   const tag = match[0].replace(/>$/, ` xmlns:camunda="${CAMUNDA_NS}">`);
   return `${xml2.slice(0, match.index)}${tag}${xml2.slice(match.index + match[0].length)}`;
 }
-function escapeAttribute3(value) {
+function escapeAttribute4(value) {
   return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
-function escapeRegExp4(value) {
+function escapeRegExp5(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
@@ -9407,9 +9666,9 @@ async function implementationCommand(args) {
     dryRun: !write,
     written: write
   });
-  await validateXml5(plan.xml);
+  await validateXml6(plan.xml);
   if (write) {
-    await writeOutput6(targetPath, plan.xml);
+    await writeOutput7(targetPath, plan.xml);
   }
   return successEnvelope({
     command: "implementation",
@@ -9417,7 +9676,7 @@ async function implementationCommand(args) {
     result: plan.result
   });
 }
-async function validateXml5(xml2) {
+async function validateXml6(xml2) {
   try {
     await createBpmnModdle().fromXML(xml2);
   } catch (error3) {
@@ -9426,10 +9685,10 @@ async function validateXml5(xml2) {
     });
   }
 }
-async function writeOutput6(path, payload) {
+async function writeOutput7(path, payload) {
   try {
-    await (0, import_promises7.mkdir)((0, import_node_path6.dirname)(path), { recursive: true });
-    await (0, import_promises7.writeFile)(path, payload, "utf8");
+    await (0, import_promises8.mkdir)((0, import_node_path7.dirname)(path), { recursive: true });
+    await (0, import_promises8.writeFile)(path, payload, "utf8");
   } catch (error3) {
     throw new BpmnCliError("OUTPUT_WRITE_ERROR", "Failed to write implementation BPMN", 1, {
       path,
@@ -9454,8 +9713,8 @@ async function implementationsCommand(args) {
 }
 
 // src/cli/commands/insertTaskBetweenCommand.ts
-var import_promises8 = require("node:fs/promises");
-var import_node_path7 = require("node:path");
+var import_promises9 = require("node:fs/promises");
+var import_node_path8 = require("node:path");
 
 // src/write/insertTaskBetween.ts
 function insertTaskBetweenXml(args) {
@@ -9469,9 +9728,9 @@ function insertTaskBetweenXml(args) {
   const taskType = parseTaskType(args.type ?? "task");
   const incomingFlowId = args.incomingFlowId ?? `${args.flowId}_to_${args.elementId}`;
   const outgoingFlowId = args.outgoingFlowId ?? `${args.elementId}_to_${replacedFlow.targetId}`;
-  assertNewId(args.indexes, args.elementId, "elementId");
-  assertNewId(args.indexes, incomingFlowId, "incomingFlowId");
-  assertNewId(args.indexes, outgoingFlowId, "outgoingFlowId");
+  assertNewId2(args.indexes, args.elementId, "elementId");
+  assertNewId2(args.indexes, incomingFlowId, "incomingFlowId");
+  assertNewId2(args.indexes, outgoingFlowId, "outgoingFlowId");
   const inserted = {
     id: args.elementId,
     type: taskType.canonicalType,
@@ -9560,13 +9819,13 @@ function parseTaskType(type) {
   }
   throw new BpmnCliError("INVALID_OPTION_VALUE", `Unsupported insert task type: ${type}`, 2, { type });
 }
-function assertNewId(indexes, id, field) {
+function assertNewId2(indexes, id, field) {
   if (indexes.byId.has(id) || indexes.sequenceFlowById.has(id)) {
     throw new BpmnCliError("INVALID_OPTION_VALUE", `Duplicate id for ${field}`, 2, { [field]: id });
   }
 }
 function replaceNodeReference2(xml2, elementId, direction, oldFlowId, newFlowId) {
-  const escapedId = escapeRegExp5(elementId);
+  const escapedId = escapeRegExp6(elementId);
   const openPattern = new RegExp(`<([^!?/\\s>]+)([^>]*\\bid="${escapedId}"[^>]*)>`);
   const open = xml2.match(openPattern);
   if (!open || open.index === void 0) {
@@ -9592,7 +9851,7 @@ function replaceNodeReference2(xml2, elementId, direction, oldFlowId, newFlowId)
   return `${xml2.slice(0, bodyStart)}${updatedBody}${xml2.slice(closeIndex)}`;
 }
 function replaceSequenceFlow(xml2, flowId, taskXmlTag, elementId, name2, newFlows) {
-  const escapedId = escapeRegExp5(flowId);
+  const escapedId = escapeRegExp6(flowId);
   const flowPattern = new RegExp(`<bpmn:sequenceFlow\\b[^>]*\\bid="${escapedId}"[^>]*>`);
   const flow = xml2.match(flowPattern);
   if (!flow || flow.index === void 0) {
@@ -9604,23 +9863,23 @@ function replaceSequenceFlow(xml2, flowId, taskXmlTag, elementId, name2, newFlow
   const lineStart = xml2.lastIndexOf("\n", flow.index) + 1;
   const indent = xml2.slice(lineStart, flow.index).match(/^\s*/)?.[0] ?? "";
   const task = [
-    `<bpmn:${taskXmlTag} id="${escapeAttribute4(elementId)}" name="${escapeAttribute4(name2)}">`,
+    `<bpmn:${taskXmlTag} id="${escapeAttribute5(elementId)}" name="${escapeAttribute5(name2)}">`,
     `${indent}  <bpmn:incoming>${newFlows[0].id}</bpmn:incoming>`,
     `${indent}  <bpmn:outgoing>${newFlows[1].id}</bpmn:outgoing>`,
     `${indent}</bpmn:${taskXmlTag}>`
   ].join("\n");
   const replacement = [
-    `<bpmn:sequenceFlow id="${escapeAttribute4(newFlows[0].id)}" sourceRef="${escapeAttribute4(newFlows[0].sourceId)}" targetRef="${escapeAttribute4(newFlows[0].targetId)}" />`,
+    `<bpmn:sequenceFlow id="${escapeAttribute5(newFlows[0].id)}" sourceRef="${escapeAttribute5(newFlows[0].sourceId)}" targetRef="${escapeAttribute5(newFlows[0].targetId)}" />`,
     task,
-    `<bpmn:sequenceFlow id="${escapeAttribute4(newFlows[1].id)}" sourceRef="${escapeAttribute4(newFlows[1].sourceId)}" targetRef="${escapeAttribute4(newFlows[1].targetId)}" />`
+    `<bpmn:sequenceFlow id="${escapeAttribute5(newFlows[1].id)}" sourceRef="${escapeAttribute5(newFlows[1].sourceId)}" targetRef="${escapeAttribute5(newFlows[1].targetId)}" />`
   ].join(`
 ${indent}`);
   return `${xml2.slice(0, flow.index)}${replacement}${xml2.slice(flow.index + flow[0].length)}`;
 }
-function escapeAttribute4(value) {
+function escapeAttribute5(value) {
   return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
-function escapeRegExp5(value) {
+function escapeRegExp6(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
@@ -9629,9 +9888,9 @@ async function insertTaskBetweenCommand(args) {
   if (!args.file) {
     throw new BpmnCliError("MISSING_FILE_ARGUMENT", "insert-task-between requires a BPMN file", 2);
   }
-  const flowId = requiredString2(args, "--flow", "insert-task-between requires --flow");
-  const elementId = requiredString2(args, "--id", "insert-task-between requires --id");
-  const name2 = requiredString2(args, "--name", "insert-task-between requires --name");
+  const flowId = requiredString3(args, "--flow", "insert-task-between requires --flow");
+  const elementId = requiredString3(args, "--id", "insert-task-between requires --id");
+  const name2 = requiredString3(args, "--name", "insert-task-between requires --name");
   const type = args.options.get("--type");
   const incomingFlowId = args.options.get("--incoming-flow-id");
   const outgoingFlowId = args.options.get("--outgoing-flow-id");
@@ -9668,9 +9927,9 @@ async function insertTaskBetweenCommand(args) {
     dryRun: !write,
     written: write
   });
-  await validateXml6(plan.xml);
+  await validateXml7(plan.xml);
   if (write) {
-    await writeOutput7(targetPath, plan.xml);
+    await writeOutput8(targetPath, plan.xml);
   }
   return successEnvelope({
     command: "insert-task-between",
@@ -9678,14 +9937,14 @@ async function insertTaskBetweenCommand(args) {
     result: plan.result
   });
 }
-function requiredString2(args, key, message) {
+function requiredString3(args, key, message) {
   const value = args.options.get(key);
   if (typeof value !== "string") {
     throw new BpmnCliError("INVALID_OPTION_VALUE", message, 2);
   }
   return value;
 }
-async function validateXml6(xml2) {
+async function validateXml7(xml2) {
   try {
     await createBpmnModdle().fromXML(xml2);
   } catch (error3) {
@@ -9694,10 +9953,10 @@ async function validateXml6(xml2) {
     });
   }
 }
-async function writeOutput7(path, payload) {
+async function writeOutput8(path, payload) {
   try {
-    await (0, import_promises8.mkdir)((0, import_node_path7.dirname)(path), { recursive: true });
-    await (0, import_promises8.writeFile)(path, payload, "utf8");
+    await (0, import_promises9.mkdir)((0, import_node_path8.dirname)(path), { recursive: true });
+    await (0, import_promises9.writeFile)(path, payload, "utf8");
   } catch (error3) {
     throw new BpmnCliError("OUTPUT_WRITE_ERROR", "Failed to write inserted BPMN", 1, {
       path,
@@ -9866,8 +10125,8 @@ async function participantsCommand(args) {
 }
 
 // src/cli/commands/renameCommand.ts
-var import_promises9 = require("node:fs/promises");
-var import_node_path8 = require("node:path");
+var import_promises10 = require("node:fs/promises");
+var import_node_path9 = require("node:path");
 
 // src/write/renameElement.ts
 function renameElementXml(args) {
@@ -9896,14 +10155,14 @@ function renameElementXml(args) {
   };
 }
 function patchOpeningTag2(xml2, elementId, name2) {
-  const escapedId = escapeRegExp6(elementId);
+  const escapedId = escapeRegExp7(elementId);
   const tagPattern = new RegExp(`<[^!?/][^>]*\\bid="${escapedId}"[^>]*>`);
   const match = xml2.match(tagPattern);
   if (!match || match.index === void 0) {
     throw new BpmnCliError("UNSUPPORTED_BPMN_ELEMENT_TYPE", "Could not find target element opening tag", 1, { elementId });
   }
   const tag = match[0];
-  const escapedName = escapeAttribute5(name2);
+  const escapedName = escapeAttribute6(name2);
   const namePattern = /\bname="[^"]*"/;
   const operation = namePattern.test(tag) ? "replace" : "add";
   const updatedTag = operation === "replace" ? tag.replace(namePattern, `name="${escapedName}"`) : tag.replace(/\/?>$/, (suffix) => ` name="${escapedName}"${suffix}`);
@@ -9912,10 +10171,10 @@ function patchOpeningTag2(xml2, elementId, name2) {
     operation
   };
 }
-function escapeAttribute5(value) {
+function escapeAttribute6(value) {
   return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
-function escapeRegExp6(value) {
+function escapeRegExp7(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
@@ -9952,9 +10211,9 @@ async function renameCommand(args) {
     dryRun: !write,
     written: write
   });
-  await validateXml7(plan.xml);
+  await validateXml8(plan.xml);
   if (write) {
-    await writeOutput8(targetPath, plan.xml);
+    await writeOutput9(targetPath, plan.xml);
   }
   return successEnvelope({
     command: "rename",
@@ -9962,7 +10221,7 @@ async function renameCommand(args) {
     result: plan.result
   });
 }
-async function validateXml7(xml2) {
+async function validateXml8(xml2) {
   try {
     await createBpmnModdle().fromXML(xml2);
   } catch (error3) {
@@ -9971,10 +10230,10 @@ async function validateXml7(xml2) {
     });
   }
 }
-async function writeOutput8(path, payload) {
+async function writeOutput9(path, payload) {
   try {
-    await (0, import_promises9.mkdir)((0, import_node_path8.dirname)(path), { recursive: true });
-    await (0, import_promises9.writeFile)(path, payload, "utf8");
+    await (0, import_promises10.mkdir)((0, import_node_path9.dirname)(path), { recursive: true });
+    await (0, import_promises10.writeFile)(path, payload, "utf8");
   } catch (error3) {
     throw new BpmnCliError("OUTPUT_WRITE_ERROR", "Failed to write renamed BPMN", 1, {
       path,
@@ -10038,8 +10297,8 @@ function numberOption4(args, name2, fallback) {
 }
 
 // src/cli/commands/toJsonCommand.ts
-var import_promises10 = require("node:fs/promises");
-var import_node_path9 = require("node:path");
+var import_promises11 = require("node:fs/promises");
+var import_node_path10 = require("node:path");
 
 // src/legacy/optimizations/ids.ts
 var OPTIMIZATION_IDS = {
@@ -10785,7 +11044,7 @@ async function toJsonCommand(args, pretty) {
   if (!args.file) {
     throw new BpmnCliError("MISSING_FILE_ARGUMENT", "to-json requires a BPMN file", 2);
   }
-  const xml2 = await (0, import_promises10.readFile)(args.file, "utf8");
+  const xml2 = await (0, import_promises11.readFile)(args.file, "utf8");
   const converted = await convertBpmnToJson(xml2, { preset: stringOption5(args, "--preset") });
   const output = `${JSON.stringify(converted, null, pretty ? 2 : 0)}
 `;
@@ -10794,8 +11053,8 @@ async function toJsonCommand(args, pretty) {
     process.stdout.write(output);
     return;
   }
-  await (0, import_promises10.mkdir)((0, import_node_path9.dirname)(outputPath), { recursive: true });
-  await (0, import_promises10.writeFile)(outputPath, output, "utf8");
+  await (0, import_promises11.mkdir)((0, import_node_path10.dirname)(outputPath), { recursive: true });
+  await (0, import_promises11.writeFile)(outputPath, output, "utf8");
 }
 function stringOption5(args, name2) {
   const value = args.options.get(name2);
@@ -10911,6 +11170,10 @@ async function main(args = process.argv.slice(2)) {
     }
     if (parsed.command === "delete-safe") {
       writeJson(await deleteSafeCommand(parsed), pretty);
+      return;
+    }
+    if (parsed.command === "add-boundary-event") {
+      writeJson(await addBoundaryEventCommand(parsed), pretty);
       return;
     }
     if (parsed.command === "to-json") {
