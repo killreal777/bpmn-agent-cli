@@ -107,7 +107,11 @@ Baseline summary:
 
 Planned measured experiments:
 
-- first measured experiment: enriched `element` details by BPMN element type
+- first measured experiment implemented: enriched `element` details by BPMN element type
+  - success unchanged: 20/20 tasks
+  - CLI calls unchanged: 36
+  - estimated output tokens increased by 424 because details are additive
+  - accepted as correctness-enabling; next benchmark iteration should score correctness or adaptive follow-up-call reduction
 - second measured experiment: `context --profile agent`
 - semantic experiment: `variables` or `call-activity`
 - variable-aware lint rules after variable extraction is stable

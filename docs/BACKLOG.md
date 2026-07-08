@@ -212,7 +212,7 @@ This is the highest-priority semantic read improvement because agents need to un
 ### BL-010: Enrich `element` With Type-Specific Details
 
 Priority: `P4`
-Status: `ready-for-spec`
+Status: `implemented`
 
 Extend the existing `element` command so it returns specialized detail sections depending on element type.
 
@@ -229,6 +229,23 @@ The command should keep the current compact element summary but add a `details` 
 Metrics hypothesis:
 
 - A richer element card reduces follow-up CLI calls for element inspection tasks without making output too verbose.
+
+Implemented scope:
+
+- `bpmn:CallActivity` details include `calledElement`, Camunda `camunda:in` mappings, Camunda `camunda:out` mappings, pass-through `variables="all"`, `local`, and variable candidates.
+- `bpmn:ServiceTask` details include implementation type, topic, delegate expression, class, expression, and variable candidates.
+- `bpmn:UserTask` details include form key and variable candidates.
+- `bpmn:SequenceFlow` details include condition and variable candidates.
+- `bpmn:BoundaryEvent` details include attached element, `cancelActivity`, and event definitions.
+
+Measured result:
+
+- Candidate report: `benchmarks/results/candidate-element-details.json`.
+- Comparison report: `benchmarks/results/compare-element-details.json`.
+- Successful tasks: unchanged at 20/20.
+- CLI calls: unchanged at 36.
+- Estimated output tokens: +424 across the 20-task suite.
+- Decision: accepted as a correctness-enabling read improvement because CallActivity mappings and type-specific context are now available without raw XML; follow-up benchmark work should add correctness scoring or adaptive task plans to measure reduced follow-up calls.
 
 ### BL-011: `call-activity`
 

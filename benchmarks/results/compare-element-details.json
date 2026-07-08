@@ -1,0 +1,46 @@
+{
+  "generatedAt": "2026-07-08T20:42:21.537Z",
+  "baseline": {
+    "variant": "baseline",
+    "taskCount": 20,
+    "aggregate": {
+      "successfulTasks": 20,
+      "failedTasks": 0,
+      "successRate": 1,
+      "cliCalls": 36,
+      "elapsedMs": 68646,
+      "stdoutBytes": 35322,
+      "estimatedOutputTokens": 8843,
+      "xmlFallbackRate": 0,
+      "toolErrors": 0,
+      "toolErrorRate": 0
+    }
+  },
+  "candidate": {
+    "variant": "candidate-element-details",
+    "taskCount": 20,
+    "aggregate": {
+      "successfulTasks": 20,
+      "failedTasks": 0,
+      "successRate": 1,
+      "cliCalls": 36,
+      "elapsedMs": 70571,
+      "stdoutBytes": 37011,
+      "estimatedOutputTokens": 9267,
+      "xmlFallbackRate": 0,
+      "toolErrors": 0,
+      "toolErrorRate": 0
+    }
+  },
+  "deltas": {
+    "successfulTasks": 0,
+    "successRate": 0,
+    "cliCalls": 0,
+    "elapsedMs": 1925,
+    "stdoutBytes": 1689,
+    "estimatedOutputTokens": 424,
+    "xmlFallbackRate": 0,
+    "toolErrors": 0,
+    "toolErrorRate": 0
+  }
+}
