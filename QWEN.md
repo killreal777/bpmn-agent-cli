@@ -8,4 +8,4 @@ Use the bundled CLI through:
 node "${extensionPath}${/}dist${/}extension${/}bpmn-agent-cli.cjs" overview process.bpmn
 ```
 
-Prefer the `bpmn-agent` skill before reading raw `.bpmn` XML.
+Prefer the `bpmn-agent-cli` skill before reading raw `.bpmn` XML.

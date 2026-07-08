@@ -1,10 +1,10 @@
 ---
-name: bpmn-agent
+name: bpmn-agent-cli
 summary: Read and analyze BPMN 2.0 files through the local bpmn-agent-cli CLI.
 description: Use this skill when working with .bpmn files. Prefer specialized CLI queries over reading raw BPMN XML.
 ---
 
-# BPMN Agent
+# BPMN Agent CLI
 
 Prefer specialized CLI queries over reading raw BPMN XML. The CLI returns small deterministic JSON results that are easier for agents to use safely.
 

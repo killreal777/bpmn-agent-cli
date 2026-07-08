@@ -553,8 +553,8 @@ P0 includes:
 - `QWEN.md`.
 - `.claude-plugin/plugin.json`.
 - `.claude-plugin/marketplace.json`.
-- `skills/bpmn-agent/SKILL.md`.
-- `commands/bpmn.md` for command discoverability.
+- `skills/bpmn-agent-cli/SKILL.md`.
+- `commands/bpmn-agent-cli.md` for command discoverability.
 
 P0 uses a bundled CLI strategy for GitHub-based Qwen/Claude installation. The repository must contain a committed self-contained runtime bundle:
 
@@ -653,5 +653,5 @@ The MVP is complete when:
 - After Qwen installation, the BPMN skill is visible and the command file can invoke the bundled CLI through `${extensionPath}`. If Qwen Code is unavailable locally, the skipped manual check is documented with the missing command.
 - Claude plugin manifests exist and pass `claude plugin validate .` when Claude Code is available. If Claude Code is unavailable locally, the skipped manual check is documented with the missing command.
 - Installed Claude plugin can invoke the bundled CLI without relying on files outside the plugin directory.
-- `skills/bpmn-agent/SKILL.md` exists.
+- `skills/bpmn-agent-cli/SKILL.md` exists.
 - README documents Qwen and Claude install flows.

@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises';
+import { access, readFile } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 
 describe('agent extension metadata', () => {
@@ -29,12 +29,15 @@ describe('agent extension metadata', () => {
   });
 
   it('documents bundled CLI invocation for agents', async () => {
-    const command = await readFile('commands/bpmn.md', 'utf8');
-    const skill = await readFile('skills/bpmn-agent/SKILL.md', 'utf8');
+    const command = await readFile('commands/bpmn-agent-cli.md', 'utf8');
+    const skill = await readFile('skills/bpmn-agent-cli/SKILL.md', 'utf8');
 
     expect(command).toContain('${extensionPath}');
     expect(command).toContain('dist/extension/bpmn-agent-cli.cjs');
+    expect(skill).toContain('name: bpmn-agent-cli');
     expect(skill).toContain('bpmn-agent-cli overview');
     expect(skill).toContain('Prefer specialized CLI queries');
+    await expect(access('commands/bpmn.md')).rejects.toThrow();
+    await expect(access('skills/bpmn-agent/SKILL.md')).rejects.toThrow();
   });
 });

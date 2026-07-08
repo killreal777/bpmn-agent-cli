@@ -27,7 +27,7 @@ Create or modify these files:
 AGENTS.md
 README.md
 QWEN.md
-commands/bpmn.md
+commands/bpmn-agent-cli.md
 docs/CLI.md
 docs/OUTPUT_CONTRACTS.md
 docs/ROADMAP.md
@@ -68,7 +68,7 @@ src/query/overview.ts
 src/query/trace.ts
 src/testing/fixtures.ts
 src/validate/validateModel.ts
-skills/bpmn-agent/SKILL.md
+skills/bpmn-agent-cli/SKILL.md
 test/bpmn/loadBpmn.test.ts
 test/cli/cli.test.ts
 test/fixtures/boundary-timer.bpmn
@@ -1652,8 +1652,8 @@ git commit -m "feat: add self-contained extension bundle"
 **Files:**
 - Create: `qwen-extension.json`
 - Create: `QWEN.md`
-- Create: `commands/bpmn.md`
-- Create: `skills/bpmn-agent/SKILL.md`
+- Create: `commands/bpmn-agent-cli.md`
+- Create: `skills/bpmn-agent-cli/SKILL.md`
 - Create: `.claude-plugin/marketplace.json`
 - Create: `.claude-plugin/plugin.json`
 - Create: `test/plugin-package.test.ts`
@@ -1694,8 +1694,8 @@ describe('agent extension metadata', () => {
   });
 
   it('documents bundled CLI invocation for agents', async () => {
-    const command = await readFile('commands/bpmn.md', 'utf8');
-    const skill = await readFile('skills/bpmn-agent/SKILL.md', 'utf8');
+    const command = await readFile('commands/bpmn-agent-cli.md', 'utf8');
+    const skill = await readFile('skills/bpmn-agent-cli/SKILL.md', 'utf8');
 
     expect(command).toContain('${extensionPath}');
     expect(command).toContain('dist/extension/bpmn-agent-cli.cjs');
@@ -1763,17 +1763,17 @@ Create `.claude-plugin/plugin.json`:
 }
 ```
 
-Create `commands/bpmn.md` with an agent command that invokes:
+Create `commands/bpmn-agent-cli.md` with an agent command that invokes:
 
 ```bash
 node "${extensionPath}${/}dist${/}extension${/}bpmn-agent-cli.cjs"
 ```
 
-Create `skills/bpmn-agent/SKILL.md` with frontmatter:
+Create `skills/bpmn-agent-cli/SKILL.md` with frontmatter:
 
 ```yaml
 ---
-name: bpmn-agent
+name: bpmn-agent-cli
 summary: Read and analyze BPMN 2.0 files through the local bpmn-agent-cli CLI.
 description: Use this skill when working with .bpmn files. Prefer specialized CLI queries over reading raw BPMN XML.
 ---
