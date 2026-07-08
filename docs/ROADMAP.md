@@ -31,9 +31,12 @@ P1-A implemented:
 - `participants`
 - `lanes`
 
-Remaining reading improvements:
+P1-B implemented:
 
 - `path`
+
+Remaining reading improvements:
+
 - `export`
 - markdown/text output where useful
 - full duplicate id detection if supported without custom parsing

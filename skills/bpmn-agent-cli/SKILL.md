@@ -23,6 +23,7 @@ Prefer specialized CLI queries over reading raw BPMN XML. The CLI returns small 
 11. Use `bpmn-agent-cli lanes <file> --element <elementId>` to understand lane ownership for an element.
 12. Use `bpmn-agent-cli events <file> --type boundary` to inspect event triggers and boundary handling.
 13. Use `bpmn-agent-cli subprocess <file> --id <subprocessId>` to inspect direct subprocess contents.
+14. Use `bpmn-agent-cli path <file> --from <sourceId> --to <targetId>` to answer reachability questions.
 
 Do not manually rewrite BPMN XML. P0 is read-only except for the legacy `to-json` output command.
 

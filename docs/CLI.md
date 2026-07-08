@@ -49,6 +49,15 @@ bpmn-agent-cli trace process.bpmn --from Task_1 --direction backward --depth 5 -
 
 Returns cycle-safe control-flow paths.
 
+## path
+
+```bash
+bpmn-agent-cli path process.bpmn --from StartEvent_1 --to EndEvent_1
+bpmn-agent-cli path process.bpmn --from EndEvent_1 --to StartEvent_1 --direction backward
+```
+
+Returns target-reaching control-flow paths between two elements. Defaults are `--direction forward`, `--depth 10`, and `--max-paths 20`.
+
 ## gateway
 
 ```bash

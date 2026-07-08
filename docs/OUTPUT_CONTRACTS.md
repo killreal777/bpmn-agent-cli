@@ -144,6 +144,22 @@ type SubprocessResult = {
 };
 ```
 
+## PathResult
+
+```ts
+type PathResult = {
+  from: ElementSummary;
+  to: ElementSummary;
+  direction: "forward" | "backward";
+  depth: number;
+  paths: PathSummary[];
+  found: boolean;
+  truncated: boolean;
+};
+```
+
+`paths` contains only paths that reach `to`. For both directions, path nodes are returned in requested endpoint order from `from` to `to`.
+
 ## Element Type Contract
 
 `type` fields use canonical moddle types such as `bpmn:ServiceTask`. CLI aliases such as `serviceTask` are accepted only as input filters.

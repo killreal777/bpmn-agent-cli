@@ -40,6 +40,7 @@ bpmn-agent-cli find process.bpmn --query "loan"
 bpmn-agent-cli element process.bpmn --id Activity_CheckClient
 bpmn-agent-cli context process.bpmn --id Activity_CheckClient
 bpmn-agent-cli trace process.bpmn --from Activity_CheckClient
+bpmn-agent-cli path process.bpmn --from StartEvent_1 --to EndEvent_1
 bpmn-agent-cli gateway process.bpmn --id Gateway_CheckResult
 bpmn-agent-cli implementations process.bpmn
 bpmn-agent-cli participants process.bpmn
@@ -95,6 +96,8 @@ claude plugin validate .
 P0 includes read-only commands: `overview`, `find`, `element`, `context`, `trace`, `gateway`, `implementations`, `validate`, plus legacy `to-json`.
 
 P1-A adds read-only structural commands: `participants`, `lanes`, `events`, and `subprocess`.
+
+P1-B adds `path` for focused reachability between two BPMN elements.
 
 P1/P2/P3 scope is documented in `docs/ROADMAP.md`.
 
