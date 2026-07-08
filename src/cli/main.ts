@@ -3,6 +3,7 @@
 import { BpmnCliError } from '../bpmn/errors.js';
 import { errorEnvelope, toExitCode, writeJson } from '../output/jsonOutput.js';
 import { parseArgs } from './args.js';
+import { connectCommand } from './commands/connectCommand.js';
 import { contextCommand } from './commands/contextCommand.js';
 import { documentationCommand } from './commands/documentationCommand.js';
 import { elementCommand } from './commands/elementCommand.js';
@@ -126,6 +127,11 @@ export async function main(args: string[] = process.argv.slice(2)): Promise<void
 
     if (parsed.command === 'insert-task-between') {
       writeJson(await insertTaskBetweenCommand(parsed), pretty);
+      return;
+    }
+
+    if (parsed.command === 'connect') {
+      writeJson(await connectCommand(parsed), pretty);
       return;
     }
 
