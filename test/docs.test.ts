@@ -10,6 +10,7 @@ describe('documentation', () => {
     const roadmap = await readFile('docs/ROADMAP.md', 'utf8');
     const vision = await readFile('docs/PRODUCT_VISION.md', 'utf8');
     const backlog = await readFile('docs/BACKLOG.md', 'utf8');
+    const readingMetrics = await readFile('docs/READING_METRICS_STRATEGY.md', 'utf8');
 
     expect(readme).toContain('bpmn-agent-cli');
     expect(readme).toContain('/extensions install https://github.com/killreal777/bpmn-agent-cli');
@@ -56,12 +57,18 @@ describe('documentation', () => {
     expect(roadmap).toContain('P2');
     expect(vision).toContain('Product Vision');
     expect(vision).toContain('Dry-run');
+    expect(vision).toContain('Metric-first reading');
     expect(backlog).toContain('Product Backlog');
+    expect(backlog).toContain('Reading Metrics Foundation');
+    expect(backlog).toContain('Benchmark Runner And Comparison Report');
     expect(backlog).toContain('variables');
     expect(backlog).toContain('call-activity');
     expect(backlog).toContain('Legacy `to-json` Removal Plan');
     expect(backlog).toContain('delete-safe');
     expect(backlog).toContain('add-boundary-event');
     expect(backlog).toContain('BPMN Lint Rules');
+    expect(readingMetrics).toContain('Reading Optimization Metrics Strategy');
+    expect(readingMetrics).toContain('tokens_per_successful_task');
+    expect(readingMetrics).toContain('xml_fallback_rate');
   });
 });

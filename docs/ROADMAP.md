@@ -88,10 +88,15 @@ P3-D implemented:
 
 ## P4
 
-Planned read-side focus:
+Planned metric-first reading optimization:
 
-- `variables`
-- enriched `element` details by BPMN element type
-- `call-activity`
-- variable-aware lint rules
+- adopt `docs/READING_METRICS_STRATEGY.md`
+- benchmark fixtures and task definitions
+- opt-in CLI metrics logging
+- benchmark runner and comparison report
+- baseline reading report
+- first measured experiment: enriched `element` details by BPMN element type
+- second measured experiment: `context --profile agent`
+- semantic experiment: `variables` or `call-activity`
+- variable-aware lint rules after variable extraction is stable
 - legacy `to-json` deprecation/removal plan
