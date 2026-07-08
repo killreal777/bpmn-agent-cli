@@ -112,7 +112,12 @@ Planned measured experiments:
   - CLI calls unchanged: 36
   - estimated output tokens increased by 424 because details are additive
   - accepted as correctness-enabling; next benchmark iteration should score correctness or adaptive follow-up-call reduction
-- second measured experiment: `context --profile agent`
-- semantic experiment: `variables` or `call-activity`
+- semantic experiment implemented: `variables`
+  - success unchanged: 20/20 tasks
+  - CLI calls improved: 36 -> 35
+  - estimated output tokens increased by 1223 because full variable usages and mappings are additive
+  - accepted as correctness-enabling; future compact/profile output should control token cost
+- next measured experiment: `context --profile agent`
+- future semantic experiment: `call-activity`
 - variable-aware lint rules after variable extraction is stable
 - legacy `to-json` deprecation/removal plan

@@ -6,7 +6,7 @@
   "prompt": "Identify variables passed into and out of the risk check call activity.",
   "allowedTools": ["bpmn-agent-cli"],
   "cliCalls": [
-    ["element", "$fixture", "--id", "CallActivity_RiskCheck"]
+    ["variables", "$fixture", "--element", "CallActivity_RiskCheck"]
   ],
   "successCriteria": ["mentions customerId", "mentions requestedAmount", "mentions riskScore"],
   "scoring": { "maxScore": 3, "manualReviewRequired": true }

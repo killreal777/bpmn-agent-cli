@@ -179,7 +179,7 @@ Implemented baseline:
 ### BL-009: `variables`
 
 Priority: `P4`
-Status: `ready-for-spec`
+Status: `implemented`
 
 Add a read-only command that extracts process variable usage from BPMN/Camunda metadata and expressions.
 
@@ -208,6 +208,25 @@ Result direction:
 - `warnings`: ambiguous expressions and unsupported mapping forms.
 
 This is the highest-priority semantic read improvement because agents need to understand BPMN context variables before safely reviewing or modifying workflows. Implementation should follow the metrics foundation unless the feature is needed to unblock benchmark tasks.
+
+Implemented scope:
+
+- `bpmn-agent-cli variables process.bpmn`.
+- `--element <id>` filters usages and CallActivity mappings to one element.
+- `--name <variable>` filters usages and mappings to one variable.
+- Extracts CallActivity `camunda:in` and `camunda:out` mappings.
+- Extracts `variables="all"` pass-through as `*`.
+- Extracts sequence-flow condition variable candidates.
+- Extracts service-task implementation expression candidates and user-task form key candidates.
+
+Measured result:
+
+- Candidate report: `benchmarks/results/candidate-variables.json`.
+- Comparison report: `benchmarks/results/compare-variables.json`.
+- Successful tasks: unchanged at 20/20.
+- CLI calls: 36 -> 35.
+- Estimated output tokens: +1223 across the 20-task suite.
+- Decision: accepted as a correctness-enabling semantic read feature. Future work should add a compact/profile mode or benchmark scoring that captures reduced manual/XML fallback for variable questions.
 
 ### BL-010: Enrich `element` With Type-Specific Details
 

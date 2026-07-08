@@ -1,0 +1,852 @@
+{
+  "generatedAt": "2026-07-08T20:51:29.958Z",
+  "variant": "candidate-variables",
+  "taskCount": 20,
+  "taskSource": "benchmarks/tasks",
+  "aggregate": {
+    "successfulTasks": 20,
+    "failedTasks": 0,
+    "successRate": 1,
+    "cliCalls": 35,
+    "elapsedMs": 59601,
+    "stdoutBytes": 40211,
+    "estimatedOutputTokens": 10066,
+    "xmlFallbackRate": 0,
+    "toolErrors": 0,
+    "toolErrorRate": 0
+  },
+  "tasks": [
+    {
+      "id": "T1-overview-linear",
+      "title": "Summarize the linear benchmark process",
+      "fixture": "simple-linear.bpmn",
+      "category": "overview",
+      "success": true,
+      "correctnessScore": null,
+      "manualReviewRequired": true,
+      "elapsedMs": 3411,
+      "cliCallCount": 2,
+      "stdoutBytes": 869,
+      "estimatedOutputTokens": 218,
+      "xmlFallback": false,
+      "toolErrors": [],
+      "cliCalls": [
+        {
+          "command": "overview",
+          "args": [
+            "$fixture"
+          ],
+          "exitCode": 0,
+          "elapsedMs": 1714,
+          "stdoutBytes": 512,
+          "estimatedOutputTokens": 128,
+          "stderrBytes": 0,
+          "error": null
+        },
+        {
+          "command": "implementations",
+          "args": [
+            "$fixture"
+          ],
+          "exitCode": 0,
+          "elapsedMs": 1696,
+          "stdoutBytes": 357,
+          "estimatedOutputTokens": 90,
+          "stderrBytes": 0,
+          "error": null
+        }
+      ]
+    },
+    {
+      "id": "T1-overview-loan",
+      "title": "Summarize the gateway-heavy loan process",
+      "fixture": "gateway-loan-process.bpmn",
+      "category": "overview",
+      "success": true,
+      "correctnessScore": null,
+      "manualReviewRequired": true,
+      "elapsedMs": 3392,
+      "cliCallCount": 2,
+      "stdoutBytes": 1774,
+      "estimatedOutputTokens": 444,
+      "xmlFallback": false,
+      "toolErrors": [],
+      "cliCalls": [
+        {
+          "command": "overview",
+          "args": [
+            "$fixture"
+          ],
+          "exitCode": 0,
+          "elapsedMs": 1690,
+          "stdoutBytes": 559,
+          "estimatedOutputTokens": 140,
+          "stderrBytes": 0,
+          "error": null
+        },
+        {
+          "command": "gateway",
+          "args": [
+            "$fixture",
+            "--id",
+            "Gateway_ProductType"
+          ],
+          "exitCode": 0,
+          "elapsedMs": 1702,
+          "stdoutBytes": 1215,
+          "estimatedOutputTokens": 304,
+          "stderrBytes": 0,
+          "error": null
+        }
+      ]
+    },
+    {
+      "id": "T10-composite-collaboration",
+      "title": "Composite collaboration and lane reasoning",
+      "fixture": "collaboration-lanes.bpmn",
+      "category": "composite",
+      "success": true,
+      "correctnessScore": null,
+      "manualReviewRequired": true,
+      "elapsedMs": 5064,
+      "cliCallCount": 3,
+      "stdoutBytes": 1897,
+      "estimatedOutputTokens": 476,
+      "xmlFallback": false,
+      "toolErrors": [],
+      "cliCalls": [
+        {
+          "command": "participants",
+          "args": [
+            "$fixture"
+          ],
+          "exitCode": 0,
+          "elapsedMs": 1695,
+          "stdoutBytes": 557,
+          "estimatedOutputTokens": 140,
+          "stderrBytes": 0,
+          "error": null
+        },
+        {
+          "command": "lanes",
+          "args": [
+            "$fixture",
+            "--element",
+            "Task_RequestDocuments"
+          ],
+          "exitCode": 0,
+          "elapsedMs": 1699,
+          "stdoutBytes": 558,
+          "estimatedOutputTokens": 140,
+          "stderrBytes": 0,
+          "error": null
+        },
+        {
+          "command": "element",
+          "args": [
+            "$fixture",
+            "--id",
+            "Task_RequestDocuments"
+          ],
+          "exitCode": 0,
+          "elapsedMs": 1670,
+          "stdoutBytes": 782,
+          "estimatedOutputTokens": 196,
+          "stderrBytes": 0,
+          "error": null
+        }
+      ]
+    },
+    {
+      "id": "T10-composite-working-capital",
+      "title": "Composite working capital runtime reasoning",
+      "fixture": "gateway-loan-process.bpmn",
+      "category": "composite",
+      "success": true,
+      "correctnessScore": null,
+      "manualReviewRequired": true,
+      "elapsedMs": 5027,
+      "cliCallCount": 3,
+      "stdoutBytes": 3540,
+      "estimatedOutputTokens": 886,
+      "xmlFallback": false,
+      "toolErrors": [],
+      "cliCalls": [
+        {
+          "command": "gateway",
+          "args": [
+            "$fixture",
+            "--id",
+            "Gateway_ProductType"
+          ],
+          "exitCode": 0,
+          "elapsedMs": 1656,
+          "stdoutBytes": 1215,
+          "estimatedOutputTokens": 304,
+          "stderrBytes": 0,
+          "error": null
+        },
+        {
+          "command": "path",
+          "args": [
+            "$fixture",
+            "--from",
+            "Gateway_ProductType",
+            "--to",
+            "EndEvent_Approved",
+            "--max-paths",
+            "10"
+          ],
+          "exitCode": 0,
+          "elapsedMs": 1691,
+          "stdoutBytes": 1317,
+          "estimatedOutputTokens": 330,
+          "stderrBytes": 0,
+          "error": null
+        },
+        {
+          "command": "implementations",
+          "args": [
+            "$fixture"
+          ],
+          "exitCode": 0,
+          "elapsedMs": 1680,
+          "stdoutBytes": 1008,
+          "estimatedOutputTokens": 252,
+          "stderrBytes": 0,
+          "error": null
+        }
+      ]
+    },
+    {
+      "id": "T2-element-user-form",
+      "title": "Inspect the manual review user task",
+      "fixture": "gateway-loan-process.bpmn",
+      "category": "element-inspection",
+      "success": true,
+      "correctnessScore": null,
+      "manualReviewRequired": true,
+      "elapsedMs": 3378,
+      "cliCallCount": 2,
+      "stdoutBytes": 2161,
+      "estimatedOutputTokens": 541,
+      "xmlFallback": false,
+      "toolErrors": [],
+      "cliCalls": [
+        {
+          "command": "element",
+          "args": [
+            "$fixture",
+            "--id",
+            "Task_ManualReview"
+          ],
+          "exitCode": 0,
+          "elapsedMs": 1681,
+          "stdoutBytes": 1153,
+          "estimatedOutputTokens": 289,
+          "stderrBytes": 0,
+          "error": null
+        },
+        {
+          "command": "implementations",
+          "args": [
+            "$fixture"
+          ],
+          "exitCode": 0,
+          "elapsedMs": 1697,
+          "stdoutBytes": 1008,
+          "estimatedOutputTokens": 252,
+          "stderrBytes": 0,
+          "error": null
+        }
+      ]
+    },
+    {
+      "id": "T2-find-working-capital",
+      "title": "Find the working capital risk task",
+      "fixture": "gateway-loan-process.bpmn",
+      "category": "element-lookup",
+      "success": true,
+      "correctnessScore": null,
+      "manualReviewRequired": true,
+      "elapsedMs": 4981,
+      "cliCallCount": 3,
+      "stdoutBytes": 2576,
+      "estimatedOutputTokens": 645,
+      "xmlFallback": false,
+      "toolErrors": [],
+      "cliCalls": [
+        {
+          "command": "find",
+          "args": [
+            "$fixture",
+            "--query",
+            "working capital risk"
+          ],
+          "exitCode": 0,
+          "elapsedMs": 1660,
+          "stdoutBytes": 323,
+          "estimatedOutputTokens": 81,
+          "stderrBytes": 0,
+          "error": null
+        },
+        {
+          "command": "element",
+          "args": [
+            "$fixture",
+            "--id",
+            "Task_WorkingCapitalRisk"
+          ],
+          "exitCode": 0,
+          "elapsedMs": 1655,
+          "stdoutBytes": 1245,
+          "estimatedOutputTokens": 312,
+          "stderrBytes": 0,
+          "error": null
+        },
+        {
+          "command": "implementations",
+          "args": [
+            "$fixture"
+          ],
+          "exitCode": 0,
+          "elapsedMs": 1666,
+          "stdoutBytes": 1008,
+          "estimatedOutputTokens": 252,
+          "stderrBytes": 0,
+          "error": null
+        }
+      ]
+    },
+    {
+      "id": "T3-context-boundary-task",
+      "title": "Explain local context around a task with boundary events",
+      "fixture": "boundary-events.bpmn",
+      "category": "local-context",
+      "success": true,
+      "correctnessScore": null,
+      "manualReviewRequired": true,
+      "elapsedMs": 3406,
+      "cliCallCount": 2,
+      "stdoutBytes": 2700,
+      "estimatedOutputTokens": 676,
+      "xmlFallback": false,
+      "toolErrors": [],
+      "cliCalls": [
+        {
+          "command": "context",
+          "args": [
+            "$fixture",
+            "--id",
+            "Task_WaitForDocuments",
+            "--before",
+            "1",
+            "--after",
+            "2"
+          ],
+          "exitCode": 0,
+          "elapsedMs": 1722,
+          "stdoutBytes": 1410,
+          "estimatedOutputTokens": 353,
+          "stderrBytes": 0,
+          "error": null
+        },
+        {
+          "command": "events",
+          "args": [
+            "$fixture",
+            "--type",
+            "boundary"
+          ],
+          "exitCode": 0,
+          "elapsedMs": 1684,
+          "stdoutBytes": 1290,
+          "estimatedOutputTokens": 323,
+          "stderrBytes": 0,
+          "error": null
+        }
+      ]
+    },
+    {
+      "id": "T3-context-working-capital",
+      "title": "Explain local context around working capital risk",
+      "fixture": "gateway-loan-process.bpmn",
+      "category": "local-context",
+      "success": true,
+      "correctnessScore": null,
+      "manualReviewRequired": true,
+      "elapsedMs": 1685,
+      "cliCallCount": 1,
+      "stdoutBytes": 1912,
+      "estimatedOutputTokens": 478,
+      "xmlFallback": false,
+      "toolErrors": [],
+      "cliCalls": [
+        {
+          "command": "context",
+          "args": [
+            "$fixture",
+            "--id",
+            "Task_WorkingCapitalRisk",
+            "--before",
+            "2",
+            "--after",
+            "2"
+          ],
+          "exitCode": 0,
+          "elapsedMs": 1685,
+          "stdoutBytes": 1912,
+          "estimatedOutputTokens": 478,
+          "stderrBytes": 0,
+          "error": null
+        }
+      ]
+    },
+    {
+      "id": "T4-gateway-eligibility",
+      "title": "Explain eligibility gateway branches",
+      "fixture": "gateway-loan-process.bpmn",
+      "category": "gateway-reasoning",
+      "success": true,
+      "correctnessScore": null,
+      "manualReviewRequired": true,
+      "elapsedMs": 1695,
+      "cliCallCount": 1,
+      "stdoutBytes": 849,
+      "estimatedOutputTokens": 213,
+      "xmlFallback": false,
+      "toolErrors": [],
+      "cliCalls": [
+        {
+          "command": "gateway",
+          "args": [
+            "$fixture",
+            "--id",
+            "Gateway_Eligibility"
+          ],
+          "exitCode": 0,
+          "elapsedMs": 1695,
+          "stdoutBytes": 849,
+          "estimatedOutputTokens": 213,
+          "stderrBytes": 0,
+          "error": null
+        }
+      ]
+    },
+    {
+      "id": "T4-gateway-product-type",
+      "title": "Explain product type gateway branches",
+      "fixture": "gateway-loan-process.bpmn",
+      "category": "gateway-reasoning",
+      "success": true,
+      "correctnessScore": null,
+      "manualReviewRequired": true,
+      "elapsedMs": 1692,
+      "cliCallCount": 1,
+      "stdoutBytes": 1215,
+      "estimatedOutputTokens": 304,
+      "xmlFallback": false,
+      "toolErrors": [],
+      "cliCalls": [
+        {
+          "command": "gateway",
+          "args": [
+            "$fixture",
+            "--id",
+            "Gateway_ProductType"
+          ],
+          "exitCode": 0,
+          "elapsedMs": 1692,
+          "stdoutBytes": 1215,
+          "estimatedOutputTokens": 304,
+          "stderrBytes": 0,
+          "error": null
+        }
+      ]
+    },
+    {
+      "id": "T5-path-manual-review",
+      "title": "Trace manual review reachability",
+      "fixture": "gateway-loan-process.bpmn",
+      "category": "path-reachability",
+      "success": true,
+      "correctnessScore": null,
+      "manualReviewRequired": true,
+      "elapsedMs": 1666,
+      "cliCallCount": 1,
+      "stdoutBytes": 1255,
+      "estimatedOutputTokens": 314,
+      "xmlFallback": false,
+      "toolErrors": [],
+      "cliCalls": [
+        {
+          "command": "path",
+          "args": [
+            "$fixture",
+            "--from",
+            "Gateway_ProductType",
+            "--to",
+            "Task_ManualReview",
+            "--max-paths",
+            "10"
+          ],
+          "exitCode": 0,
+          "elapsedMs": 1666,
+          "stdoutBytes": 1255,
+          "estimatedOutputTokens": 314,
+          "stderrBytes": 0,
+          "error": null
+        }
+      ]
+    },
+    {
+      "id": "T5-path-working-capital-approved",
+      "title": "Trace reachable approved path for working capital loan",
+      "fixture": "gateway-loan-process.bpmn",
+      "category": "path-reachability",
+      "success": true,
+      "correctnessScore": null,
+      "manualReviewRequired": true,
+      "elapsedMs": 5019,
+      "cliCallCount": 3,
+      "stdoutBytes": 3381,
+      "estimatedOutputTokens": 847,
+      "xmlFallback": false,
+      "toolErrors": [],
+      "cliCalls": [
+        {
+          "command": "path",
+          "args": [
+            "$fixture",
+            "--from",
+            "Gateway_ProductType",
+            "--to",
+            "EndEvent_Approved",
+            "--max-paths",
+            "10"
+          ],
+          "exitCode": 0,
+          "elapsedMs": 1687,
+          "stdoutBytes": 1317,
+          "estimatedOutputTokens": 330,
+          "stderrBytes": 0,
+          "error": null
+        },
+        {
+          "command": "gateway",
+          "args": [
+            "$fixture",
+            "--id",
+            "Gateway_ProductType"
+          ],
+          "exitCode": 0,
+          "elapsedMs": 1670,
+          "stdoutBytes": 1215,
+          "estimatedOutputTokens": 304,
+          "stderrBytes": 0,
+          "error": null
+        },
+        {
+          "command": "gateway",
+          "args": [
+            "$fixture",
+            "--id",
+            "Gateway_Eligibility"
+          ],
+          "exitCode": 0,
+          "elapsedMs": 1662,
+          "stdoutBytes": 849,
+          "estimatedOutputTokens": 213,
+          "stderrBytes": 0,
+          "error": null
+        }
+      ]
+    },
+    {
+      "id": "T6-boundary-events-list",
+      "title": "List boundary events in document collection",
+      "fixture": "boundary-events.bpmn",
+      "category": "events",
+      "success": true,
+      "correctnessScore": null,
+      "manualReviewRequired": true,
+      "elapsedMs": 3347,
+      "cliCallCount": 2,
+      "stdoutBytes": 2700,
+      "estimatedOutputTokens": 676,
+      "xmlFallback": false,
+      "toolErrors": [],
+      "cliCalls": [
+        {
+          "command": "events",
+          "args": [
+            "$fixture",
+            "--type",
+            "boundary"
+          ],
+          "exitCode": 0,
+          "elapsedMs": 1685,
+          "stdoutBytes": 1290,
+          "estimatedOutputTokens": 323,
+          "stderrBytes": 0,
+          "error": null
+        },
+        {
+          "command": "context",
+          "args": [
+            "$fixture",
+            "--id",
+            "Task_WaitForDocuments",
+            "--after",
+            "2"
+          ],
+          "exitCode": 0,
+          "elapsedMs": 1662,
+          "stdoutBytes": 1410,
+          "estimatedOutputTokens": 353,
+          "stderrBytes": 0,
+          "error": null
+        }
+      ]
+    },
+    {
+      "id": "T6-timer-boundary-path",
+      "title": "Trace timer boundary handler",
+      "fixture": "boundary-events.bpmn",
+      "category": "events",
+      "success": true,
+      "correctnessScore": null,
+      "manualReviewRequired": true,
+      "elapsedMs": 3399,
+      "cliCallCount": 2,
+      "stdoutBytes": 1656,
+      "estimatedOutputTokens": 415,
+      "xmlFallback": false,
+      "toolErrors": [],
+      "cliCalls": [
+        {
+          "command": "path",
+          "args": [
+            "$fixture",
+            "--from",
+            "Boundary_Timer",
+            "--to",
+            "EndEvent_ReminderSent"
+          ],
+          "exitCode": 0,
+          "elapsedMs": 1667,
+          "stdoutBytes": 893,
+          "estimatedOutputTokens": 224,
+          "stderrBytes": 0,
+          "error": null
+        },
+        {
+          "command": "element",
+          "args": [
+            "$fixture",
+            "--id",
+            "Boundary_Timer"
+          ],
+          "exitCode": 0,
+          "elapsedMs": 1732,
+          "stdoutBytes": 763,
+          "estimatedOutputTokens": 191,
+          "stderrBytes": 0,
+          "error": null
+        }
+      ]
+    },
+    {
+      "id": "T7-call-activity-contract",
+      "title": "Inspect risk check call activity contract",
+      "fixture": "subprocess-call-activity.bpmn",
+      "category": "subprocess-call-activity",
+      "success": true,
+      "correctnessScore": null,
+      "manualReviewRequired": true,
+      "elapsedMs": 3399,
+      "cliCallCount": 2,
+      "stdoutBytes": 2068,
+      "estimatedOutputTokens": 518,
+      "xmlFallback": false,
+      "toolErrors": [],
+      "cliCalls": [
+        {
+          "command": "element",
+          "args": [
+            "$fixture",
+            "--id",
+            "CallActivity_RiskCheck"
+          ],
+          "exitCode": 0,
+          "elapsedMs": 1720,
+          "stdoutBytes": 1455,
+          "estimatedOutputTokens": 364,
+          "stderrBytes": 0,
+          "error": null
+        },
+        {
+          "command": "implementations",
+          "args": [
+            "$fixture"
+          ],
+          "exitCode": 0,
+          "elapsedMs": 1679,
+          "stdoutBytes": 613,
+          "estimatedOutputTokens": 154,
+          "stderrBytes": 0,
+          "error": null
+        }
+      ]
+    },
+    {
+      "id": "T7-subprocess-contents",
+      "title": "Inspect embedded subprocess contents",
+      "fixture": "subprocess-call-activity.bpmn",
+      "category": "subprocess-call-activity",
+      "success": true,
+      "correctnessScore": null,
+      "manualReviewRequired": true,
+      "elapsedMs": 1692,
+      "cliCallCount": 1,
+      "stdoutBytes": 1151,
+      "estimatedOutputTokens": 288,
+      "xmlFallback": false,
+      "toolErrors": [],
+      "cliCalls": [
+        {
+          "command": "subprocess",
+          "args": [
+            "$fixture",
+            "--id",
+            "SubProcess_PrepareApplication"
+          ],
+          "exitCode": 0,
+          "elapsedMs": 1692,
+          "stdoutBytes": 1151,
+          "estimatedOutputTokens": 288,
+          "stderrBytes": 0,
+          "error": null
+        }
+      ]
+    },
+    {
+      "id": "T8-implementations-boundary",
+      "title": "List runtime integrations in boundary event process",
+      "fixture": "boundary-events.bpmn",
+      "category": "runtime-implementations",
+      "success": true,
+      "correctnessScore": null,
+      "manualReviewRequired": true,
+      "elapsedMs": 1700,
+      "cliCallCount": 1,
+      "stdoutBytes": 780,
+      "estimatedOutputTokens": 195,
+      "xmlFallback": false,
+      "toolErrors": [],
+      "cliCalls": [
+        {
+          "command": "implementations",
+          "args": [
+            "$fixture"
+          ],
+          "exitCode": 0,
+          "elapsedMs": 1700,
+          "stdoutBytes": 780,
+          "estimatedOutputTokens": 195,
+          "stderrBytes": 0,
+          "error": null
+        }
+      ]
+    },
+    {
+      "id": "T8-implementations-loan",
+      "title": "List runtime integrations in loan process",
+      "fixture": "gateway-loan-process.bpmn",
+      "category": "runtime-implementations",
+      "success": true,
+      "correctnessScore": null,
+      "manualReviewRequired": true,
+      "elapsedMs": 1738,
+      "cliCallCount": 1,
+      "stdoutBytes": 1008,
+      "estimatedOutputTokens": 252,
+      "xmlFallback": false,
+      "toolErrors": [],
+      "cliCalls": [
+        {
+          "command": "implementations",
+          "args": [
+            "$fixture"
+          ],
+          "exitCode": 0,
+          "elapsedMs": 1738,
+          "stdoutBytes": 1008,
+          "estimatedOutputTokens": 252,
+          "stderrBytes": 0,
+          "error": null
+        }
+      ]
+    },
+    {
+      "id": "T9-variables-call-activity",
+      "title": "Identify variables passed through call activity",
+      "fixture": "subprocess-call-activity.bpmn",
+      "category": "variables-data-flow",
+      "success": true,
+      "correctnessScore": null,
+      "manualReviewRequired": true,
+      "elapsedMs": 1839,
+      "cliCallCount": 1,
+      "stdoutBytes": 3376,
+      "estimatedOutputTokens": 844,
+      "xmlFallback": false,
+      "toolErrors": [],
+      "cliCalls": [
+        {
+          "command": "variables",
+          "args": [
+            "$fixture",
+            "--element",
+            "CallActivity_RiskCheck"
+          ],
+          "exitCode": 0,
+          "elapsedMs": 1839,
+          "stdoutBytes": 3376,
+          "estimatedOutputTokens": 844,
+          "stderrBytes": 0,
+          "error": null
+        }
+      ]
+    },
+    {
+      "id": "T9-variables-gateway-conditions",
+      "title": "Identify variables used by gateway conditions",
+      "fixture": "gateway-loan-process.bpmn",
+      "category": "variables-data-flow",
+      "success": true,
+      "correctnessScore": null,
+      "manualReviewRequired": true,
+      "elapsedMs": 2071,
+      "cliCallCount": 1,
+      "stdoutBytes": 3343,
+      "estimatedOutputTokens": 836,
+      "xmlFallback": false,
+      "toolErrors": [],
+      "cliCalls": [
+        {
+          "command": "variables",
+          "args": [
+            "$fixture"
+          ],
+          "exitCode": 0,
+          "elapsedMs": 2071,
+          "stdoutBytes": 3343,
+          "estimatedOutputTokens": 836,
+          "stderrBytes": 0,
+          "error": null
+        }
+      ]
+    }
+  ]
+}

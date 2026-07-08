@@ -6,8 +6,7 @@
   "prompt": "Identify variables that influence product routing and eligibility.",
   "allowedTools": ["bpmn-agent-cli"],
   "cliCalls": [
-    ["gateway", "$fixture", "--id", "Gateway_ProductType"],
-    ["gateway", "$fixture", "--id", "Gateway_Eligibility"]
+    ["variables", "$fixture"]
   ],
   "successCriteria": ["mentions productType", "mentions riskScore"],
   "scoring": { "maxScore": 3, "manualReviewRequired": true }

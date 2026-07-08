@@ -1,0 +1,46 @@
+{
+  "generatedAt": "2026-07-08T20:51:37.771Z",
+  "baseline": {
+    "variant": "baseline",
+    "taskCount": 20,
+    "aggregate": {
+      "successfulTasks": 20,
+      "failedTasks": 0,
+      "successRate": 1,
+      "cliCalls": 36,
+      "elapsedMs": 68646,
+      "stdoutBytes": 35322,
+      "estimatedOutputTokens": 8843,
+      "xmlFallbackRate": 0,
+      "toolErrors": 0,
+      "toolErrorRate": 0
+    }
+  },
+  "candidate": {
+    "variant": "candidate-variables",
+    "taskCount": 20,
+    "aggregate": {
+      "successfulTasks": 20,
+      "failedTasks": 0,
+      "successRate": 1,
+      "cliCalls": 35,
+      "elapsedMs": 59601,
+      "stdoutBytes": 40211,
+      "estimatedOutputTokens": 10066,
+      "xmlFallbackRate": 0,
+      "toolErrors": 0,
+      "toolErrorRate": 0
+    }
+  },
+  "deltas": {
+    "successfulTasks": 0,
+    "successRate": 0,
+    "cliCalls": -1,
+    "elapsedMs": -9045,
+    "stdoutBytes": 4889,
+    "estimatedOutputTokens": 1223,
+    "xmlFallbackRate": 0,
+    "toolErrors": 0,
+    "toolErrorRate": 0
+  }
+}
