@@ -1,4 +1,5 @@
 import { execFile } from 'node:child_process';
+import { readFile } from 'node:fs/promises';
 import { promisify } from 'node:util';
 import { describe, expect, it } from 'vitest';
 
@@ -155,6 +156,33 @@ describe('CLI overview and validate', () => {
         paths: [expect.objectContaining({ depth: 2 })]
       }
     });
+  });
+
+  it('prints markdown export without envelope', async () => {
+    const { stdout } = await execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'export', 'test/fixtures/simple-linear.bpmn', '--format', 'markdown', '--section', 'overview']);
+
+    expect(stdout).toContain('# BPMN Export');
+    expect(stdout).toContain('Definitions_SimpleLinear');
+    expect(JSON.parse.bind(JSON, stdout)).toThrow();
+  });
+
+  it('prints json export envelope', async () => {
+    const { stdout } = await execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'export', 'test/fixtures/simple-linear.bpmn', '--format', 'json', '--section', 'overview']);
+    const parsed = JSON.parse(stdout);
+
+    expect(parsed).toMatchObject({
+      ok: true,
+      command: 'export',
+      result: { format: 'json', sections: ['overview'] }
+    });
+  });
+
+  it('writes export output to explicit path', async () => {
+    const output = 'tmp/export-test.md';
+    await execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'export', 'test/fixtures/simple-linear.bpmn', '--format', 'markdown', '--section', 'overview', '-o', output]);
+    const written = await readFile(output, 'utf8');
+
+    expect(written).toContain('# BPMN Export');
   });
 
   it('exits 1 for validation errors', async () => {
