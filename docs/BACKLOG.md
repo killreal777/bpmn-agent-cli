@@ -342,26 +342,27 @@ Initial rules:
 - suspicious pass-through of all variables.
 - condition expression references variables with no detected producer.
 
-### BL-014: Legacy `to-json` Removal Plan
+### BL-014: JSON Conversion Modernization
 
 Priority: `P4`
-Status: `ready-for-spec`
+Status: `implemented`
 
-Remove legacy-first thinking from the product and migrate away from raw `to-json`.
+Keep `to-json` as a first-class JSON conversion feature while removing outdated compatibility terminology from active architecture and documentation.
 
 Direction:
 
-- Keep `to-json` temporarily only as deprecated compatibility command.
-- Add deprecation notice in docs, not JSON stdout.
-- Move legacy converter docs to a migration section.
-- Prefer `overview`, `element`, `variables`, `export --format json`, and future `schema`.
-- Define a future major-version removal point.
+- Keep `to-json` as the full BPMN-to-JSON conversion command.
+- Keep successful `to-json` output as raw converted JSON because that is the command product.
+- Use focused commands such as `overview`, `element`, `variables`, and `call-activity` for targeted agent reading.
+- Move active converter implementation to `src/convert`.
+- Keep historical references only in old implementation specs where they describe past decisions.
 
-Acceptance direction:
+Implemented scope:
 
-- No read workflow should require `to-json`.
-- Skill should stop recommending `to-json` except for compatibility.
-- Backlog should track replacement coverage before removal.
+- Converter source moved to `src/convert`.
+- Converter tests moved to `test/convert`.
+- Active docs describe `to-json` as JSON conversion, not as a compatibility-only command.
+- `to-json` CLI behavior and raw JSON output remain compatible.
 
 ## P4: Review And Confidence
 

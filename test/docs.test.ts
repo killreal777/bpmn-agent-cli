@@ -75,7 +75,9 @@ describe('documentation', () => {
     expect(backlog).toContain('variables');
     expect(backlog).toContain('call-activity');
     expect(backlog).toContain('BL-012: `call-activity`');
-    expect(backlog).toContain('Legacy `to-json` Removal Plan');
+    expect(backlog).toContain('JSON Conversion Modernization');
+    expect(backlog).not.toContain('Legacy `to-json` Removal Plan');
+    expect(contracts).toContain('JsonConversionResult');
     expect(backlog).toContain('delete-safe');
     expect(backlog).toContain('add-boundary-event');
     expect(backlog).toContain('BPMN Lint Rules');

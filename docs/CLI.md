@@ -253,4 +253,4 @@ bpmn-agent-cli to-json process.bpmn -o tmp/process.json
 bpmn-agent-cli to-json --print-config optimized
 ```
 
-Legacy command. Successful output is raw converter JSON, not the common success envelope.
+Converts BPMN XML to a compact JSON document. Successful output is the converted JSON document itself, not the common success envelope.

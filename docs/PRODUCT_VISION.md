@@ -41,7 +41,7 @@ The near-term product should shift back toward read-side understanding after com
 - Run baseline measurements against the current CLI.
 - Make process variables and CallActivity mappings first-class read concepts.
 - Enrich `element` with type-specific details so agents can inspect one element without raw XML.
-- Deprecate legacy `to-json` as a primary workflow.
+- Keep `to-json` as full JSON conversion, while preferring focused query commands for targeted agent reading.
 - Add semantic lint rules that catch common Camunda/BPMN mistakes.
 - Add `diff` and `plan` commands so write operations become easier to review.
 - Add CI-friendly report output for repository-wide BPMN checks.

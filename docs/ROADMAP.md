@@ -14,7 +14,7 @@ Read-only MVP:
 - `gateway`
 - `implementations`
 - `validate`
-- legacy `to-json`
+- full JSON conversion through `to-json`
 
 Distribution:
 
@@ -126,4 +126,4 @@ Planned measured experiments:
   - estimated output tokens increased by 1159 because the command returns a richer contract card
 - next measured experiment: `context --profile agent`
 - variable-aware lint rules after variable extraction is stable
-- legacy `to-json` deprecation/removal plan
+- JSON conversion modernization implemented: `to-json` remains supported and active converter code lives under `src/convert`

@@ -600,7 +600,7 @@ describe('CLI overview and validate', () => {
     });
   });
 
-  it('prints raw legacy to-json output without envelope', async () => {
+  it('prints raw to-json conversion output without envelope', async () => {
     const { stdout } = await execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'to-json', 'test/fixtures/simple-linear.bpmn']);
     const parsed = JSON.parse(stdout);
 

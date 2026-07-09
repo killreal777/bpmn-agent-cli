@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
-import { getPresetConfig } from '../../src/legacy/config.js';
-import { convertBpmnToJson } from '../../src/legacy/convert.js';
+import { getPresetConfig } from '../../src/convert/config.js';
+import { convertBpmnToJson } from '../../src/convert/convert.js';
 
 describe('convertBpmnToJson', () => {
   it('projects a linear process without layout data', async () => {

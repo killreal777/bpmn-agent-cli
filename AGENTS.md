@@ -8,7 +8,7 @@
 - Keep pure query use cases in `src/query`.
 - Keep diagnostics in `src/validate`.
 - Keep output envelope logic in `src/output`.
-- Keep legacy converter compatibility in `src/legacy`.
+- Keep JSON conversion logic in `src/convert`.
 
 ## BPMN Rules
 

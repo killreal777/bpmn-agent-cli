@@ -1,8 +1,8 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { BpmnCliError } from '../../bpmn/errors.js';
-import { convertBpmnToJson } from '../../legacy/convert.js';
-import { getPresetConfig } from '../../legacy/config.js';
+import { getPresetConfig } from '../../convert/config.js';
+import { convertBpmnToJson } from '../../convert/convert.js';
 import type { ParsedArgs } from '../args.js';
 
 export async function toJsonCommand(args: ParsedArgs, pretty: boolean): Promise<void> {

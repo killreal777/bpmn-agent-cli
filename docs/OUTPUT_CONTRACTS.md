@@ -13,9 +13,13 @@ All P0 and P1-A query commands except `to-json` return:
 }
 ```
 
-## Legacy to-json Exception
+## JSON Conversion Output
 
-`to-json` preserves the raw converter output shape. `to-json --print-config` returns raw config JSON.
+`to-json` returns the converted BPMN JSON document directly instead of wrapping it in the success envelope. `to-json --print-config` returns raw config JSON. Errors still use the common error envelope.
+
+## JsonConversionResult
+
+`JsonConversionResult` is the raw JSON document emitted by `to-json`. Its shape is controlled by the selected conversion preset and may be more complete than focused query result schemas. Use focused query commands for stable small result contracts; use `to-json` when a workflow needs the full converted model.
 
 ## Error Envelope
 

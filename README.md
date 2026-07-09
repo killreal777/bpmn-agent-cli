@@ -8,7 +8,7 @@ The tool is deterministic and local:
 - no runtime network calls during BPMN analysis
 - JSON output by default
 - machine-readable errors
-- legacy raw `to-json` converter preserved from `bpmn-to-json`
+- full BPMN-to-JSON conversion through `to-json`
 
 ## Development
 
@@ -61,7 +61,7 @@ bpmn-agent-cli validate process.bpmn
 bpmn-agent-cli to-json process.bpmn --preset optimized
 ```
 
-All query commands return a JSON envelope. The legacy `to-json` command returns raw converter JSON for compatibility.
+All query commands return a JSON envelope. The `to-json` command returns the converted JSON document directly because the command result is the JSON export itself.
 
 ## Qwen Code Install
 
@@ -103,7 +103,7 @@ claude plugin validate .
 
 ## MVP Status
 
-P0 includes read-only commands: `overview`, `find`, `element`, `context`, `trace`, `gateway`, `implementations`, `validate`, plus legacy `to-json`.
+P0 includes read-only commands: `overview`, `find`, `element`, `context`, `trace`, `gateway`, `implementations`, `validate`, plus full JSON conversion through `to-json`.
 
 P1-A adds read-only structural commands: `participants`, `lanes`, `events`, and `subprocess`.
 
@@ -129,6 +129,6 @@ P3-D adds structural `add-boundary-event` for timer boundary events. BPMNDI layo
 
 Product direction is documented in `docs/PRODUCT_VISION.md`. P1/P2/P3 status is documented in `docs/ROADMAP.md`. Future ideas are tracked in `docs/BACKLOG.md`.
 
-## Relationship To bpmn-to-json
+## JSON Conversion
 
-`bpmn-to-json` provided the original BPMN XML to compact JSON converter. This project keeps that behavior as `bpmn-agent-cli to-json` and adds higher-level agent-oriented queries over a parsed BPMN model and deterministic indexes.
+`to-json` converts BPMN XML into a compact JSON document for integrations, debugging, and workflows that need a full model export. Focused commands such as `overview`, `element`, `variables`, and `call-activity` are preferred when an agent needs a specific answer instead of a complete JSON export.

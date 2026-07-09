@@ -10626,7 +10626,7 @@ function numberOption4(args, name2, fallback) {
 var import_promises12 = require("node:fs/promises");
 var import_node_path11 = require("node:path");
 
-// src/legacy/optimizations/ids.ts
+// src/convert/optimizations/ids.ts
 var OPTIMIZATION_IDS = {
   compactElementMeta: "compactElementMeta",
   compactCallMappings: "compactCallMappings",
@@ -10641,7 +10641,7 @@ function isOptimizationId(value) {
   return OPTIMIZATION_ID_VALUES.includes(value);
 }
 
-// src/legacy/config.ts
+// src/convert/config.ts
 var PRESET_NAMES = ["base", "optimized"];
 var BUILT_IN_PRESETS = {
   base: {
@@ -10724,7 +10724,7 @@ function isRecord4(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-// src/legacy/optimizations/utils.ts
+// src/convert/optimizations/utils.ts
 function cloneModel(model) {
   return JSON.parse(JSON.stringify(model));
 }
@@ -10777,7 +10777,7 @@ function escapeCsvField(value) {
   return `"${value.replaceAll('"', '""')}"`;
 }
 
-// src/legacy/optimizations/compact-call-mappings.ts
+// src/convert/optimizations/compact-call-mappings.ts
 var compactCallMappingsOptimization = {
   id: OPTIMIZATION_IDS.compactCallMappings,
   apply(model) {
@@ -10838,7 +10838,7 @@ function stringValue2(value) {
   return typeof value === "string" && value !== "" ? value : void 0;
 }
 
-// src/legacy/optimizations/compact-conditions.ts
+// src/convert/optimizations/compact-conditions.ts
 var compactConditionsOptimization = {
   id: OPTIMIZATION_IDS.compactConditions,
   apply(model) {
@@ -10863,7 +10863,7 @@ function compactFlowCondition(value) {
   });
 }
 
-// src/legacy/optimizations/compact-element-meta.ts
+// src/convert/optimizations/compact-element-meta.ts
 var IMPLEMENTATION_KEYS = [
   "camunda:delegateExpression",
   "camunda:class",
@@ -10968,7 +10968,7 @@ function stringValue3(value) {
   return typeof value === "string" && value !== "" ? value : void 0;
 }
 
-// src/legacy/optimizations/compact-flows.ts
+// src/convert/optimizations/compact-flows.ts
 var compactFlowsOptimization = {
   id: OPTIMIZATION_IDS.compactFlows,
   apply(model) {
@@ -10998,7 +10998,7 @@ function stringValue4(value) {
   return typeof value === "string" && value !== "" ? value : void 0;
 }
 
-// src/legacy/optimizations/omit-redundant-graph-refs.ts
+// src/convert/optimizations/omit-redundant-graph-refs.ts
 var omitRedundantGraphRefsOptimization = {
   id: OPTIMIZATION_IDS.omitRedundantGraphRefs,
   apply(model) {
@@ -11024,7 +11024,7 @@ function omitElementGraphRefs(value) {
   });
 }
 
-// src/legacy/optimizations/omit-top-level-metadata.ts
+// src/convert/optimizations/omit-top-level-metadata.ts
 var omitTopLevelMetadataOptimization = {
   id: OPTIMIZATION_IDS.omitTopLevelMetadata,
   apply(model) {
@@ -11037,7 +11037,7 @@ var omitTopLevelMetadataOptimization = {
   }
 };
 
-// src/legacy/optimizations/strip-namespace-prefixes.ts
+// src/convert/optimizations/strip-namespace-prefixes.ts
 var NAMESPACE_PREFIX_PATTERN = /(?:camunda|camunca|bpmn):/gi;
 var stripNamespacePrefixesOptimization = {
   id: OPTIMIZATION_IDS.stripNamespacePrefixes,
@@ -11064,7 +11064,7 @@ function stripString(value) {
   return value.replace(NAMESPACE_PREFIX_PATTERN, "");
 }
 
-// src/legacy/optimizations/registry.ts
+// src/convert/optimizations/registry.ts
 var OPTIMIZATION_REGISTRY = {
   [OPTIMIZATION_IDS.compactElementMeta]: compactElementMetaOptimization,
   [OPTIMIZATION_IDS.compactCallMappings]: compactCallMappingsOptimization,
@@ -11075,7 +11075,7 @@ var OPTIMIZATION_REGISTRY = {
   [OPTIMIZATION_IDS.stripNamespacePrefixes]: stripNamespacePrefixesOptimization
 };
 
-// src/legacy/optimizations/pipeline.ts
+// src/convert/optimizations/pipeline.ts
 function applyOptimizations(model, enabled = []) {
   return enabled.reduce((current, id) => {
     const optimization = OPTIMIZATION_REGISTRY[id];
@@ -11083,7 +11083,7 @@ function applyOptimizations(model, enabled = []) {
   }, model);
 }
 
-// src/legacy/convert.ts
+// src/convert/convert.ts
 var EXCLUDED_TYPES = /* @__PURE__ */ new Set([
   "bpmndi:BPMNDiagram",
   "bpmndi:BPMNPlane",
