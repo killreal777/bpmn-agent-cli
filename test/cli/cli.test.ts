@@ -85,6 +85,26 @@ describe('CLI overview and validate', () => {
     });
   });
 
+  it('prints call-activity envelope as JSON', async () => {
+    const { stdout } = await execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'call-activity', 'benchmarks/fixtures/subprocess-call-activity.bpmn', '--id', 'CallActivity_RiskCheck']);
+
+    expect(JSON.parse(stdout)).toMatchObject({
+      ok: true,
+      command: 'call-activity',
+      result: {
+        callActivities: [
+          expect.objectContaining({
+            element: expect.objectContaining({ id: 'CallActivity_RiskCheck' }),
+            calledElement: 'Process_RiskCheck',
+            passThrough: true,
+            variables: expect.arrayContaining(['customerId', 'riskScore'])
+          })
+        ],
+        variables: expect.arrayContaining([expect.objectContaining({ name: 'riskScore' })])
+      }
+    });
+  });
+
   it('prints gateway envelope as JSON', async () => {
     const { stdout } = await execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'gateway', 'test/fixtures/gateway-condition.bpmn', '--id', 'Gateway_1']);
 

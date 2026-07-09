@@ -27,12 +27,12 @@ module.exports = __toCommonJS(main_exports);
 
 // src/bpmn/errors.ts
 var BpmnCliError = class extends Error {
-  constructor(code, message, exitCode, details = {}, suggestions2 = []) {
+  constructor(code, message, exitCode, details = {}, suggestions3 = []) {
     super(message);
     this.code = code;
     this.exitCode = exitCode;
     this.details = details;
-    this.suggestions = suggestions2;
+    this.suggestions = suggestions3;
   }
 };
 
@@ -7895,6 +7895,297 @@ async function writeOutput(path, payload) {
   }
 }
 
+// src/query/elementDetails.ts
+function getElementDetails(indexes, element) {
+  const raw = indexes.rawById.get(element.id);
+  if (!raw) {
+    return void 0;
+  }
+  if (element.type === "bpmn:CallActivity") {
+    return callActivityDetails(raw);
+  }
+  if (element.type === "bpmn:ServiceTask") {
+    return serviceTaskDetails(raw);
+  }
+  if (element.type === "bpmn:UserTask") {
+    return userTaskDetails(raw);
+  }
+  if (element.type === "bpmn:SequenceFlow") {
+    return sequenceFlowDetails(raw);
+  }
+  if (element.type === "bpmn:BoundaryEvent") {
+    return boundaryEventDetails(indexes, raw);
+  }
+  return void 0;
+}
+function callActivityDetails(element) {
+  const extensionValues = arrayOf2(element.extensionElements?.values);
+  const mappings = extensionValues.map(mappingSummary).filter((mapping) => Boolean(mapping));
+  const inputMappings = mappings.filter((mapping) => mapping.direction === "in");
+  const outputMappings = mappings.filter((mapping) => mapping.direction === "out");
+  const variableCandidates = variableCandidatesFromMappings(mappings);
+  return {
+    kind: "callActivity",
+    calledElement: stringValue(element.calledElement),
+    inputMappings,
+    outputMappings,
+    variableCandidates,
+    warnings: []
+  };
+}
+function mappingSummary(element) {
+  if (element.$type !== "camunda:In" && element.$type !== "camunda:Out") {
+    return null;
+  }
+  const direction = element.$type === "camunda:In" ? "in" : "out";
+  return clean({
+    direction,
+    source: stringValue(element.source) ?? void 0,
+    sourceExpression: stringValue(element.sourceExpression) ?? void 0,
+    target: stringValue(element.target) ?? void 0,
+    variables: stringValue(element.variables) ?? void 0,
+    businessKey: stringValue(element.businessKey) ?? void 0,
+    local: booleanValue2(element.local)
+  });
+}
+function serviceTaskDetails(element) {
+  const expressions = [
+    stringValue(element.delegateExpression),
+    stringValue(element.class),
+    stringValue(element.expression),
+    stringValue(element.topic)
+  ].filter((value) => Boolean(value));
+  return {
+    kind: "serviceTask",
+    implementation: {
+      type: stringValue(element.type),
+      topic: stringValue(element.topic),
+      delegateExpression: stringValue(element.delegateExpression),
+      class: stringValue(element.class),
+      expression: stringValue(element.expression)
+    },
+    variableCandidates: variableCandidatesFromValues(expressions)
+  };
+}
+function userTaskDetails(element) {
+  const formKey = stringValue(element.formKey);
+  return {
+    kind: "userTask",
+    formKey,
+    variableCandidates: variableCandidatesFromValues(formKey ? [formKey] : [])
+  };
+}
+function sequenceFlowDetails(element) {
+  const condition = conditionText2(element.conditionExpression);
+  return {
+    kind: "sequenceFlow",
+    condition,
+    variableCandidates: variableCandidatesFromValues(condition ? [condition] : [])
+  };
+}
+function boundaryEventDetails(indexes, element) {
+  const attachedToId = idOf2(element.attachedToRef);
+  return {
+    kind: "boundaryEvent",
+    attachedTo: attachedToId ? indexes.byId.get(attachedToId) ?? null : null,
+    cancelActivity: booleanValue2(element.cancelActivity) ?? null,
+    eventDefinitions: arrayOf2(element.eventDefinitions).map(eventDefinitionSummary)
+  };
+}
+function eventDefinitionSummary(element) {
+  return clean({
+    type: String(element.$type),
+    value: timerValue(element) ?? void 0,
+    refId: idOf2(element.messageRef) ?? idOf2(element.errorRef) ?? idOf2(element.signalRef) ?? idOf2(element.escalationRef) ?? void 0,
+    refName: nameOf(element.messageRef) ?? nameOf(element.errorRef) ?? nameOf(element.signalRef) ?? nameOf(element.escalationRef) ?? void 0
+  });
+}
+function timerValue(element) {
+  return expressionBody(element.timeDuration) ?? expressionBody(element.timeDate) ?? expressionBody(element.timeCycle);
+}
+function expressionBody(value) {
+  if (!isRecord2(value)) {
+    return null;
+  }
+  return stringValue(value.body);
+}
+function conditionText2(value) {
+  return expressionBody(value);
+}
+function variableCandidatesFromMappings(mappings) {
+  const values = mappings.flatMap((mapping) => [
+    mapping.source,
+    mapping.sourceExpression,
+    mapping.target,
+    mapping.businessKey
+  ]).filter((value) => Boolean(value));
+  return variableCandidatesFromValues(values);
+}
+function variableCandidatesFromValues(values) {
+  const candidates = /* @__PURE__ */ new Set();
+  for (const value of values) {
+    for (const candidate of extractVariableCandidates(value)) {
+      candidates.add(candidate);
+    }
+  }
+  return [...candidates].sort((a, b) => a.localeCompare(b));
+}
+function extractVariableCandidates(value) {
+  const withoutStrings = value.replace(/'[^']*'|"[^"]*"/g, " ");
+  const tokens = withoutStrings.match(/[A-Za-z_][A-Za-z0-9_.]*/g) ?? [];
+  const reserved = /* @__PURE__ */ new Set(["all", "and", "or", "not", "true", "false", "null"]);
+  return tokens.filter((token) => !reserved.has(token));
+}
+function booleanValue2(value) {
+  if (typeof value === "boolean") {
+    return value;
+  }
+  if (value === "true") {
+    return true;
+  }
+  if (value === "false") {
+    return false;
+  }
+  return void 0;
+}
+function idOf2(value) {
+  if (typeof value === "string" && value.trim() !== "") {
+    return value;
+  }
+  if (isRecord2(value) && typeof value.id === "string" && value.id.trim() !== "") {
+    return value.id;
+  }
+  return null;
+}
+function nameOf(value) {
+  return isRecord2(value) ? stringValue(value.name) : null;
+}
+function clean(value) {
+  return Object.fromEntries(Object.entries(value).filter(([, item]) => item !== void 0));
+}
+function isRecord2(value) {
+  return typeof value === "object" && value !== null;
+}
+
+// src/query/callActivity.ts
+function getCallActivities(indexes, args) {
+  const elements = args.id ? [requiredCallActivity(indexes, args.id)] : [...indexes.byType.get("bpmn:CallActivity") ?? []].sort(compareElement);
+  const callActivities = elements.map((element) => buildContract(indexes, element));
+  const usages = callActivities.flatMap((contract) => variableUsages(contract));
+  return {
+    callActivities,
+    variables: summarizeVariables(usages),
+    warnings: [...new Set(callActivities.flatMap((contract) => contract.warnings))].sort((a, b) => a.localeCompare(b))
+  };
+}
+function requiredCallActivity(indexes, id) {
+  const element = indexes.byId.get(id);
+  if (!element) {
+    throw new BpmnCliError("ELEMENT_NOT_FOUND", "Element not found", 1, { elementId: id }, suggestions(indexes, id));
+  }
+  if (element.type !== "bpmn:CallActivity") {
+    throw new BpmnCliError("UNSUPPORTED_BPMN_ELEMENT_TYPE", "Element is not a CallActivity", 1, {
+      elementId: id,
+      type: element.type,
+      expectedType: "bpmn:CallActivity"
+    });
+  }
+  return element;
+}
+function buildContract(indexes, element) {
+  const details = getElementDetails(indexes, element);
+  if (!details || details.kind !== "callActivity") {
+    throw new BpmnCliError("UNSUPPORTED_BPMN_ELEMENT_TYPE", "Element is not a CallActivity", 1, {
+      elementId: element.id,
+      type: element.type,
+      expectedType: "bpmn:CallActivity"
+    });
+  }
+  const mappings = [...details.inputMappings, ...details.outputMappings];
+  const variableNames = variableCandidatesFromMappings(mappings);
+  const passThrough = details.outputMappings.some((mapping) => mapping.variables === "all");
+  if (passThrough) {
+    variableNames.unshift("*");
+  }
+  return {
+    element,
+    calledElement: details.calledElement,
+    inputMappings: details.inputMappings,
+    outputMappings: details.outputMappings,
+    variables: [...new Set(variableNames)].sort((a, b) => a.localeCompare(b)),
+    passThrough,
+    businessKey: mappings.find((mapping) => mapping.businessKey)?.businessKey ?? null,
+    warnings: details.warnings
+  };
+}
+function variableUsages(contract) {
+  return [...contract.inputMappings, ...contract.outputMappings].flatMap((mapping) => {
+    const names = mapping.variables === "all" ? ["*"] : variableCandidatesFromMappings([mapping]);
+    const direction = mapping.variables === "all" ? "pass-through" : mapping.direction;
+    return names.map((name2) => clean2({
+      name: name2,
+      direction,
+      source: "callActivityMapping",
+      element: contract.element,
+      expression: mapping.sourceExpression,
+      mapping
+    }));
+  });
+}
+function summarizeVariables(usages) {
+  const byName = /* @__PURE__ */ new Map();
+  for (const usage of usages) {
+    byName.set(usage.name, [...byName.get(usage.name) ?? [], usage]);
+  }
+  return [...byName.entries()].map(([name2, items]) => ({
+    name: name2,
+    usageCount: items.length,
+    directions: [...new Set(items.map((item) => item.direction))].sort(compareDirection),
+    elements: uniqueElements(items.map((item) => item.element))
+  })).sort((a, b) => a.name.localeCompare(b.name));
+}
+function uniqueElements(elements) {
+  const byId = /* @__PURE__ */ new Map();
+  for (const element of elements) {
+    byId.set(element.id, element);
+  }
+  return [...byId.values()].sort(compareElement);
+}
+function suggestions(indexes, query) {
+  const normalized = query.toLocaleLowerCase();
+  return [...indexes.byId.values()].map((element) => ({
+    ...element,
+    score: element.id.toLocaleLowerCase().includes(normalized) ? 0.7 : (element.name ?? "").toLocaleLowerCase().includes(normalized) ? 0.5 : 0
+  })).filter((item) => item.score > 0).sort((a, b) => b.score - a.score || a.id.localeCompare(b.id)).slice(0, 5);
+}
+function compareElement(a, b) {
+  return a.id.localeCompare(b.id);
+}
+function compareDirection(a, b) {
+  const order = ["in", "out", "read", "write", "pass-through", "unknown"];
+  return order.indexOf(a) - order.indexOf(b);
+}
+function clean2(value) {
+  return Object.fromEntries(Object.entries(value).filter(([, item]) => item !== void 0));
+}
+
+// src/cli/commands/callActivityCommand.ts
+async function callActivityCommand(args) {
+  if (!args.file) {
+    throw new BpmnCliError("MISSING_FILE_ARGUMENT", "call-activity requires a BPMN file", 2);
+  }
+  const id = args.options.get("--id");
+  if (id !== void 0 && typeof id !== "string") {
+    throw new BpmnCliError("INVALID_OPTION_VALUE", "call-activity --id requires a value", 2);
+  }
+  const model = await loadBpmn(args.file);
+  return successEnvelope({
+    command: "call-activity",
+    file: args.file,
+    result: getCallActivities(buildIndexes(model), { id })
+  });
+}
+
 // src/cli/commands/connectCommand.ts
 var import_promises4 = require("node:fs/promises");
 var import_node_path3 = require("node:path");
@@ -8608,183 +8899,11 @@ async function writeOutput4(path, payload) {
   }
 }
 
-// src/query/elementDetails.ts
-function getElementDetails(indexes, element) {
-  const raw = indexes.rawById.get(element.id);
-  if (!raw) {
-    return void 0;
-  }
-  if (element.type === "bpmn:CallActivity") {
-    return callActivityDetails(raw);
-  }
-  if (element.type === "bpmn:ServiceTask") {
-    return serviceTaskDetails(raw);
-  }
-  if (element.type === "bpmn:UserTask") {
-    return userTaskDetails(raw);
-  }
-  if (element.type === "bpmn:SequenceFlow") {
-    return sequenceFlowDetails(raw);
-  }
-  if (element.type === "bpmn:BoundaryEvent") {
-    return boundaryEventDetails(indexes, raw);
-  }
-  return void 0;
-}
-function callActivityDetails(element) {
-  const extensionValues = arrayOf2(element.extensionElements?.values);
-  const mappings = extensionValues.map(mappingSummary).filter((mapping) => Boolean(mapping));
-  const inputMappings = mappings.filter((mapping) => mapping.direction === "in");
-  const outputMappings = mappings.filter((mapping) => mapping.direction === "out");
-  const variableCandidates = variableCandidatesFromMappings(mappings);
-  return {
-    kind: "callActivity",
-    calledElement: stringValue(element.calledElement),
-    inputMappings,
-    outputMappings,
-    variableCandidates,
-    warnings: []
-  };
-}
-function mappingSummary(element) {
-  if (element.$type !== "camunda:In" && element.$type !== "camunda:Out") {
-    return null;
-  }
-  const direction = element.$type === "camunda:In" ? "in" : "out";
-  return clean({
-    direction,
-    source: stringValue(element.source) ?? void 0,
-    sourceExpression: stringValue(element.sourceExpression) ?? void 0,
-    target: stringValue(element.target) ?? void 0,
-    variables: stringValue(element.variables) ?? void 0,
-    businessKey: stringValue(element.businessKey) ?? void 0,
-    local: booleanValue2(element.local)
-  });
-}
-function serviceTaskDetails(element) {
-  const expressions = [
-    stringValue(element.delegateExpression),
-    stringValue(element.class),
-    stringValue(element.expression),
-    stringValue(element.topic)
-  ].filter((value) => Boolean(value));
-  return {
-    kind: "serviceTask",
-    implementation: {
-      type: stringValue(element.type),
-      topic: stringValue(element.topic),
-      delegateExpression: stringValue(element.delegateExpression),
-      class: stringValue(element.class),
-      expression: stringValue(element.expression)
-    },
-    variableCandidates: variableCandidatesFromValues(expressions)
-  };
-}
-function userTaskDetails(element) {
-  const formKey = stringValue(element.formKey);
-  return {
-    kind: "userTask",
-    formKey,
-    variableCandidates: variableCandidatesFromValues(formKey ? [formKey] : [])
-  };
-}
-function sequenceFlowDetails(element) {
-  const condition = conditionText2(element.conditionExpression);
-  return {
-    kind: "sequenceFlow",
-    condition,
-    variableCandidates: variableCandidatesFromValues(condition ? [condition] : [])
-  };
-}
-function boundaryEventDetails(indexes, element) {
-  const attachedToId = idOf2(element.attachedToRef);
-  return {
-    kind: "boundaryEvent",
-    attachedTo: attachedToId ? indexes.byId.get(attachedToId) ?? null : null,
-    cancelActivity: booleanValue2(element.cancelActivity) ?? null,
-    eventDefinitions: arrayOf2(element.eventDefinitions).map(eventDefinitionSummary)
-  };
-}
-function eventDefinitionSummary(element) {
-  return clean({
-    type: String(element.$type),
-    value: timerValue(element) ?? void 0,
-    refId: idOf2(element.messageRef) ?? idOf2(element.errorRef) ?? idOf2(element.signalRef) ?? idOf2(element.escalationRef) ?? void 0,
-    refName: nameOf(element.messageRef) ?? nameOf(element.errorRef) ?? nameOf(element.signalRef) ?? nameOf(element.escalationRef) ?? void 0
-  });
-}
-function timerValue(element) {
-  return expressionBody(element.timeDuration) ?? expressionBody(element.timeDate) ?? expressionBody(element.timeCycle);
-}
-function expressionBody(value) {
-  if (!isRecord2(value)) {
-    return null;
-  }
-  return stringValue(value.body);
-}
-function conditionText2(value) {
-  return expressionBody(value);
-}
-function variableCandidatesFromMappings(mappings) {
-  const values = mappings.flatMap((mapping) => [
-    mapping.source,
-    mapping.sourceExpression,
-    mapping.target,
-    mapping.businessKey
-  ]).filter((value) => Boolean(value));
-  return variableCandidatesFromValues(values);
-}
-function variableCandidatesFromValues(values) {
-  const candidates = /* @__PURE__ */ new Set();
-  for (const value of values) {
-    for (const candidate of extractVariableCandidates(value)) {
-      candidates.add(candidate);
-    }
-  }
-  return [...candidates].sort((a, b) => a.localeCompare(b));
-}
-function extractVariableCandidates(value) {
-  const withoutStrings = value.replace(/'[^']*'|"[^"]*"/g, " ");
-  const tokens = withoutStrings.match(/[A-Za-z_][A-Za-z0-9_.]*/g) ?? [];
-  const reserved = /* @__PURE__ */ new Set(["all", "and", "or", "not", "true", "false", "null"]);
-  return tokens.filter((token) => !reserved.has(token));
-}
-function booleanValue2(value) {
-  if (typeof value === "boolean") {
-    return value;
-  }
-  if (value === "true") {
-    return true;
-  }
-  if (value === "false") {
-    return false;
-  }
-  return void 0;
-}
-function idOf2(value) {
-  if (typeof value === "string" && value.trim() !== "") {
-    return value;
-  }
-  if (isRecord2(value) && typeof value.id === "string" && value.id.trim() !== "") {
-    return value.id;
-  }
-  return null;
-}
-function nameOf(value) {
-  return isRecord2(value) ? stringValue(value.name) : null;
-}
-function clean(value) {
-  return Object.fromEntries(Object.entries(value).filter(([, item]) => item !== void 0));
-}
-function isRecord2(value) {
-  return typeof value === "object" && value !== null;
-}
-
 // src/query/element.ts
 function getElement(indexes, args) {
   const element = indexes.byId.get(args.id);
   if (!element) {
-    throw new BpmnCliError("ELEMENT_NOT_FOUND", "Element not found", 1, { elementId: args.id }, suggestions(indexes, args.id));
+    throw new BpmnCliError("ELEMENT_NOT_FOUND", "Element not found", 1, { elementId: args.id }, suggestions2(indexes, args.id));
   }
   const sequenceFlow = indexes.sequenceFlowById.get(args.id);
   if (sequenceFlow) {
@@ -8811,7 +8930,7 @@ function getElement(indexes, args) {
     }
   };
 }
-function suggestions(indexes, query) {
+function suggestions2(indexes, query) {
   const normalized = query.toLocaleLowerCase();
   return [...indexes.byId.values()].map((element) => ({
     ...element,
@@ -11290,7 +11409,7 @@ async function validateCommand(args) {
 function getVariables(indexes, args) {
   const usages = [];
   const callActivityMappings = [];
-  for (const element of [...indexes.byId.values()].sort(compareElement)) {
+  for (const element of [...indexes.byId.values()].sort(compareElement2)) {
     if (args.element && element.id !== args.element) {
       continue;
     }
@@ -11372,7 +11491,7 @@ function getVariables(indexes, args) {
     variables: summary.variables.filter((name2) => name2 === args.name)
   })).filter((summary) => summary.inputMappings.length > 0 || summary.outputMappings.length > 0 || summary.variables.includes(args.name)) : callActivityMappings;
   return {
-    variables: summarizeVariables(filteredUsages),
+    variables: summarizeVariables2(filteredUsages),
     usages: filteredUsages.sort(compareUsage),
     callActivityMappings: filteredCallActivityMappings.sort((a, b) => a.element.id.localeCompare(b.element.id)),
     warnings: []
@@ -11384,7 +11503,7 @@ function mappingHasName(mapping, name2) {
   }
   return variableCandidatesFromMappings([mapping]).includes(name2);
 }
-function summarizeVariables(usages) {
+function summarizeVariables2(usages) {
   const byName = /* @__PURE__ */ new Map();
   for (const usage of usages) {
     byName.set(usage.name, [...byName.get(usage.name) ?? [], usage]);
@@ -11392,27 +11511,27 @@ function summarizeVariables(usages) {
   return [...byName.entries()].map(([name2, items]) => ({
     name: name2,
     usageCount: items.length,
-    directions: [...new Set(items.map((item) => item.direction))].sort(compareDirection),
-    elements: uniqueElements(items.map((item) => item.element))
+    directions: [...new Set(items.map((item) => item.direction))].sort(compareDirection2),
+    elements: uniqueElements2(items.map((item) => item.element))
   })).sort((a, b) => a.name.localeCompare(b.name));
 }
-function uniqueElements(elements) {
+function uniqueElements2(elements) {
   const byId = /* @__PURE__ */ new Map();
   for (const element of elements) {
     byId.set(element.id, element);
   }
-  return [...byId.values()].sort(compareElement);
+  return [...byId.values()].sort(compareElement2);
 }
 function cleanUsage(usage) {
   return Object.fromEntries(Object.entries(usage).filter(([, value]) => value !== void 0));
 }
 function compareUsage(a, b) {
-  return a.name.localeCompare(b.name) || a.element.id.localeCompare(b.element.id) || compareDirection(a.direction, b.direction) || a.source.localeCompare(b.source);
+  return a.name.localeCompare(b.name) || a.element.id.localeCompare(b.element.id) || compareDirection2(a.direction, b.direction) || a.source.localeCompare(b.source);
 }
-function compareElement(a, b) {
+function compareElement2(a, b) {
   return a.id.localeCompare(b.id);
 }
-function compareDirection(a, b) {
+function compareDirection2(a, b) {
   const order = ["in", "out", "read", "write", "pass-through", "unknown"];
   return order.indexOf(a) - order.indexOf(b);
 }
@@ -11476,6 +11595,10 @@ async function main(args = process.argv.slice(2)) {
     }
     if (parsed.command === "variables") {
       writeJson(await variablesCommand(parsed), pretty);
+      return;
+    }
+    if (parsed.command === "call-activity") {
+      writeJson(await callActivityCommand(parsed), pretty);
       return;
     }
     if (parsed.command === "gateway") {

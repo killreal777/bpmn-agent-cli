@@ -50,6 +50,15 @@ bpmn-agent-cli variables process.bpmn --name customerId
 
 Returns best-effort variable usage extracted from CallActivity mappings, sequence-flow conditions, implementation expressions, and form keys. It also returns structured CallActivity input/output mappings.
 
+## call-activity
+
+```bash
+bpmn-agent-cli call-activity process.bpmn
+bpmn-agent-cli call-activity process.bpmn --id Call_SubProcess
+```
+
+Returns focused CallActivity contracts: called element, Camunda input/output mappings, `variables="all"` pass-through, business key mapping, variable summary, and mapping warnings.
+
 ## context
 
 ```bash

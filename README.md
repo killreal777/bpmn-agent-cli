@@ -44,6 +44,7 @@ bpmn-agent-cli path process.bpmn --from StartEvent_1 --to EndEvent_1
 bpmn-agent-cli gateway process.bpmn --id Gateway_CheckResult
 bpmn-agent-cli implementations process.bpmn
 bpmn-agent-cli participants process.bpmn
+bpmn-agent-cli call-activity process.bpmn --id Call_SubProcess
 bpmn-agent-cli lanes process.bpmn --element Activity_CheckClient
 bpmn-agent-cli events process.bpmn --type boundary
 bpmn-agent-cli subprocess process.bpmn --id SubProcess_1

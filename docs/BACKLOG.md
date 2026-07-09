@@ -285,7 +285,7 @@ Measured result:
 ### BL-012: `call-activity`
 
 Priority: `P4`
-Status: `ready-for-spec`
+Status: `implemented`
 
 Add a focused read-only command for call activity contracts.
 
@@ -308,6 +308,23 @@ Output should include:
 - optional relationship to `variables` result
 
 This can share the same extraction layer as `variables` and enriched `element`.
+
+Implemented scope:
+
+- `bpmn-agent-cli call-activity process.bpmn`.
+- `bpmn-agent-cli call-activity process.bpmn --id Call_SubProcess`.
+- Returns called element, input mappings, output mappings, pass-through detection, business key value, variable names, variable summaries, and warnings.
+- Rejects existing non-CallActivity ids with `UNSUPPORTED_BPMN_ELEMENT_TYPE`.
+- Reuses the same CallActivity extraction layer as `element.details` and `variables`.
+
+Measured result:
+
+- Candidate report: `benchmarks/results/candidate-call-activity.json`.
+- Comparison report: `benchmarks/results/compare-call-activity.json`.
+- Successful tasks: unchanged at 20/20.
+- CLI calls improved: 36 -> 34 after the CallActivity benchmark task switched from `element` + `implementations` to `call-activity`.
+- Estimated output tokens increased by 1159 across the 20-task suite because the focused contract includes variable summaries and mapping details.
+- Decision: accepted as a correctness-enabling and call-reducing read feature. Future compact/profile work should reduce token cost for focused semantic commands.
 
 ### BL-013: Variable-Aware Lint Rules
 

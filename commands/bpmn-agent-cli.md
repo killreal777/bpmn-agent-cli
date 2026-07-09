@@ -16,5 +16,6 @@ Examples:
 ```bash
 node "${extensionPath}${/}dist${/}extension${/}bpmn-agent-cli.cjs" overview process.bpmn --pretty
 node "${extensionPath}${/}dist${/}extension${/}bpmn-agent-cli.cjs" find process.bpmn --query "approve"
+node "${extensionPath}${/}dist${/}extension${/}bpmn-agent-cli.cjs" call-activity process.bpmn --id Call_SubProcess
 node "${extensionPath}${/}dist${/}extension${/}bpmn-agent-cli.cjs" validate process.bpmn
 ```

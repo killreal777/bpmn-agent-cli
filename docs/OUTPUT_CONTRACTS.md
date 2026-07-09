@@ -139,7 +139,7 @@ type BoundaryEventElementDetails = {
 };
 ```
 
-For CallActivity data flow, use `inputMappings` and `outputMappings`; together they are the `callActivityMappings` surface until a dedicated `variables` or `call-activity` command is added.
+For CallActivity data flow in general element inspection, use `inputMappings` and `outputMappings`. For focused CallActivity contract review, prefer the dedicated `call-activity` command.
 
 ## VariablesResult
 
@@ -178,6 +178,27 @@ type VariablesResult = {
 ```
 
 `variables` is read-only and best-effort. It does not execute or fully parse expression languages; variable names from expressions are candidates.
+
+## CallActivityResult
+
+```ts
+type CallActivityResult = {
+  callActivities: Array<{
+    element: ElementSummary;
+    calledElement: string | null;
+    inputMappings: CallActivityMapping[];
+    outputMappings: CallActivityMapping[];
+    variables: string[];
+    passThrough: boolean;
+    businessKey: string | null;
+    warnings: string[];
+  }>;
+  variables: VariableSummary[];
+  warnings: string[];
+};
+```
+
+`call-activity` is read-only and focused on `bpmn:CallActivity` contracts. Without `--id`, `callActivities` contains all call activities sorted by id. With `--id`, it contains exactly one call activity or returns `ELEMENT_NOT_FOUND` / `UNSUPPORTED_BPMN_ELEMENT_TYPE`.
 
 ## ValidateResult
 

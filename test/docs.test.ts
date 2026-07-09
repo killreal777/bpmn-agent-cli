@@ -24,6 +24,7 @@ describe('documentation', () => {
     expect(cli).toContain('bpmn-agent-cli to-json process.bpmn --preset optimized');
     expect(cli).toContain('bpmn-agent-cli participants process.bpmn');
     expect(cli).toContain('bpmn-agent-cli variables process.bpmn --element Call_SubProcess');
+    expect(cli).toContain('bpmn-agent-cli call-activity process.bpmn --id Call_SubProcess');
     expect(cli).toContain('bpmn-agent-cli lanes process.bpmn --element Task_1');
     expect(cli).toContain('bpmn-agent-cli events process.bpmn --type boundary');
     expect(cli).toContain('bpmn-agent-cli subprocess process.bpmn --id SubProcess_1');
@@ -38,12 +39,14 @@ describe('documentation', () => {
     expect(cli).toContain('bpmn-agent-cli delete-safe process.bpmn --id Task_1');
     expect(cli).toContain('bpmn-agent-cli add-boundary-event process.bpmn --attached-to Task_1 --id Boundary_Timeout');
     expect(readme).toContain('bpmn-agent-cli path process.bpmn --from StartEvent_1 --to EndEvent_1');
+    expect(readme).toContain('bpmn-agent-cli call-activity process.bpmn --id Call_SubProcess');
     expect(readme).toContain('bpmn-agent-cli export process.bpmn --format markdown');
     expect(contracts).toContain('ELEMENT_NOT_FOUND');
     expect(contracts).toContain('ElementDetails');
     expect(contracts).toContain('CallActivityElementDetails');
     expect(contracts).toContain('callActivityMappings');
     expect(contracts).toContain('VariablesResult');
+    expect(contracts).toContain('CallActivityResult');
     expect(contracts).toContain('ValidateResult');
     expect(contracts).toContain('ParticipantsResult');
     expect(contracts).toContain('LanesResult');
@@ -71,6 +74,7 @@ describe('documentation', () => {
     expect(backlog).toContain('Benchmark Runner And Comparison Report');
     expect(backlog).toContain('variables');
     expect(backlog).toContain('call-activity');
+    expect(backlog).toContain('BL-012: `call-activity`');
     expect(backlog).toContain('Legacy `to-json` Removal Plan');
     expect(backlog).toContain('delete-safe');
     expect(backlog).toContain('add-boundary-event');

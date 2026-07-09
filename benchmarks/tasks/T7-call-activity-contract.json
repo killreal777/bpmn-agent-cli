@@ -6,8 +6,7 @@
   "prompt": "Identify what the risk check call activity invokes and which variables are mapped in and out.",
   "allowedTools": ["bpmn-agent-cli"],
   "cliCalls": [
-    ["element", "$fixture", "--id", "CallActivity_RiskCheck"],
-    ["implementations", "$fixture"]
+    ["call-activity", "$fixture", "--id", "CallActivity_RiskCheck"]
   ],
   "successCriteria": ["mentions Process_RiskCheck", "mentions customerId", "mentions riskScore"],
   "scoring": { "maxScore": 3, "manualReviewRequired": true }

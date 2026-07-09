@@ -1,0 +1,49 @@
+{
+  "generatedAt": "2026-07-09T05:29:17.466Z",
+  "baseline": {
+    "variant": "baseline",
+    "taskCount": 20,
+    "aggregate": {
+      "successfulTasks": 20,
+      "failedTasks": 0,
+      "successRate": 1,
+      "cliCalls": 36,
+      "elapsedMs": 68646,
+      "stdoutBytes": 35322,
+      "estimatedOutputTokens": 8843,
+      "xmlFallbackRate": 0,
+      "toolErrors": 0,
+      "toolErrorRate": 0
+    }
+  },
+  "candidate": {
+    "variant": "candidate-call-activity",
+    "taskCount": 20,
+    "aggregate": {
+      "successfulTasks": 20,
+      "failedTasks": 0,
+      "successRate": 1,
+      "cliCalls": 34,
+      "elapsedMs": 89345,
+      "stdoutBytes": 39956,
+      "estimatedOutputTokens": 10002,
+      "xmlFallbackRate": 0,
+      "toolErrors": 0,
+      "toolErrorRate": 0
+    }
+  },
+  "deltas": {
+    "successfulTasks": 0,
+    "successRate": 0,
+    "cliCalls": -2,
+    "elapsedMs": 20699,
+    "stdoutBytes": 4634,
+    "estimatedOutputTokens": 1159,
+    "estimatedAgentOutputTokens": 0,
+    "answerCorrectnessScore": 0,
+    "averageCorrectnessScore": 0,
+    "xmlFallbackRate": 0,
+    "toolErrors": 0,
+    "toolErrorRate": 0
+  }
+}

@@ -34,8 +34,10 @@ describe('agent extension metadata', () => {
 
     expect(command).toContain('${extensionPath}');
     expect(command).toContain('dist/extension/bpmn-agent-cli.cjs');
+    expect(command).toContain('call-activity');
     expect(skill).toContain('name: bpmn-agent-cli');
     expect(skill).toContain('bpmn-agent-cli overview');
+    expect(skill).toContain('bpmn-agent-cli call-activity');
     expect(skill).toContain('Prefer specialized CLI queries');
     await expect(access('commands/bpmn.md')).rejects.toThrow();
     await expect(access('skills/bpmn-agent/SKILL.md')).rejects.toThrow();

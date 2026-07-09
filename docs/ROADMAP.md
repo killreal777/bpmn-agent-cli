@@ -118,7 +118,12 @@ Planned measured experiments:
   - CLI calls improved: 36 -> 35
   - estimated output tokens increased by 1223 because full variable usages and mappings are additive
   - accepted as correctness-enabling; future compact/profile output should control token cost
+- semantic experiment implemented: `call-activity`
+  - focused CallActivity contract reader for called element, variable mappings, pass-through, business key, and warnings
+  - shares extraction with `element.details` and `variables`
+  - success unchanged: 20/20 tasks
+  - CLI calls improved: 36 -> 34
+  - estimated output tokens increased by 1159 because the command returns a richer contract card
 - next measured experiment: `context --profile agent`
-- future semantic experiment: `call-activity`
 - variable-aware lint rules after variable extraction is stable
 - legacy `to-json` deprecation/removal plan

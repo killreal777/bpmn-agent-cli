@@ -5,6 +5,7 @@ import { appendTraceMetricsEntry, buildTraceMetricsEntry } from '../metrics/trac
 import { errorEnvelope, toExitCode, writeJson } from '../output/jsonOutput.js';
 import { parseArgs } from './args.js';
 import { addBoundaryEventCommand } from './commands/addBoundaryEventCommand.js';
+import { callActivityCommand } from './commands/callActivityCommand.js';
 import { connectCommand } from './commands/connectCommand.js';
 import { contextCommand } from './commands/contextCommand.js';
 import { deleteSafeCommand } from './commands/deleteSafeCommand.js';
@@ -73,6 +74,11 @@ export async function main(args: string[] = process.argv.slice(2)): Promise<void
 
     if (parsed.command === 'variables') {
       writeJson(await variablesCommand(parsed), pretty);
+      return;
+    }
+
+    if (parsed.command === 'call-activity') {
+      writeJson(await callActivityCommand(parsed), pretty);
       return;
     }
 
