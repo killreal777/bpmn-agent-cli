@@ -59,4 +59,47 @@ describe('validateModel', () => {
       })
     ]));
   });
+
+  it('reports BPMN lint warnings without making the model invalid', async () => {
+    const model = await loadBpmn(fixturePath('bpmn-lint.bpmn'));
+    const result = validateModel(model, buildIndexes(model));
+
+    expect(result.valid).toBe(true);
+    expect(result.warnings).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        code: 'SERVICE_TASK_MISSING_IMPLEMENTATION',
+        elementId: 'Service_NoImpl'
+      }),
+      expect.objectContaining({
+        code: 'EXTERNAL_TASK_MISSING_TOPIC',
+        elementId: 'Service_ExternalNoTopic'
+      }),
+      expect.objectContaining({
+        code: 'GATEWAY_OUTGOING_WITHOUT_CONDITION',
+        elementId: 'Gateway_Check',
+        details: expect.objectContaining({ flowId: 'Flow_Gateway_To_External' })
+      }),
+      expect.objectContaining({
+        code: 'DEAD_END_FLOW_NODE',
+        elementId: 'Task_DeadEnd'
+      }),
+      expect.objectContaining({
+        code: 'UNREACHABLE_FLOW_NODE',
+        elementId: 'Task_Unreachable'
+      }),
+      expect.objectContaining({
+        code: 'DUPLICATE_NAME_IN_PROCESS',
+        elementId: 'Task_Dupe_A',
+        details: expect.objectContaining({ duplicateElementIds: ['Task_Dupe_A', 'Task_Dupe_B'] })
+      }),
+      expect.objectContaining({
+        code: 'BOUNDARY_EVENT_WITHOUT_HANDLER',
+        elementId: 'Boundary_NoHandler'
+      }),
+      expect.objectContaining({
+        code: 'CALL_ACTIVITY_MISSING_CALLED_ELEMENT',
+        elementId: 'Call_MissingCalledElement'
+      })
+    ]));
+  });
 });

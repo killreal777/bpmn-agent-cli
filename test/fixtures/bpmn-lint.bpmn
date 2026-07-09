@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
+                  id="Definitions_BpmnLint"
+                  targetNamespace="http://bpmn-agent-cli/test">
+  <bpmn:process id="Process_Lint" name="Lint process" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_1">
+      <bpmn:outgoing>Flow_Start_To_Gateway</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:exclusiveGateway id="Gateway_Check" name="Check">
+      <bpmn:incoming>Flow_Start_To_Gateway</bpmn:incoming>
+      <bpmn:outgoing>Flow_Gateway_To_Service</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Gateway_To_External</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:serviceTask id="Service_NoImpl" name="Score">
+      <bpmn:incoming>Flow_Gateway_To_Service</bpmn:incoming>
+      <bpmn:outgoing>Flow_Service_To_DupeA</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:boundaryEvent id="Boundary_NoHandler" attachedToRef="Service_NoImpl">
+      <bpmn:timerEventDefinition>
+        <bpmn:timeDuration>PT10M</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:boundaryEvent>
+    <bpmn:serviceTask id="Service_ExternalNoTopic" name="External score" camunda:type="external">
+      <bpmn:incoming>Flow_Gateway_To_External</bpmn:incoming>
+      <bpmn:outgoing>Flow_External_To_DeadEnd</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:task id="Task_Dupe_A" name="Duplicate">
+      <bpmn:incoming>Flow_Service_To_DupeA</bpmn:incoming>
+      <bpmn:outgoing>Flow_DupeA_To_DupeB</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_Dupe_B" name="Duplicate">
+      <bpmn:incoming>Flow_DupeA_To_DupeB</bpmn:incoming>
+      <bpmn:outgoing>Flow_DupeB_To_Call</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:callActivity id="Call_MissingCalledElement" name="Call missing">
+      <bpmn:incoming>Flow_DupeB_To_Call</bpmn:incoming>
+      <bpmn:outgoing>Flow_Call_To_End</bpmn:outgoing>
+    </bpmn:callActivity>
+    <bpmn:task id="Task_DeadEnd" name="Dead end">
+      <bpmn:incoming>Flow_External_To_DeadEnd</bpmn:incoming>
+    </bpmn:task>
+    <bpmn:task id="Task_Unreachable" name="Unreachable" />
+    <bpmn:endEvent id="EndEvent_1">
+      <bpmn:incoming>Flow_Call_To_End</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_Start_To_Gateway" sourceRef="StartEvent_1" targetRef="Gateway_Check" />
+    <bpmn:sequenceFlow id="Flow_Gateway_To_Service" sourceRef="Gateway_Check" targetRef="Service_NoImpl">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">${approved}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Gateway_To_External" sourceRef="Gateway_Check" targetRef="Service_ExternalNoTopic" />
+    <bpmn:sequenceFlow id="Flow_Service_To_DupeA" sourceRef="Service_NoImpl" targetRef="Task_Dupe_A" />
+    <bpmn:sequenceFlow id="Flow_External_To_DeadEnd" sourceRef="Service_ExternalNoTopic" targetRef="Task_DeadEnd" />
+    <bpmn:sequenceFlow id="Flow_DupeA_To_DupeB" sourceRef="Task_Dupe_A" targetRef="Task_Dupe_B" />
+    <bpmn:sequenceFlow id="Flow_DupeB_To_Call" sourceRef="Task_Dupe_B" targetRef="Call_MissingCalledElement" />
+    <bpmn:sequenceFlow id="Flow_Call_To_End" sourceRef="Call_MissingCalledElement" targetRef="EndEvent_1" />
+  </bpmn:process>
+</bpmn:definitions>

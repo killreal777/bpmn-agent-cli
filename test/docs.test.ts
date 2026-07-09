@@ -54,6 +54,9 @@ describe('documentation', () => {
     expect(contracts).toContain('ValidateResult');
     expect(contracts).toContain('CALL_ACTIVITY_WITHOUT_MAPPINGS');
     expect(contracts).toContain('CONDITION_VARIABLE_WITHOUT_PRODUCER');
+    expect(contracts).toContain('SERVICE_TASK_MISSING_IMPLEMENTATION');
+    expect(contracts).toContain('UNREACHABLE_FLOW_NODE');
+    expect(contracts).toContain('CALL_ACTIVITY_MISSING_CALLED_ELEMENT');
     expect(contracts).toContain('ParticipantsResult');
     expect(contracts).toContain('LanesResult');
     expect(contracts).toContain('EventsResult');
@@ -90,6 +93,7 @@ describe('documentation', () => {
     expect(backlog).toContain('add-boundary-event');
     expect(backlog).toContain('BPMN Lint Rules');
     expect(backlog).toContain('Variable-Aware Lint Rules');
+    expect(backlog).toContain('BPMN Lint Rules');
     expect(backlog).toContain('Status: `implemented`');
     expect(readingMetrics).toContain('Reading Optimization Metrics Strategy');
     expect(readingMetrics).toContain('tokens_per_successful_task');

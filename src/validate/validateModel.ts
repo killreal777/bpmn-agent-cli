@@ -1,5 +1,6 @@
 import { arrayOf } from '../bpmn/normalize.js';
 import type { BpmnIndexes, Diagnostic, LoadedBpmnModel, ModdleElement } from '../bpmn/types.js';
+import { bpmnLintDiagnostics } from './bpmnLint.js';
 import { variableLintDiagnostics } from './variableLint.js';
 
 export type ValidateResult = {
@@ -76,7 +77,7 @@ export function validateModel(model: LoadedBpmnModel, indexes: BpmnIndexes): Val
     }
   }
 
-  warnings.push(...variableLintDiagnostics(indexes));
+  warnings.push(...bpmnLintDiagnostics(indexes), ...variableLintDiagnostics(indexes));
 
   return {
     valid: errors.length === 0,

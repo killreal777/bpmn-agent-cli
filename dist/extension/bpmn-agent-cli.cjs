@@ -1466,8 +1466,8 @@ function Context(options) {
       }
     }
   };
-  this.addWarning = function(warning2) {
-    this.warnings.push(warning2);
+  this.addWarning = function(warning3) {
+    this.warnings.push(warning3);
   };
 }
 function BaseHandler() {
@@ -7286,7 +7286,7 @@ async function loadBpmn(filePath) {
       rootElements,
       processes: rootElements.filter((element) => element.$type === "bpmn:Process"),
       collaborations: rootElements.filter((element) => element.$type === "bpmn:Collaboration"),
-      warnings: warnings.map((warning2) => ({ message: warning2.message ?? "BPMN parser warning" }))
+      warnings: warnings.map((warning3) => ({ message: warning3.message ?? "BPMN parser warning" }))
     };
   } catch (error3) {
     throw new BpmnCliError("BPMN_PARSE_ERROR", "BPMN/XML parse error", 4, {
@@ -9379,11 +9379,201 @@ function sortById2(a, b) {
   return a.id.localeCompare(b.id);
 }
 
+// src/validate/bpmnLint.ts
+var CONDITIONAL_GATEWAYS = /* @__PURE__ */ new Set(["bpmn:ExclusiveGateway", "bpmn:InclusiveGateway"]);
+function bpmnLintDiagnostics(indexes) {
+  return [
+    ...serviceTaskDiagnostics(indexes),
+    ...gatewayDiagnostics(indexes),
+    ...flowNodeDiagnostics(indexes),
+    ...duplicateNameDiagnostics(indexes),
+    ...boundaryEventDiagnostics(indexes),
+    ...callActivityDiagnostics(indexes)
+  ].sort(compareDiagnostic);
+}
+function serviceTaskDiagnostics(indexes) {
+  const diagnostics = [];
+  for (const element of sortedElements2(indexes.byType.get("bpmn:ServiceTask") ?? [])) {
+    const raw = indexes.rawById.get(element.id);
+    const implementations = indexes.implementationsByElementId.get(element.id) ?? [];
+    if (!hasServiceTaskImplementation(implementations)) {
+      diagnostics.push(warning(
+        "SERVICE_TASK_MISSING_IMPLEMENTATION",
+        "Service task has no detected implementation",
+        element.id
+      ));
+    }
+    if (raw?.type === "external" && !stringValue(raw.topic)) {
+      diagnostics.push(warning(
+        "EXTERNAL_TASK_MISSING_TOPIC",
+        "External service task has no topic",
+        element.id
+      ));
+    }
+  }
+  return diagnostics;
+}
+function hasServiceTaskImplementation(implementations) {
+  return implementations.some((implementation) => {
+    if (implementation.kind === "form") {
+      return false;
+    }
+    if (implementation.kind === "externalTask") {
+      return Boolean(implementation.topic);
+    }
+    return ["delegateExpression", "class", "expression", "listener"].includes(implementation.kind);
+  });
+}
+function gatewayDiagnostics(indexes) {
+  const diagnostics = [];
+  const gateways = [...CONDITIONAL_GATEWAYS].flatMap((type) => indexes.byType.get(type) ?? []).sort(compareElement2);
+  for (const gateway of gateways) {
+    const outgoing = indexes.outgoingByNodeId.get(gateway.id) ?? [];
+    for (const flow of outgoing) {
+      if (!flow.condition) {
+        diagnostics.push(warning(
+          "GATEWAY_OUTGOING_WITHOUT_CONDITION",
+          "Conditional gateway has an outgoing sequence flow without a condition",
+          gateway.id,
+          { flowId: flow.id, targetId: flow.targetId }
+        ));
+      }
+    }
+  }
+  return diagnostics;
+}
+function flowNodeDiagnostics(indexes) {
+  const diagnostics = [];
+  for (const element of sortedElements2([...indexes.byId.values()].filter((item) => isFlowNode(item)))) {
+    if (element.type !== "bpmn:EndEvent" && element.type !== "bpmn:BoundaryEvent") {
+      const outgoing = indexes.outgoingByNodeId.get(element.id)?.length ?? 0;
+      if (outgoing === 0) {
+        diagnostics.push(warning(
+          "DEAD_END_FLOW_NODE",
+          "Flow node has no outgoing sequence flow",
+          element.id
+        ));
+      }
+    }
+  }
+  for (const element of unreachableElements(indexes)) {
+    diagnostics.push(warning(
+      "UNREACHABLE_FLOW_NODE",
+      "Flow node is not reachable from a process start event",
+      element.id,
+      { processId: element.processId ?? null }
+    ));
+  }
+  return diagnostics;
+}
+function unreachableElements(indexes) {
+  const unreachable = [];
+  for (const [processId, elements] of indexes.byProcessId.entries()) {
+    const nodes = sortedElements2(elements.filter((element) => isFlowNode(element)));
+    const starts = nodes.filter((element) => element.type === "bpmn:StartEvent");
+    if (starts.length === 0) {
+      continue;
+    }
+    const reachable = reachableNodeIds(indexes, starts);
+    for (const node of nodes) {
+      if (node.type !== "bpmn:StartEvent" && !reachable.has(node.id)) {
+        unreachable.push({ ...node, processId });
+      }
+    }
+  }
+  return sortedElements2(unreachable);
+}
+function reachableNodeIds(indexes, starts) {
+  const reachable = /* @__PURE__ */ new Set();
+  const stack = starts.map((start) => start.id);
+  while (stack.length > 0) {
+    const current = stack.pop();
+    if (!current || reachable.has(current)) {
+      continue;
+    }
+    reachable.add(current);
+    for (const boundaryEvent of indexes.boundaryEventsByAttachedToId.get(current) ?? []) {
+      if (!reachable.has(boundaryEvent.id)) {
+        stack.push(boundaryEvent.id);
+      }
+    }
+    for (const flow of indexes.outgoingByNodeId.get(current) ?? []) {
+      if (!reachable.has(flow.targetId)) {
+        stack.push(flow.targetId);
+      }
+    }
+  }
+  return reachable;
+}
+function duplicateNameDiagnostics(indexes) {
+  const diagnostics = [];
+  for (const [, elements] of indexes.byProcessId.entries()) {
+    const byName = /* @__PURE__ */ new Map();
+    for (const element of elements.filter((item) => item.type !== "bpmn:SequenceFlow")) {
+      const normalized = normalizeName(element.name);
+      if (!normalized) {
+        continue;
+      }
+      byName.set(normalized, [...byName.get(normalized) ?? [], element]);
+    }
+    for (const duplicates of byName.values()) {
+      if (duplicates.length < 2) {
+        continue;
+      }
+      const duplicateElementIds = sortedElements2(duplicates).map((element) => element.id);
+      for (const element of sortedElements2(duplicates)) {
+        diagnostics.push(warning(
+          "DUPLICATE_NAME_IN_PROCESS",
+          "Multiple elements in the same process share the same name",
+          element.id,
+          { name: element.name, duplicateElementIds }
+        ));
+      }
+    }
+  }
+  return diagnostics;
+}
+function boundaryEventDiagnostics(indexes) {
+  return sortedElements2(indexes.byType.get("bpmn:BoundaryEvent") ?? []).filter((event) => (indexes.outgoingByNodeId.get(event.id)?.length ?? 0) === 0).map((event) => warning(
+    "BOUNDARY_EVENT_WITHOUT_HANDLER",
+    "Boundary event has no outgoing handler sequence flow",
+    event.id
+  ));
+}
+function callActivityDiagnostics(indexes) {
+  return sortedElements2(indexes.byType.get("bpmn:CallActivity") ?? []).filter((element) => !stringValue(indexes.rawById.get(element.id)?.calledElement)).map((element) => warning(
+    "CALL_ACTIVITY_MISSING_CALLED_ELEMENT",
+    "CallActivity has no calledElement",
+    element.id
+  ));
+}
+function isFlowNode(element) {
+  return element.type !== "bpmn:SequenceFlow";
+}
+function sortedElements2(elements) {
+  return [...elements].sort(compareElement2);
+}
+function compareElement2(a, b) {
+  return a.id.localeCompare(b.id);
+}
+function warning(code, message, elementId, details) {
+  return {
+    severity: "warning",
+    code,
+    message,
+    elementId,
+    ...details ? { details } : {}
+  };
+}
+function compareDiagnostic(a, b) {
+  return (a.elementId ?? "").localeCompare(b.elementId ?? "") || a.code.localeCompare(b.code);
+}
+
 // src/query/variables.ts
 function getVariables(indexes, args) {
   const usages = [];
   const callActivityMappings = [];
-  for (const element of [...indexes.byId.values()].sort(compareElement2)) {
+  for (const element of [...indexes.byId.values()].sort(compareElement3)) {
     if (args.element && element.id !== args.element) {
       continue;
     }
@@ -9494,7 +9684,7 @@ function uniqueElements2(elements) {
   for (const element of elements) {
     byId.set(element.id, element);
   }
-  return [...byId.values()].sort(compareElement2);
+  return [...byId.values()].sort(compareElement3);
 }
 function cleanUsage(usage) {
   return Object.fromEntries(Object.entries(usage).filter(([, value]) => value !== void 0));
@@ -9502,7 +9692,7 @@ function cleanUsage(usage) {
 function compareUsage(a, b) {
   return a.name.localeCompare(b.name) || a.element.id.localeCompare(b.element.id) || compareDirection2(a.direction, b.direction) || a.source.localeCompare(b.source);
 }
-function compareElement2(a, b) {
+function compareElement3(a, b) {
   return a.id.localeCompare(b.id);
 }
 function compareDirection2(a, b) {
@@ -9515,7 +9705,7 @@ function variableLintDiagnostics(indexes) {
   return [
     ...callActivityMappingDiagnostics(indexes),
     ...conditionProducerDiagnostics(indexes)
-  ].sort(compareDiagnostic);
+  ].sort(compareDiagnostic2);
 }
 function callActivityMappingDiagnostics(indexes) {
   const diagnostics = [];
@@ -9523,7 +9713,7 @@ function callActivityMappingDiagnostics(indexes) {
   for (const contract of contracts) {
     const mappings = [...contract.inputMappings, ...contract.outputMappings];
     if (mappings.length === 0 && !contract.passThrough) {
-      diagnostics.push(warning(
+      diagnostics.push(warning2(
         "CALL_ACTIVITY_WITHOUT_MAPPINGS",
         "CallActivity has no explicit input/output mappings or variables pass-through",
         contract.element.id
@@ -9531,7 +9721,7 @@ function callActivityMappingDiagnostics(indexes) {
     }
     for (const mapping of contract.inputMappings) {
       if (!mapping.target) {
-        diagnostics.push(warning(
+        diagnostics.push(warning2(
           "CALL_ACTIVITY_IN_MISSING_TARGET",
           "CallActivity input mapping has no target variable",
           contract.element.id,
@@ -9539,7 +9729,7 @@ function callActivityMappingDiagnostics(indexes) {
         ));
       }
       if (mapping.sourceExpression && !mapping.target) {
-        diagnostics.push(warning(
+        diagnostics.push(warning2(
           "CALL_ACTIVITY_SOURCE_EXPRESSION_WITHOUT_TARGET",
           "CallActivity sourceExpression mapping has no target variable",
           contract.element.id,
@@ -9549,7 +9739,7 @@ function callActivityMappingDiagnostics(indexes) {
     }
     for (const mapping of contract.outputMappings) {
       if (mapping.variables === "all") {
-        diagnostics.push(warning(
+        diagnostics.push(warning2(
           "CALL_ACTIVITY_VARIABLES_ALL_PASS_THROUGH",
           "CallActivity passes through all variables",
           contract.element.id,
@@ -9558,7 +9748,7 @@ function callActivityMappingDiagnostics(indexes) {
         continue;
       }
       if (!mapping.target) {
-        diagnostics.push(warning(
+        diagnostics.push(warning2(
           "CALL_ACTIVITY_OUT_MISSING_TARGET",
           "CallActivity output mapping has no target variable",
           contract.element.id,
@@ -9575,7 +9765,7 @@ function conditionProducerDiagnostics(indexes) {
     variables.usages.filter((usage) => usage.direction === "out" || usage.direction === "write").map((usage) => usage.name)
   );
   const conditionReads = variables.usages.filter((usage) => usage.source === "sequenceFlowCondition" && usage.direction === "read");
-  return conditionReads.filter((usage) => !isProduced(usage, produced)).map((usage) => warning(
+  return conditionReads.filter((usage) => !isProduced(usage, produced)).map((usage) => warning2(
     "CONDITION_VARIABLE_WITHOUT_PRODUCER",
     "Sequence-flow condition reads a variable with no detected producer",
     usage.element.id,
@@ -9588,7 +9778,7 @@ function isProduced(usage, produced) {
 function mappingDetails(mapping) {
   return Object.fromEntries(Object.entries(mapping).filter(([, value]) => value !== void 0));
 }
-function warning(code, message, elementId, details) {
+function warning2(code, message, elementId, details) {
   return {
     severity: "warning",
     code,
@@ -9597,7 +9787,7 @@ function warning(code, message, elementId, details) {
     ...details ? { details } : {}
   };
 }
-function compareDiagnostic(a, b) {
+function compareDiagnostic2(a, b) {
   return (a.elementId ?? "").localeCompare(b.elementId ?? "") || a.code.localeCompare(b.code);
 }
 
@@ -9663,7 +9853,7 @@ function validateModel(model, indexes) {
       }
     }
   }
-  warnings.push(...variableLintDiagnostics(indexes));
+  warnings.push(...bpmnLintDiagnostics(indexes), ...variableLintDiagnostics(indexes));
   return {
     valid: errors.length === 0,
     errors,
@@ -11507,7 +11697,7 @@ async function convertBpmnToJson(xml2, options = {}) {
     definitions: cleanValue({ id: definitions.id }),
     collaborations: isExcludedByConfig("collaborations", config) ? void 0 : sortItems(rootElements.filter((element) => element.$type === "bpmn:Collaboration").map(projectCollaboration)),
     processes: sortItems(rootElements.filter((element) => element.$type === "bpmn:Process").map(projectProcess)),
-    warnings: warnings.map((warning2) => cleanValue({ message: warning2.message }))
+    warnings: warnings.map((warning3) => cleanValue({ message: warning3.message }))
   });
   const optimized = applyOptimizations(projected, config.optimizations?.enabled ?? []);
   return applyFieldExclusions(optimized, config);

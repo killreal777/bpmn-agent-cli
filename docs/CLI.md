@@ -258,6 +258,8 @@ Returns `valid`, `errors`, `warnings`, and `infos`. Validation errors exit with 
 
 Variable-aware lint warnings are included for CallActivity mappings and condition variable reads, but warnings do not make `valid` false.
 
+BPMN lint warnings are also included for missing service implementations, external-task topics, incomplete gateway conditions, dead ends, unreachable nodes, duplicate names, boundary events without handlers, and call activities without called elements.
+
 ## to-json
 
 ```bash

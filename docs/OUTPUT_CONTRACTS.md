@@ -318,6 +318,17 @@ Variable-aware warning codes:
 - `CALL_ACTIVITY_VARIABLES_ALL_PASS_THROUGH`: mapping uses `variables="all"`.
 - `CONDITION_VARIABLE_WITHOUT_PRODUCER`: sequence-flow condition reads a variable with no detected output producer.
 
+BPMN lint warning codes:
+
+- `SERVICE_TASK_MISSING_IMPLEMENTATION`: service task has no detected runtime implementation.
+- `EXTERNAL_TASK_MISSING_TOPIC`: external service task has no topic.
+- `GATEWAY_OUTGOING_WITHOUT_CONDITION`: exclusive or inclusive gateway has an outgoing sequence flow without a condition.
+- `DEAD_END_FLOW_NODE`: non-end flow node has no outgoing sequence flow.
+- `UNREACHABLE_FLOW_NODE`: non-start flow node is not reachable from a process start event.
+- `DUPLICATE_NAME_IN_PROCESS`: multiple indexed elements in one process share the same normalized name.
+- `BOUNDARY_EVENT_WITHOUT_HANDLER`: boundary event has no outgoing handler sequence flow.
+- `CALL_ACTIVITY_MISSING_CALLED_ELEMENT`: call activity has no called element.
+
 ## ParticipantsResult
 
 ```ts

@@ -130,5 +130,6 @@ Planned measured experiments:
   - success unchanged: 20/20 tasks
   - estimated output tokens improved by 92 compared with `candidate-call-activity`
 - variable-aware lint rules implemented as warnings-only `validate` diagnostics
+- BPMN structural/semantic lint rules implemented as warnings-only `validate` diagnostics
 - JSON conversion modernization implemented: `to-json` remains supported and active converter code lives under `src/convert`
 - semantic `diff` implemented for comparing two BPMN files by indexed model changes

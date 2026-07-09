@@ -435,7 +435,7 @@ Acceptance direction:
 ### BL-017: BPMN Lint Rules
 
 Priority: `P4`
-Status: `ready-for-spec`
+Status: `implemented`
 
 Extend `validate` with configurable semantic lint rules.
 
@@ -449,6 +449,18 @@ Initial rules:
 - duplicate names in same process
 - boundary event without outgoing handler
 - call activity missing called element
+
+Implemented scope:
+
+- Added warnings-only diagnostics to `validate`.
+- Service task missing implementation.
+- External task missing topic.
+- Exclusive/inclusive gateway outgoing flow missing condition.
+- Dead-end non-end flow node.
+- Flow node unreachable from process start event.
+- Duplicate normalized names in the same process.
+- Boundary event without outgoing handler.
+- Call activity missing called element.
 
 ### BL-018: `impact`
 
