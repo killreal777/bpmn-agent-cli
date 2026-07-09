@@ -400,16 +400,24 @@ Implemented scope:
 ### BL-015: `diff`
 
 Priority: `P4`
-Status: `ready-for-spec`
+Status: `implemented`
 
 Compare two BPMN files semantically and return added, removed, renamed, reconnected, implementation-changed, and documentation-changed elements.
 
 Acceptance direction:
 
 - JSON envelope with stable sorted changes.
-- Optional markdown report.
 - Ignore pure formatting differences.
 - Include sequence flow topology changes.
+- Include implementation and documentation changes.
+
+Implemented scope:
+
+- `bpmn-agent-cli diff --base before.bpmn --candidate after.bpmn`.
+- Compares indexed semantic BPMN elements by id.
+- Reports added, removed, renamed, reconnected sequence flows, implementation changes, and documentation changes.
+- Ignores XML formatting and BPMNDI-only layout differences.
+- Does not perform fuzzy matching for deleted/recreated ids.
 
 ### BL-016: `plan-write`
 

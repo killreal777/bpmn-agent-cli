@@ -25,6 +25,7 @@ describe('documentation', () => {
     expect(cli).toContain('bpmn-agent-cli participants process.bpmn');
     expect(cli).toContain('bpmn-agent-cli variables process.bpmn --element Call_SubProcess');
     expect(cli).toContain('bpmn-agent-cli call-activity process.bpmn --id Call_SubProcess');
+    expect(cli).toContain('bpmn-agent-cli diff --base before.bpmn --candidate after.bpmn');
     expect(cli).toContain('bpmn-agent-cli lanes process.bpmn --element Task_1');
     expect(cli).toContain('bpmn-agent-cli events process.bpmn --type boundary');
     expect(cli).toContain('bpmn-agent-cli subprocess process.bpmn --id SubProcess_1');
@@ -40,6 +41,7 @@ describe('documentation', () => {
     expect(cli).toContain('bpmn-agent-cli add-boundary-event process.bpmn --attached-to Task_1 --id Boundary_Timeout');
     expect(readme).toContain('bpmn-agent-cli path process.bpmn --from StartEvent_1 --to EndEvent_1');
     expect(readme).toContain('bpmn-agent-cli call-activity process.bpmn --id Call_SubProcess');
+    expect(readme).toContain('bpmn-agent-cli diff --base before.bpmn --candidate after.bpmn');
     expect(readme).toContain('bpmn-agent-cli export process.bpmn --format markdown');
     expect(contracts).toContain('ELEMENT_NOT_FOUND');
     expect(contracts).toContain('ElementDetails');
@@ -48,6 +50,7 @@ describe('documentation', () => {
     expect(contracts).toContain('callActivityMappings');
     expect(contracts).toContain('VariablesResult');
     expect(contracts).toContain('CallActivityResult');
+    expect(contracts).toContain('DiffResult');
     expect(contracts).toContain('ValidateResult');
     expect(contracts).toContain('CALL_ACTIVITY_WITHOUT_MAPPINGS');
     expect(contracts).toContain('CONDITION_VARIABLE_WITHOUT_PRODUCER');
@@ -80,6 +83,7 @@ describe('documentation', () => {
     expect(backlog).toContain('call-activity');
     expect(backlog).toContain('BL-012: `call-activity`');
     expect(backlog).toContain('JSON Conversion Modernization');
+    expect(backlog).toContain('BL-015: `diff`');
     expect(backlog).not.toContain('Legacy `to-json` Removal Plan');
     expect(contracts).toContain('JsonConversionResult');
     expect(backlog).toContain('delete-safe');

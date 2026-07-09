@@ -254,6 +254,48 @@ type CallActivityResult = {
 
 `call-activity` is read-only and focused on `bpmn:CallActivity` contracts. Without `--id`, `callActivities` contains all call activities sorted by id. With `--id`, it contains exactly one call activity or returns `ELEMENT_NOT_FOUND` / `UNSUPPORTED_BPMN_ELEMENT_TYPE`.
 
+## DiffResult
+
+```ts
+type DiffResult = {
+  baseFile: string;
+  candidateFile: string;
+  changes: {
+    added: ElementSummary[];
+    removed: ElementSummary[];
+    renamed: Array<{
+      before: ElementSummary;
+      after: ElementSummary;
+    }>;
+    reconnected: Array<{
+      id: string;
+      before: SequenceFlowSummary;
+      after: SequenceFlowSummary;
+    }>;
+    implementationChanged: Array<{
+      element: ElementSummary;
+      before: ImplementationSummary[];
+      after: ImplementationSummary[];
+    }>;
+    documentationChanged: Array<{
+      element: ElementSummary;
+      before: string | null;
+      after: string | null;
+    }>;
+  };
+  counts: {
+    added: number;
+    removed: number;
+    renamed: number;
+    reconnected: number;
+    implementationChanged: number;
+    documentationChanged: number;
+  };
+};
+```
+
+`diff` compares semantic indexed BPMN elements by id and returns stable sorted arrays. It ignores XML formatting and BPMNDI-only layout differences. It does not perform fuzzy matching for deleted/recreated ids.
+
 ## ValidateResult
 
 ```ts

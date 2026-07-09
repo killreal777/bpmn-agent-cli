@@ -123,6 +123,33 @@ describe('CLI overview and validate', () => {
     });
   });
 
+  it('prints diff envelope as JSON', async () => {
+    const { stdout } = await execFileAsync('npx', [
+      'tsx',
+      'src/cli/main.ts',
+      'diff',
+      '--base',
+      'test/fixtures/diff-base.bpmn',
+      '--candidate',
+      'test/fixtures/diff-candidate.bpmn'
+    ]);
+
+    expect(JSON.parse(stdout)).toMatchObject({
+      ok: true,
+      command: 'diff',
+      file: null,
+      result: {
+        changes: {
+          added: [expect.objectContaining({ id: 'Task_Added' })],
+          removed: [expect.objectContaining({ id: 'Task_Remove' })],
+          implementationChanged: [
+            expect.objectContaining({ element: expect.objectContaining({ id: 'Service_Score' }) })
+          ]
+        }
+      }
+    });
+  });
+
   it('prints gateway envelope as JSON', async () => {
     const { stdout } = await execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'gateway', 'test/fixtures/gateway-condition.bpmn', '--id', 'Gateway_1']);
 

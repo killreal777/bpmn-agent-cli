@@ -9,6 +9,7 @@ import { callActivityCommand } from './commands/callActivityCommand.js';
 import { connectCommand } from './commands/connectCommand.js';
 import { contextCommand } from './commands/contextCommand.js';
 import { deleteSafeCommand } from './commands/deleteSafeCommand.js';
+import { diffCommand } from './commands/diffCommand.js';
 import { documentationCommand } from './commands/documentationCommand.js';
 import { elementCommand } from './commands/elementCommand.js';
 import { exportCommand } from './commands/exportCommand.js';
@@ -79,6 +80,11 @@ export async function main(args: string[] = process.argv.slice(2)): Promise<void
 
     if (parsed.command === 'call-activity') {
       writeJson(await callActivityCommand(parsed), pretty);
+      return;
+    }
+
+    if (parsed.command === 'diff') {
+      writeJson(await diffCommand(parsed), pretty);
       return;
     }
 

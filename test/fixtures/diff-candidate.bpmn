@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
+                  id="Definitions_DiffCandidate"
+                  targetNamespace="http://bpmn-agent-cli/test">
+  <bpmn:process id="Process_Diff" name="Diff process" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_1">
+      <bpmn:outgoing>Flow_Start_To_Task</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="Task_Review" name="Review application updated">
+      <bpmn:documentation>New review documentation</bpmn:documentation>
+      <bpmn:incoming>Flow_Task_To_Service</bpmn:incoming>
+      <bpmn:outgoing>Flow_Service_To_End</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:serviceTask id="Service_Score" name="Score application" camunda:delegateExpression="${newDelegate}">
+      <bpmn:incoming>Flow_Start_To_Task</bpmn:incoming>
+      <bpmn:outgoing>Flow_Task_To_Service</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:task id="Task_Added" name="Added task" />
+    <bpmn:endEvent id="EndEvent_1">
+      <bpmn:incoming>Flow_Service_To_End</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_Start_To_Task" sourceRef="StartEvent_1" targetRef="Service_Score" />
+    <bpmn:sequenceFlow id="Flow_Task_To_Service" sourceRef="Service_Score" targetRef="Task_Review" />
+    <bpmn:sequenceFlow id="Flow_Service_To_End" sourceRef="Task_Review" targetRef="EndEvent_1" />
+  </bpmn:process>
+</bpmn:definitions>

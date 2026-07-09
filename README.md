@@ -46,6 +46,7 @@ bpmn-agent-cli gateway process.bpmn --id Gateway_CheckResult
 bpmn-agent-cli implementations process.bpmn
 bpmn-agent-cli participants process.bpmn
 bpmn-agent-cli call-activity process.bpmn --id Call_SubProcess
+bpmn-agent-cli diff --base before.bpmn --candidate after.bpmn
 bpmn-agent-cli lanes process.bpmn --element Activity_CheckClient
 bpmn-agent-cli events process.bpmn --type boundary
 bpmn-agent-cli subprocess process.bpmn --id SubProcess_1
@@ -127,6 +128,8 @@ P3-B adds structural `connect` for adding one sequence flow between existing nod
 P3-C adds structural `delete-safe` for removing one linear flow node and reconnecting source to target. BPMNDI layout is not updated in P3-C.
 
 P3-D adds structural `add-boundary-event` for timer boundary events. BPMNDI layout is not updated in P3-D.
+
+P4 adds semantic reading and review-confidence features including `variables`, `call-activity`, `context --profile agent`, variable-aware validate warnings, and `diff`.
 
 Product direction is documented in `docs/PRODUCT_VISION.md`. P1/P2/P3 status is documented in `docs/ROADMAP.md`. Future ideas are tracked in `docs/BACKLOG.md`.
 

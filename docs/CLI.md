@@ -59,6 +59,14 @@ bpmn-agent-cli call-activity process.bpmn --id Call_SubProcess
 
 Returns focused CallActivity contracts: called element, Camunda input/output mappings, `variables="all"` pass-through, business key mapping, variable summary, and mapping warnings.
 
+## diff
+
+```bash
+bpmn-agent-cli diff --base before.bpmn --candidate after.bpmn
+```
+
+Compares two BPMN files semantically and returns stable JSON lists for added, removed, renamed, reconnected, implementation-changed, and documentation-changed elements. Pure XML formatting and BPMNDI-only layout differences are ignored.
+
 ## context
 
 ```bash
