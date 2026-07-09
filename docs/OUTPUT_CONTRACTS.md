@@ -320,6 +320,29 @@ type ImpactResult = {
 
 `impact` returns a local change-impact card for one indexed element. Upstream paths end with the focus element, downstream paths start with it, and affected id lists exclude the focus id except implementation/call-activity id sets.
 
+## ReviewResult
+
+```ts
+type ReviewResult = {
+  file: string;
+  overview: OverviewResult;
+  diagnostics: ValidateResult;
+  participants: ParticipantsResult;
+  lanes: LanesResult;
+  events: EventsResult;
+  subprocess: SubprocessResult;
+  implementations: ImplementationsResult;
+  riskFlags: Diagnostic[];
+  checklist: Array<{
+    id: string;
+    text: string;
+    relatedCodes: string[];
+  }>;
+};
+```
+
+`review` returns a deterministic JSON review packet. `riskFlags` contains validation errors and warnings sorted by severity, element id, and code. `checklist` is generated from available sections and diagnostic codes.
+
 ## ValidateResult
 
 ```ts

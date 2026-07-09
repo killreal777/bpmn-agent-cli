@@ -134,3 +134,4 @@ Planned measured experiments:
 - JSON conversion modernization implemented: `to-json` remains supported and active converter code lives under `src/convert`
 - semantic `diff` implemented for comparing two BPMN files by indexed model changes
 - local `impact` command implemented for upstream/downstream element impact cards
+- JSON `review` command implemented for deterministic BPMN review packets

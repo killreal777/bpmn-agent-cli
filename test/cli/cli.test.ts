@@ -174,6 +174,25 @@ describe('CLI overview and validate', () => {
     });
   });
 
+  it('prints review envelope as JSON', async () => {
+    const { stdout } = await execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'review', 'test/fixtures/bpmn-lint.bpmn']);
+
+    expect(JSON.parse(stdout)).toMatchObject({
+      ok: true,
+      command: 'review',
+      file: 'test/fixtures/bpmn-lint.bpmn',
+      result: {
+        overview: { definitions: { id: 'Definitions_BpmnLint' } },
+        riskFlags: expect.arrayContaining([
+          expect.objectContaining({ severity: 'warning' })
+        ]),
+        checklist: expect.arrayContaining([
+          expect.objectContaining({ id: 'review-diagnostics' })
+        ])
+      }
+    });
+  });
+
   it('prints gateway envelope as JSON', async () => {
     const { stdout } = await execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'gateway', 'test/fixtures/gateway-condition.bpmn', '--id', 'Gateway_1']);
 

@@ -479,9 +479,16 @@ Implemented scope:
 ### BL-019: `review`
 
 Priority: `P4`
-Status: `proposed`
+Status: `implemented`
 
 Generate a human-readable review packet for a BPMN file or BPMN diff: overview, risky branches, implementations, events, lanes, warnings, and suggested review checklist.
+
+Implemented scope:
+
+- `bpmn-agent-cli review process.bpmn`.
+- JSON review packet for a single BPMN file.
+- Includes overview, validate diagnostics, participants, lanes, events, subprocesses, implementations, sorted risk flags, and deterministic checklist.
+- Markdown and diff review packets remain future extensions.
 
 ## P4: Agent Context And Query Expansion
 

@@ -76,6 +76,14 @@ bpmn-agent-cli impact process.bpmn --id Task_1 --depth 5 --max-paths 20
 
 Returns a compact impact card for one element: upstream/downstream paths, lanes, participant, boundary events, implementations, related call activities, and affected element id sets.
 
+## review
+
+```bash
+bpmn-agent-cli review process.bpmn
+```
+
+Returns a deterministic JSON review packet: overview, diagnostics, participants, lanes, events, subprocesses, implementations, risk flags, and a checklist.
+
 ## context
 
 ```bash

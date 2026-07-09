@@ -11218,6 +11218,119 @@ async function writeOutput9(path, payload) {
   }
 }
 
+// src/query/review.ts
+function buildReviewPacket(model) {
+  const indexes = buildIndexes(model);
+  const diagnostics = validateModel(model, indexes);
+  const overview = getOverview(model, indexes);
+  const participants = getParticipants(model, indexes);
+  const lanes = getLanes(indexes, {});
+  const events = getEvents(model, indexes, {});
+  const subprocess = getSubprocesses(indexes, {});
+  const implementations = listImplementations(indexes, {});
+  const riskFlags = [...diagnostics.errors, ...diagnostics.warnings].sort(compareDiagnostics);
+  return {
+    file: model.filePath,
+    overview,
+    diagnostics,
+    participants,
+    lanes,
+    events,
+    subprocess,
+    implementations,
+    riskFlags,
+    checklist: buildChecklist({
+      diagnostics,
+      overview,
+      participants,
+      lanes,
+      events,
+      subprocess,
+      implementations,
+      riskFlags
+    })
+  };
+}
+function buildChecklist(args) {
+  const items = [];
+  const riskCodes = [...new Set(args.riskFlags.map((diagnostic) => diagnostic.code))].sort((a, b) => a.localeCompare(b));
+  if (args.riskFlags.length > 0) {
+    items.push({
+      id: "review-diagnostics",
+      text: "Review validation errors and warnings before approving this BPMN.",
+      relatedCodes: riskCodes
+    });
+  }
+  if (Object.keys(args.overview.counts.gateways).length > 0) {
+    items.push({
+      id: "review-gateways",
+      text: "Review gateway branches and sequence-flow conditions.",
+      relatedCodes: riskCodes.filter((code) => code.includes("GATEWAY"))
+    });
+  }
+  if (args.implementations.serviceTasks.length > 0 || args.implementations.callActivities.length > 0 || args.implementations.listeners.length > 0 || args.implementations.forms.length > 0) {
+    items.push({
+      id: "review-implementations",
+      text: "Review runtime implementations, delegates, forms, listeners, and external task topics.",
+      relatedCodes: riskCodes.filter((code) => code.includes("IMPLEMENTATION") || code.includes("EXTERNAL_TASK"))
+    });
+  }
+  if (args.events.events.length > 0) {
+    items.push({
+      id: "review-events",
+      text: "Review start/end/boundary/intermediate events and handler flows.",
+      relatedCodes: riskCodes.filter((code) => code.includes("BOUNDARY") || code.includes("EVENT"))
+    });
+  }
+  if (args.implementations.callActivities.length > 0 || riskCodes.some((code) => code.includes("CALL_ACTIVITY"))) {
+    items.push({
+      id: "review-call-activities",
+      text: "Review CallActivity called elements and variable mappings.",
+      relatedCodes: riskCodes.filter((code) => code.includes("CALL_ACTIVITY"))
+    });
+  }
+  if (args.participants.collaborations.length > 0 || args.lanes.lanes.length > 0) {
+    items.push({
+      id: "review-collaboration",
+      text: "Review participant, lane, and message-flow ownership.",
+      relatedCodes: []
+    });
+  }
+  if (args.subprocess.subprocesses.length > 0) {
+    items.push({
+      id: "review-subprocesses",
+      text: "Review subprocess boundaries, direct children, and nested subprocesses.",
+      relatedCodes: []
+    });
+  }
+  return items.sort((a, b) => a.id.localeCompare(b.id));
+}
+function compareDiagnostics(a, b) {
+  return severityRank(a.severity) - severityRank(b.severity) || (a.elementId ?? "").localeCompare(b.elementId ?? "") || a.code.localeCompare(b.code);
+}
+function severityRank(severity) {
+  if (severity === "error") {
+    return 0;
+  }
+  if (severity === "warning") {
+    return 1;
+  }
+  return 2;
+}
+
+// src/cli/commands/reviewCommand.ts
+async function reviewCommand(args) {
+  if (!args.file) {
+    throw new BpmnCliError("MISSING_FILE_ARGUMENT", "review requires a BPMN file", 2);
+  }
+  const model = await loadBpmn(args.file);
+  return successEnvelope({
+    command: "review",
+    file: args.file,
+    result: buildReviewPacket(model)
+  });
+}
+
 // src/cli/commands/subprocessCommand.ts
 async function subprocessCommand(args) {
   if (!args.file) {
@@ -12130,6 +12243,10 @@ async function main(args = process.argv.slice(2)) {
     }
     if (parsed.command === "impact") {
       writeJson(await impactCommand(parsed), pretty);
+      return;
+    }
+    if (parsed.command === "review") {
+      writeJson(await reviewCommand(parsed), pretty);
       return;
     }
     if (parsed.command === "trace") {
