@@ -79,6 +79,9 @@ describe('documentation', () => {
     expect(readingMetrics).toContain('tokens_per_successful_task');
     expect(readingMetrics).toContain('xml_fallback_rate');
     expect(agentBenchmarks).toContain('benchmark:agent');
+    expect(agentBenchmarks).toContain('benchmark:agent:refs');
+    expect(agentBenchmarks).toContain('--baseline-ref');
+    expect(agentBenchmarks).toContain('--candidate-ref');
     expect(agentBenchmarks).toContain('--agent codex');
     expect(agentBenchmarks).toContain('answerCorrectnessScore');
     expect(benchmarkFixtures.filter((file) => file.endsWith('.bpmn')).length).toBeGreaterThanOrEqual(5);

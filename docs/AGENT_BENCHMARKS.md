@@ -48,6 +48,36 @@ npm run benchmark:compare -- \
   --output benchmarks/results/compare-agent.json
 ```
 
+Run the same agent task against two CLI refs and compare the resulting reports:
+
+```bash
+npm run benchmark:agent:refs -- \
+  --task T9-variables-call-activity \
+  --agent codex \
+  --baseline-ref 5074ac6 \
+  --candidate-ref main \
+  --output-dir benchmarks/results/agent-vars-ref-compare
+```
+
+For already-built CLI binaries, pass commands instead of Git refs:
+
+```bash
+npm run benchmark:agent:refs -- \
+  --task T9-variables-call-activity \
+  --agent-command 'my-agent --prompt-file {promptFile} --answer-file {answerFile}' \
+  --baseline-cli-command 'node /tmp/bpmn-agent-cli-old/dist/cli/main.js' \
+  --candidate-cli-command 'node "$(pwd)/dist/cli/main.js"' \
+  --output-dir benchmarks/results/agent-vars-command-compare
+```
+
+`benchmark:agent:refs` writes:
+
+- `agent-baseline.json`: agent benchmark report for `--baseline-ref` or `--baseline-cli-command`.
+- `agent-candidate.json`: agent benchmark report for `--candidate-ref` or `--candidate-cli-command`.
+- `compare-agent.json`: `benchmark:compare` output with metric deltas.
+
+Git refs are checked out into temporary detached worktrees, built with `npm ci` and `npm run build`, then used through their own `dist/cli/main.js`.
+
 ## How Metrics Are Collected
 
 For every task, the runner writes:

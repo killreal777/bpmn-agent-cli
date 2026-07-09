@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit",
     "benchmark": "node scripts/benchmark.mjs",
     "benchmark:agent": "node scripts/benchmark-agent.mjs",
+    "benchmark:agent:refs": "node scripts/benchmark-agent-refs.mjs",
     "benchmark:compare": "node scripts/benchmark-compare.mjs",
     "build:extension": "npm run build && node scripts/build-extension.mjs",
     "start": "tsx src/cli/main.ts"

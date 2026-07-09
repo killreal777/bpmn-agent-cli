@@ -11,6 +11,7 @@ describe('benchmark scripts', () => {
 
     expect(packageJson.scripts.benchmark).toBe('node scripts/benchmark.mjs');
     expect(packageJson.scripts['benchmark:agent']).toBe('node scripts/benchmark-agent.mjs');
+    expect(packageJson.scripts['benchmark:agent:refs']).toBe('node scripts/benchmark-agent-refs.mjs');
     expect(packageJson.scripts['benchmark:compare']).toBe('node scripts/benchmark-compare.mjs');
   });
 
@@ -143,6 +144,47 @@ describe('benchmark scripts', () => {
     expect(report.tasks[0]).toMatchObject({
       success: false,
       cliCallCount: 0
+    });
+  });
+
+  it('compares agent benchmark runs across two CLI commands', async () => {
+    const fakeAgentPath = 'tmp/fake-agent-refs.sh';
+    const outputDir = 'tmp/agent-ref-compare';
+    await rm(outputDir, { recursive: true, force: true });
+    await writeFile(fakeAgentPath, [
+      '#!/usr/bin/env bash',
+      'set -euo pipefail',
+      'bpmn-agent-cli overview benchmarks/fixtures/simple-linear.bpmn >/tmp/fake-agent-ref-overview.json',
+      'printf "Task_DoWork uses workDelegate and does not read raw BPMN XML.\\n" > "$BPMN_AGENT_ANSWER_FILE"'
+    ].join('\n'));
+    await chmod(fakeAgentPath, 0o755);
+
+    await execFileAsync('npm', [
+      'run',
+      'benchmark:agent:refs',
+      '--',
+      '--task',
+      'T1-overview-linear',
+      '--agent-command',
+      fakeAgentPath,
+      '--baseline-cli-command',
+      'node "$(pwd)/dist/cli/main.js"',
+      '--candidate-cli-command',
+      'node "$(pwd)/dist/cli/main.js"',
+      '--output-dir',
+      outputDir
+    ], { timeout: 60000 });
+
+    const baseline = JSON.parse(await readFile(`${outputDir}/agent-baseline.json`, 'utf8'));
+    const candidate = JSON.parse(await readFile(`${outputDir}/agent-candidate.json`, 'utf8'));
+    const compare = JSON.parse(await readFile(`${outputDir}/compare-agent.json`, 'utf8'));
+
+    expect(baseline).toMatchObject({ mode: 'agent', aggregate: { successfulTasks: 1, cliCalls: 1 } });
+    expect(candidate).toMatchObject({ mode: 'agent', aggregate: { successfulTasks: 1, cliCalls: 1 } });
+    expect(compare.deltas).toMatchObject({
+      successfulTasks: 0,
+      cliCalls: 0,
+      averageCorrectnessScore: 0
     });
   });
 });
