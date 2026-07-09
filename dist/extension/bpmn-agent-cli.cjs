@@ -10395,6 +10395,97 @@ async function gatewayCommand(args) {
   });
 }
 
+// src/query/impact.ts
+function getImpact(indexes, args) {
+  const focus = indexes.byId.get(args.id);
+  if (!focus) {
+    throw new BpmnCliError("ELEMENT_NOT_FOUND", "Element not found", 1, { elementId: args.id });
+  }
+  const upstreamTraversal = collectPaths(indexes, focus, "backward", args.depth, args.maxPaths);
+  const downstreamTraversal = collectPaths(indexes, focus, "forward", args.depth, args.maxPaths);
+  const upstream = upstreamTraversal.paths.map(reversePath2);
+  const downstream = downstreamTraversal.paths;
+  const impactedElementIds = uniqueSorted([
+    focus.id,
+    ...idsFromPaths(upstream),
+    ...idsFromPaths(downstream)
+  ]);
+  const implementations = impactedElementIds.flatMap((id) => indexes.implementationsByElementId.get(id) ?? []).sort(compareImplementation);
+  const callActivityIds = impactedElementIds.map((id) => indexes.byId.get(id)).filter((element) => Boolean(element && element.type === "bpmn:CallActivity")).map((element) => element.id).sort((a, b) => a.localeCompare(b));
+  return {
+    focus,
+    upstream,
+    downstream,
+    lanes: [...indexes.lanesByElementId.get(focus.id) ?? []].sort(compareById),
+    participant: focus.processId ? indexes.participantByProcessId.get(focus.processId) ?? null : null,
+    boundaryEvents: [...indexes.boundaryEventsByAttachedToId.get(focus.id) ?? []].sort(compareById),
+    implementations,
+    callActivities: callActivityIds.map((id) => getCallActivities(indexes, { id }).callActivities[0]).filter((item) => Boolean(item)),
+    affected: {
+      upstreamElementIds: uniqueSorted(idsFromPaths(upstream).filter((id) => id !== focus.id)),
+      downstreamElementIds: uniqueSorted(idsFromPaths(downstream).filter((id) => id !== focus.id)),
+      implementationElementIds: uniqueSorted(implementations.map((implementation) => implementation.elementId)),
+      callActivityIds
+    },
+    truncated: upstreamTraversal.truncated || downstreamTraversal.truncated
+  };
+}
+function reversePath2(path) {
+  return {
+    ...path,
+    nodes: [...path.nodes].reverse(),
+    flows: [...path.flows].reverse()
+  };
+}
+function idsFromPaths(paths) {
+  return paths.flatMap((path) => path.nodes.map((node) => node.id));
+}
+function uniqueSorted(values) {
+  return [...new Set(values)].sort((a, b) => a.localeCompare(b));
+}
+function compareById(a, b) {
+  return a.id.localeCompare(b.id);
+}
+function compareImplementation(a, b) {
+  return [
+    a.elementId.localeCompare(b.elementId),
+    a.kind.localeCompare(b.kind),
+    (a.value ?? "").localeCompare(b.value ?? ""),
+    (a.topic ?? "").localeCompare(b.topic ?? "")
+  ].find((value) => value !== 0) ?? 0;
+}
+
+// src/cli/commands/impactCommand.ts
+async function impactCommand(args) {
+  if (!args.file) {
+    throw new BpmnCliError("MISSING_FILE_ARGUMENT", "impact requires a BPMN file", 2);
+  }
+  const id = args.options.get("--id");
+  if (typeof id !== "string") {
+    throw new BpmnCliError("INVALID_OPTION_VALUE", "impact requires --id", 2);
+  }
+  const model = await loadBpmn(args.file);
+  return successEnvelope({
+    command: "impact",
+    file: args.file,
+    result: getImpact(buildIndexes(model), {
+      id,
+      depth: numberOption3(args, "--depth", 5),
+      maxPaths: numberOption3(args, "--max-paths", 20)
+    })
+  });
+}
+function numberOption3(args, name2, fallback) {
+  const value = args.options.get(name2);
+  if (value === void 0) {
+    return fallback;
+  }
+  if (typeof value !== "string" || !Number.isInteger(Number(value)) || Number(value) < 0) {
+    throw new BpmnCliError("INVALID_OPTION_VALUE", `${name2} must be a non-negative integer`, 2, { option: name2, value });
+  }
+  return Number(value);
+}
+
 // src/cli/commands/implementationCommand.ts
 var import_promises9 = require("node:fs/promises");
 var import_node_path8 = require("node:path");
@@ -10980,12 +11071,12 @@ async function pathCommand(args) {
       from,
       to,
       direction: direction === "backward" ? "backward" : "forward",
-      depth: numberOption3(args, "--depth", 10),
-      maxPaths: numberOption3(args, "--max-paths", 20)
+      depth: numberOption4(args, "--depth", 10),
+      maxPaths: numberOption4(args, "--max-paths", 20)
     })
   });
 }
-function numberOption3(args, name2, fallback) {
+function numberOption4(args, name2, fallback) {
   const value = args.options.get(name2);
   if (value === void 0) {
     return fallback;
@@ -11165,12 +11256,12 @@ async function traceCommand(args) {
     result: trace(buildIndexes(model), {
       from,
       direction: direction === "backward" ? "backward" : "forward",
-      depth: numberOption4(args, "--depth", 5),
-      maxPaths: numberOption4(args, "--max-paths", 20)
+      depth: numberOption5(args, "--depth", 5),
+      maxPaths: numberOption5(args, "--max-paths", 20)
     })
   });
 }
-function numberOption4(args, name2, fallback) {
+function numberOption5(args, name2, fallback) {
   const value = args.options.get(name2);
   if (value === void 0) {
     return fallback;
@@ -12035,6 +12126,10 @@ async function main(args = process.argv.slice(2)) {
     }
     if (parsed.command === "gateway") {
       writeJson(await gatewayCommand(parsed), pretty);
+      return;
+    }
+    if (parsed.command === "impact") {
+      writeJson(await impactCommand(parsed), pretty);
       return;
     }
     if (parsed.command === "trace") {

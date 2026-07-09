@@ -17,6 +17,7 @@ import { eventsCommand } from './commands/eventsCommand.js';
 import { findCommand } from './commands/findCommand.js';
 import { formatCommand } from './commands/formatCommand.js';
 import { gatewayCommand } from './commands/gatewayCommand.js';
+import { impactCommand } from './commands/impactCommand.js';
 import { implementationCommand } from './commands/implementationCommand.js';
 import { implementationsCommand } from './commands/implementationsCommand.js';
 import { insertTaskBetweenCommand } from './commands/insertTaskBetweenCommand.js';
@@ -90,6 +91,11 @@ export async function main(args: string[] = process.argv.slice(2)): Promise<void
 
     if (parsed.command === 'gateway') {
       writeJson(await gatewayCommand(parsed), pretty);
+      return;
+    }
+
+    if (parsed.command === 'impact') {
+      writeJson(await impactCommand(parsed), pretty);
       return;
     }
 

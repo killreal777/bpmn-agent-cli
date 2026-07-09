@@ -67,6 +67,15 @@ bpmn-agent-cli diff --base before.bpmn --candidate after.bpmn
 
 Compares two BPMN files semantically and returns stable JSON lists for added, removed, renamed, reconnected, implementation-changed, and documentation-changed elements. Pure XML formatting and BPMNDI-only layout differences are ignored.
 
+## impact
+
+```bash
+bpmn-agent-cli impact process.bpmn --id Task_1
+bpmn-agent-cli impact process.bpmn --id Task_1 --depth 5 --max-paths 20
+```
+
+Returns a compact impact card for one element: upstream/downstream paths, lanes, participant, boundary events, implementations, related call activities, and affected element id sets.
+
 ## context
 
 ```bash

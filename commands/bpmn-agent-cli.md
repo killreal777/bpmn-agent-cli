@@ -18,5 +18,6 @@ node "${extensionPath}${/}dist${/}extension${/}bpmn-agent-cli.cjs" overview proc
 node "${extensionPath}${/}dist${/}extension${/}bpmn-agent-cli.cjs" find process.bpmn --query "approve"
 node "${extensionPath}${/}dist${/}extension${/}bpmn-agent-cli.cjs" call-activity process.bpmn --id Call_SubProcess
 node "${extensionPath}${/}dist${/}extension${/}bpmn-agent-cli.cjs" diff --base before.bpmn --candidate after.bpmn
+node "${extensionPath}${/}dist${/}extension${/}bpmn-agent-cli.cjs" impact process.bpmn --id Task_1
 node "${extensionPath}${/}dist${/}extension${/}bpmn-agent-cli.cjs" validate process.bpmn
 ```

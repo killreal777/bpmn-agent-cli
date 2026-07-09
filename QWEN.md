@@ -11,3 +11,4 @@ node "${extensionPath}${/}dist${/}extension${/}bpmn-agent-cli.cjs" overview proc
 Prefer the `bpmn-agent-cli` skill before reading raw `.bpmn` XML.
 
 Use `diff --base before.bpmn --candidate after.bpmn` when comparing BPMN versions.
+Use `impact process.bpmn --id Task_1` when assessing the local effect of changing an element.

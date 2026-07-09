@@ -296,6 +296,30 @@ type DiffResult = {
 
 `diff` compares semantic indexed BPMN elements by id and returns stable sorted arrays. It ignores XML formatting and BPMNDI-only layout differences. It does not perform fuzzy matching for deleted/recreated ids.
 
+## ImpactResult
+
+```ts
+type ImpactResult = {
+  focus: ElementSummary;
+  upstream: PathSummary[];
+  downstream: PathSummary[];
+  lanes: LaneSummary[];
+  participant: ParticipantSummary | null;
+  boundaryEvents: EventSummary[];
+  implementations: ImplementationSummary[];
+  callActivities: CallActivityContract[];
+  affected: {
+    upstreamElementIds: string[];
+    downstreamElementIds: string[];
+    implementationElementIds: string[];
+    callActivityIds: string[];
+  };
+  truncated: boolean;
+};
+```
+
+`impact` returns a local change-impact card for one indexed element. Upstream paths end with the focus element, downstream paths start with it, and affected id lists exclude the focus id except implementation/call-activity id sets.
+
 ## ValidateResult
 
 ```ts

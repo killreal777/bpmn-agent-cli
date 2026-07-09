@@ -465,9 +465,16 @@ Implemented scope:
 ### BL-018: `impact`
 
 Priority: `P4`
-Status: `proposed`
+Status: `implemented`
 
 Given an element id, report downstream and upstream impact including paths, participants, lanes, events, implementations, and call activities affected by a change.
+
+Implemented scope:
+
+- `bpmn-agent-cli impact process.bpmn --id Task_1`.
+- Optional `--depth` and `--max-paths`.
+- Returns upstream and downstream paths.
+- Returns focus lanes, participant, boundary events, implementations, related CallActivity contracts, affected id sets, and truncation flag.
 
 ### BL-019: `review`
 
