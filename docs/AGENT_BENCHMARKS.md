@@ -4,6 +4,8 @@
 
 The runner creates a task prompt, injects a temporary `bpmn-agent-cli` wrapper at the front of `PATH`, asks the agent to solve the task, and collects the CLI metrics produced by the agent's real tool usage.
 
+An agent task is not counted as successful unless at least one `bpmn-agent-cli` invocation is captured. A correct-looking answer without captured CLI calls is treated as failed because it does not prove the tool helped the agent.
+
 ## Commands
 
 Run a task with Codex:
@@ -52,7 +54,7 @@ For every task, the runner writes:
 
 - `prompt.md`: the task prompt given to the agent.
 - `answer.md`: the final answer file the agent must write.
-- `cli-metrics.jsonl`: real `bpmn-agent-cli` invocations captured through the PATH wrapper.
+- `/tmp/bpmn-agent-cli-agent-benchmark/<variant>/<task>/cli-metrics.jsonl`: real `bpmn-agent-cli` invocations captured through the PATH wrapper or explicit `--trace-metrics`.
 
 The report includes:
 

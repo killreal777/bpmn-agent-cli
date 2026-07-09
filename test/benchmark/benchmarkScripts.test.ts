@@ -106,4 +106,43 @@ describe('benchmark scripts', () => {
       estimatedAgentOutputTokens: 0
     });
   });
+
+  it('does not count an agent answer as successful without captured CLI calls', async () => {
+    const fakeAgentPath = 'tmp/fake-no-cli-agent.sh';
+    const reportPath = 'tmp/agent-benchmark-no-cli.json';
+    await rm(reportPath, { force: true });
+    await writeFile(fakeAgentPath, [
+      '#!/usr/bin/env bash',
+      'set -euo pipefail',
+      'printf "Task_DoWork uses workDelegate and does not read raw BPMN XML.\\n" > "$BPMN_AGENT_ANSWER_FILE"'
+    ].join('\n'));
+    await chmod(fakeAgentPath, 0o755);
+
+    await execFileAsync('npm', [
+      'run',
+      'benchmark:agent',
+      '--',
+      '--variant',
+      'agent-no-cli',
+      '--task',
+      'T1-overview-linear',
+      '--agent-command',
+      fakeAgentPath,
+      '--output',
+      reportPath
+    ], { timeout: 30000 });
+
+    const report = JSON.parse(await readFile(reportPath, 'utf8'));
+
+    expect(report.aggregate).toMatchObject({
+      successfulTasks: 0,
+      failedTasks: 1,
+      cliCalls: 0,
+      averageCorrectnessScore: 3
+    });
+    expect(report.tasks[0]).toMatchObject({
+      success: false,
+      cliCallCount: 0
+    });
+  });
 });

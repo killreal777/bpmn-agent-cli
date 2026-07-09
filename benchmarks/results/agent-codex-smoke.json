@@ -1,0 +1,114 @@
+{
+  "generatedAt": "2026-07-09T05:08:42.420Z",
+  "variant": "agent-codex-smoke",
+  "mode": "agent",
+  "cliCommand": "node \"$(pwd)/dist/cli/main.js\"",
+  "taskCount": 1,
+  "taskSource": "T1-overview-linear.json",
+  "aggregate": {
+    "successfulTasks": 1,
+    "failedTasks": 0,
+    "successRate": 1,
+    "answerCorrectnessScore": 2,
+    "averageCorrectnessScore": 2,
+    "cliCalls": 5,
+    "elapsedMs": 81346,
+    "stdoutBytes": 3338,
+    "estimatedOutputTokens": 836,
+    "estimatedAgentOutputTokens": 16246,
+    "xmlFallbackRate": 1,
+    "toolErrors": 0,
+    "toolErrorRate": 0
+  },
+  "tasks": [
+    {
+      "id": "T1-overview-linear",
+      "title": "Summarize the linear benchmark process",
+      "fixture": "simple-linear.bpmn",
+      "category": "overview",
+      "cliCommand": "node \"$(pwd)/dist/cli/main.js\"",
+      "success": true,
+      "answerCorrectnessScore": 2,
+      "matchedCriteria": [
+        "mentions Task_DoWork",
+        "mentions workDelegate"
+      ],
+      "missingCriteria": [
+        "does not read raw BPMN XML"
+      ],
+      "manualReviewRequired": true,
+      "elapsedMs": 81346,
+      "agentExitCode": 0,
+      "agentStdoutBytes": 350,
+      "agentStderrBytes": 64083,
+      "agentStdoutPreview": "Wrote the benchmark answer to [answer.md](/mnt/c/users/killr/ubuntu/projects/bpmn-agent-cli/tmp/agent-benchmark/agent-codex-smoke/T1-overview-linear/answer.md).\n\nVerified with CLI `overview`, `implementations`, `find`, and `trace`; metrics were written to `/tmp/bpmn-agent-cli-agent-benchmark/agent-codex-smoke/T1-overview-linear/cli-metrics.jsonl`.\n",
+      "agentStderrPreview": "OpenAI Codex v0.142.5\n--------\nworkdir: /mnt/c/users/killr/ubuntu/projects/bpmn-agent-cli\nmodel: gpt-5.5\nprovider: openai\napproval: never\nsandbox: workspace-write [workdir, /tmp, $TMPDIR]\nreasoning effort: high\nreasoning summaries: none\nsession id: 019f4545-fa13-77d1-bed3-f27ebcd30542\n--------\nuser\nYou are evaluating bpmn-agent-cli on benchmark task T1-overview-linear.\n\nRules:\n- Use BPMN CLI commands to inspect BPMN; do not guess.\n- Preferred metrics-safe CLI form: node \"$(pwd)/dist/cli/main.js\" <command> benchmarks/fixtures/simple-linear.bpmn [options] --trace-metrics /tmp/bpmn-agent-cli-agent-benchmark/agent-codex-smoke/T1-overview-linear/cli-metrics.jsonl\n- You may also use the `bpmn-agent-cli` command available on PATH; it is wrapped to add metrics.\n- Do not read raw BPMN XML unless targeted CLI commands cannot answer the task.\n- Write the final answer to the answer file path shown below.\n- The final answer file must contain the actual benchmark answer, not a note saying you wrote it.\n- Keep the answer concise and include concrete BPMN ids/names needed by the task.\n\nFixture: benchmarks/fixtures/simple-linear.bpmn\nAnswer file: tmp/agent-benchmark/agent-codex-smoke/T1-overview-linear/answer.md\n\nTask title: Summarize the linear benchmark process\nTask prompt: Summarize the process structure and identify start, work task, end event, and implementation metadata.\n\nSuccess criteria:\n- mentions Task_DoWork\n- mentions workDelegate\n- does not read raw BPMN XML\ncodex\nI’ll use the required superpowers startup guidance and the BPMN reader skill, then inspect the fixture through the CLI as requested.\nexec\n/usr/bin/zsh -lc \"sed -n '1,220p' /home/killreal777/.codex/plugins/cache/openai-curated/superpowers/2f1a8948/skills/using-superpowers/SKILL.md\" in /mnt/c/users/killr/ubuntu/projects/bpmn-agent-cli\nexec\n/usr/bin/zsh -lc \"sed -n '1,240p' /home/killreal777/.codex/skills/bpmn-optimized-reader/SKILL.md\" in /mnt/c/users/killr/ubuntu/projects/bpmn-agent-cli\n succeeded in 157ms:\n---\n",
+      "estimatedAgentOutputTokens": 16246,
+      "cliCallCount": 5,
+      "cliOutputBytes": 3338,
+      "estimatedOutputTokens": 836,
+      "xmlFallback": true,
+      "answerPath": "tmp/agent-benchmark/agent-codex-smoke/T1-overview-linear/answer.md",
+      "promptPath": "tmp/agent-benchmark/agent-codex-smoke/T1-overview-linear/prompt.md",
+      "metricsPath": "/tmp/bpmn-agent-cli-agent-benchmark/agent-codex-smoke/T1-overview-linear/cli-metrics.jsonl",
+      "toolErrors": [],
+      "cliCalls": [
+        {
+          "timestamp": "2026-07-09T05:08:00.176Z",
+          "command": "overview",
+          "fileHash": "sha256:7a3b787382f7c6649c076d9f26af7ce9f0327a1d2d20d648d45dc1c2a83ab9a0",
+          "argsHash": "sha256:cdc876224154ced3d244df5da54a4c56cf71f3eb3861b1a522b21b7b1a3bbe25",
+          "durationMs": 36,
+          "exitCode": 0,
+          "stdoutBytes": 776,
+          "estimatedOutputTokens": 194,
+          "errorCode": null
+        },
+        {
+          "timestamp": "2026-07-09T05:08:00.178Z",
+          "command": "implementations",
+          "fileHash": "sha256:7a3b787382f7c6649c076d9f26af7ce9f0327a1d2d20d648d45dc1c2a83ab9a0",
+          "argsHash": "sha256:4f2ab28d262815c8367e947ca833e7db03858082984ab2cf1a6ca23fbfea80fc",
+          "durationMs": 35,
+          "exitCode": 0,
+          "stdoutBytes": 500,
+          "estimatedOutputTokens": 125,
+          "errorCode": null
+        },
+        {
+          "timestamp": "2026-07-09T05:08:11.782Z",
+          "command": "find",
+          "fileHash": "sha256:7a3b787382f7c6649c076d9f26af7ce9f0327a1d2d20d648d45dc1c2a83ab9a0",
+          "argsHash": "sha256:2c032e037dbe173b42fd618c158b9886bd77a9c4bc6825a4167a2a7f1b54d53f",
+          "durationMs": 37,
+          "exitCode": 0,
+          "stdoutBytes": 412,
+          "estimatedOutputTokens": 103,
+          "errorCode": null
+        },
+        {
+          "timestamp": "2026-07-09T05:08:11.785Z",
+          "command": "trace",
+          "fileHash": "sha256:7a3b787382f7c6649c076d9f26af7ce9f0327a1d2d20d648d45dc1c2a83ab9a0",
+          "argsHash": "sha256:5935d682a0b50f9d26c447a514ed783c91a32917607888bbea1640516289a19e",
+          "durationMs": 40,
+          "exitCode": 0,
+          "stdoutBytes": 1249,
+          "estimatedOutputTokens": 313,
+          "errorCode": null
+        },
+        {
+          "timestamp": "2026-07-09T05:08:11.790Z",
+          "command": "find",
+          "fileHash": "sha256:7a3b787382f7c6649c076d9f26af7ce9f0327a1d2d20d648d45dc1c2a83ab9a0",
+          "argsHash": "sha256:4d85a67f5941992c9e54d74d8ed0b571d8708eb4447fc73c32f4c7c629d805ab",
+          "durationMs": 44,
+          "exitCode": 0,
+          "stdoutBytes": 401,
+          "estimatedOutputTokens": 101,
+          "errorCode": null
+        }
+      ]
+    }
+  ]
+}

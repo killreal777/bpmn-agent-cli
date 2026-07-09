@@ -1,5 +1,6 @@
 import { execFile, spawn } from 'node:child_process';
 import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { basename, delimiter, join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 
@@ -227,8 +228,9 @@ async function runTask(task, options, variant) {
   const binDir = join(taskDir, 'bin');
   const answerPath = join(taskDir, 'answer.md');
   const promptPath = join(taskDir, 'prompt.md');
-  const metricsPath = join(taskDir, 'cli-metrics.jsonl');
+  const metricsPath = join(tmpdir(), 'bpmn-agent-cli-agent-benchmark', variant, task.id, 'cli-metrics.jsonl');
   await rm(taskDir, { recursive: true, force: true });
+  await rm(metricsPath, { force: true });
   await mkdir(taskDir, { recursive: true });
   await writeCliWrapper(binDir, metricsPath, cliCommand);
 
@@ -259,7 +261,7 @@ async function runTask(task, options, variant) {
   const cliOutputTokens = cliCalls.reduce((sum, call) => sum + (call.estimatedOutputTokens ?? 0), 0);
   const cliOutputBytes = cliCalls.reduce((sum, call) => sum + (call.stdoutBytes ?? 0), 0);
   const toolErrors = cliCalls.filter((call) => call.exitCode !== 0);
-  const success = result.exitCode === 0 && scoring.answerCorrectnessScore > 0 && toolErrors.length === 0;
+  const success = result.exitCode === 0 && scoring.answerCorrectnessScore > 0 && cliCalls.length > 0 && toolErrors.length === 0;
 
   return {
     id: task.id,
@@ -285,6 +287,7 @@ async function runTask(task, options, variant) {
     xmlFallback,
     answerPath,
     promptPath,
+    metricsPath,
     toolErrors: toolErrors.map((call) => ({
       command: call.command,
       exitCode: call.exitCode,
