@@ -329,7 +329,7 @@ Measured result:
 ### BL-013: Variable-Aware Lint Rules
 
 Priority: `P4`
-Status: `proposed`
+Status: `implemented`
 
 Add lint diagnostics based on extracted variable usage.
 
@@ -341,6 +341,13 @@ Initial rules:
 - `sourceExpression` without target.
 - suspicious pass-through of all variables.
 - condition expression references variables with no detected producer.
+
+Implemented scope:
+
+- Added warnings-only diagnostics to `validate`.
+- Implemented CallActivity mapping checks for missing mappings, missing input/output targets, source expressions without targets, and `variables="all"` pass-through.
+- Implemented best-effort condition variable producer check for sequence-flow conditions.
+- Reused existing `variables` and `call-activity` extraction; no custom XML parser or expression execution.
 
 ### BL-014: JSON Conversion Modernization
 

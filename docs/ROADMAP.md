@@ -125,5 +125,5 @@ Planned measured experiments:
   - CLI calls improved: 36 -> 34
   - estimated output tokens increased by 1159 because the command returns a richer contract card
 - next measured experiment: `context --profile agent`
-- variable-aware lint rules after variable extraction is stable
+- variable-aware lint rules implemented as warnings-only `validate` diagnostics
 - JSON conversion modernization implemented: `to-json` remains supported and active converter code lives under `src/convert`

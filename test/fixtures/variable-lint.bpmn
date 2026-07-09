@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
+                  id="Definitions_VariableLint"
+                  targetNamespace="http://bpmn-agent-cli/test">
+  <bpmn:process id="Process_VariableLint" name="Variable lint process" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_1" name="Start">
+      <bpmn:outgoing>Flow_Start_To_MissingMappings</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:callActivity id="Call_NoMappings" name="No mappings" calledElement="Process_NoMappings">
+      <bpmn:incoming>Flow_Start_To_MissingMappings</bpmn:incoming>
+      <bpmn:outgoing>Flow_NoMappings_To_BadMappings</bpmn:outgoing>
+    </bpmn:callActivity>
+    <bpmn:callActivity id="Call_BadMappings" name="Bad mappings" calledElement="Process_BadMappings">
+      <bpmn:extensionElements>
+        <camunda:in source="customerId" />
+        <camunda:in sourceExpression="${application.amount}" />
+        <camunda:out source="riskScore" />
+        <camunda:out variables="all" local="true" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_NoMappings_To_BadMappings</bpmn:incoming>
+      <bpmn:outgoing>Flow_BadMappings_To_Gateway</bpmn:outgoing>
+    </bpmn:callActivity>
+    <bpmn:exclusiveGateway id="Gateway_Check" name="Check route">
+      <bpmn:incoming>Flow_BadMappings_To_Gateway</bpmn:incoming>
+      <bpmn:outgoing>Flow_Gateway_To_End</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="EndEvent_1" name="End">
+      <bpmn:incoming>Flow_Gateway_To_End</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_Start_To_MissingMappings" sourceRef="StartEvent_1" targetRef="Call_NoMappings" />
+    <bpmn:sequenceFlow id="Flow_NoMappings_To_BadMappings" sourceRef="Call_NoMappings" targetRef="Call_BadMappings" />
+    <bpmn:sequenceFlow id="Flow_BadMappings_To_Gateway" sourceRef="Call_BadMappings" targetRef="Gateway_Check" />
+    <bpmn:sequenceFlow id="Flow_Gateway_To_End" sourceRef="Gateway_Check" targetRef="EndEvent_1">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">${approvalFlag == true}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+  </bpmn:process>
+</bpmn:definitions>

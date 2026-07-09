@@ -50,6 +50,24 @@ describe('CLI overview and validate', () => {
     });
   });
 
+  it('prints variable-aware lint warnings in validate envelope', async () => {
+    const { stdout } = await execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'validate', 'test/fixtures/variable-lint.bpmn']);
+    const parsed = JSON.parse(stdout);
+
+    expect(parsed).toMatchObject({
+      ok: true,
+      command: 'validate',
+      result: {
+        valid: true,
+        warnings: expect.arrayContaining([
+          expect.objectContaining({ code: 'CALL_ACTIVITY_WITHOUT_MAPPINGS', elementId: 'Call_NoMappings' }),
+          expect.objectContaining({ code: 'CALL_ACTIVITY_VARIABLES_ALL_PASS_THROUGH', elementId: 'Call_BadMappings' }),
+          expect.objectContaining({ code: 'CONDITION_VARIABLE_WITHOUT_PRODUCER', elementId: 'Flow_Gateway_To_End' })
+        ])
+      }
+    });
+  });
+
   it('prints find envelope as JSON', async () => {
     const { stdout } = await execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'find', 'test/fixtures/simple-linear.bpmn', '--query', 'work']);
     const parsed = JSON.parse(stdout);

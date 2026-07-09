@@ -245,6 +245,8 @@ bpmn-agent-cli validate process.bpmn
 
 Returns `valid`, `errors`, `warnings`, and `infos`. Validation errors exit with code `1`; parse errors exit with code `4`.
 
+Variable-aware lint warnings are included for CallActivity mappings and condition variable reads, but warnings do not make `valid` false.
+
 ## to-json
 
 ```bash

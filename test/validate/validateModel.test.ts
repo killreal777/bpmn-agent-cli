@@ -22,4 +22,41 @@ describe('validateModel', () => {
       elementId: 'Flow_To_Missing'
     }));
   });
+
+  it('reports variable-aware lint warnings without making the model invalid', async () => {
+    const model = await loadBpmn(fixturePath('variable-lint.bpmn'));
+    const result = validateModel(model, buildIndexes(model));
+
+    expect(result.valid).toBe(true);
+    expect(result.warnings).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        code: 'CALL_ACTIVITY_WITHOUT_MAPPINGS',
+        elementId: 'Call_NoMappings'
+      }),
+      expect.objectContaining({
+        code: 'CALL_ACTIVITY_IN_MISSING_TARGET',
+        elementId: 'Call_BadMappings',
+        details: expect.objectContaining({ source: 'customerId' })
+      }),
+      expect.objectContaining({
+        code: 'CALL_ACTIVITY_SOURCE_EXPRESSION_WITHOUT_TARGET',
+        elementId: 'Call_BadMappings',
+        details: expect.objectContaining({ sourceExpression: '${application.amount}' })
+      }),
+      expect.objectContaining({
+        code: 'CALL_ACTIVITY_OUT_MISSING_TARGET',
+        elementId: 'Call_BadMappings',
+        details: expect.objectContaining({ source: 'riskScore' })
+      }),
+      expect.objectContaining({
+        code: 'CALL_ACTIVITY_VARIABLES_ALL_PASS_THROUGH',
+        elementId: 'Call_BadMappings'
+      }),
+      expect.objectContaining({
+        code: 'CONDITION_VARIABLE_WITHOUT_PRODUCER',
+        elementId: 'Flow_Gateway_To_End',
+        details: expect.objectContaining({ variable: 'approvalFlag' })
+      })
+    ]));
+  });
 });

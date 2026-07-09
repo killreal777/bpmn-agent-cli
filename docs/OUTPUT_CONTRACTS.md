@@ -215,6 +215,17 @@ export type ValidateResult = {
 };
 ```
 
+`validate` includes warnings-only variable-aware lint diagnostics. These diagnostics do not make `valid` false unless structural errors are also present.
+
+Variable-aware warning codes:
+
+- `CALL_ACTIVITY_WITHOUT_MAPPINGS`: CallActivity has no explicit input/output mappings and no pass-through mapping.
+- `CALL_ACTIVITY_IN_MISSING_TARGET`: `camunda:in` mapping has no target variable.
+- `CALL_ACTIVITY_OUT_MISSING_TARGET`: `camunda:out` mapping has no target variable, unless it uses `variables="all"`.
+- `CALL_ACTIVITY_SOURCE_EXPRESSION_WITHOUT_TARGET`: mapping has `sourceExpression` but no target variable.
+- `CALL_ACTIVITY_VARIABLES_ALL_PASS_THROUGH`: mapping uses `variables="all"`.
+- `CONDITION_VARIABLE_WITHOUT_PRODUCER`: sequence-flow condition reads a variable with no detected output producer.
+
 ## ParticipantsResult
 
 ```ts

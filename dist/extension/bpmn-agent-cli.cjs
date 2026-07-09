@@ -1466,8 +1466,8 @@ function Context(options) {
       }
     }
   };
-  this.addWarning = function(warning) {
-    this.warnings.push(warning);
+  this.addWarning = function(warning2) {
+    this.warnings.push(warning2);
   };
 }
 function BaseHandler() {
@@ -7286,7 +7286,7 @@ async function loadBpmn(filePath) {
       rootElements,
       processes: rootElements.filter((element) => element.$type === "bpmn:Process"),
       collaborations: rootElements.filter((element) => element.$type === "bpmn:Collaboration"),
-      warnings: warnings.map((warning) => ({ message: warning.message ?? "BPMN parser warning" }))
+      warnings: warnings.map((warning2) => ({ message: warning2.message ?? "BPMN parser warning" }))
     };
   } catch (error3) {
     throw new BpmnCliError("BPMN_PARSE_ERROR", "BPMN/XML parse error", 4, {
@@ -9233,6 +9233,228 @@ function sortById2(a, b) {
   return a.id.localeCompare(b.id);
 }
 
+// src/query/variables.ts
+function getVariables(indexes, args) {
+  const usages = [];
+  const callActivityMappings = [];
+  for (const element of [...indexes.byId.values()].sort(compareElement2)) {
+    if (args.element && element.id !== args.element) {
+      continue;
+    }
+    const details = getElementDetails(indexes, element);
+    if (!details) {
+      continue;
+    }
+    if (details.kind === "callActivity") {
+      const mappings = [...details.inputMappings, ...details.outputMappings];
+      const mappingVariables = variableCandidatesFromMappings(mappings);
+      if (details.outputMappings.some((mapping) => mapping.variables === "all")) {
+        mappingVariables.unshift("*");
+      }
+      callActivityMappings.push({
+        element,
+        calledElement: details.calledElement,
+        inputMappings: details.inputMappings,
+        outputMappings: details.outputMappings,
+        variables: [...new Set(mappingVariables)].sort((a, b) => a.localeCompare(b)),
+        warnings: details.warnings
+      });
+      for (const mapping of mappings) {
+        const direction = mapping.variables === "all" ? "pass-through" : mapping.direction;
+        const names = mapping.variables === "all" ? ["*"] : variableCandidatesFromMappings([mapping]);
+        for (const name2 of names) {
+          usages.push(cleanUsage({
+            name: name2,
+            direction,
+            source: "callActivityMapping",
+            element,
+            expression: mapping.sourceExpression,
+            mapping
+          }));
+        }
+      }
+    }
+    if (details.kind === "sequenceFlow" && details.condition) {
+      for (const name2 of details.variableCandidates) {
+        usages.push({
+          name: name2,
+          direction: "read",
+          source: "sequenceFlowCondition",
+          element,
+          expression: details.condition
+        });
+      }
+    }
+    if (details.kind === "serviceTask") {
+      const values = [
+        details.implementation.delegateExpression,
+        details.implementation.class,
+        details.implementation.expression
+      ].filter((value) => Boolean(value));
+      for (const name2 of variableCandidatesFromValues(values)) {
+        usages.push({
+          name: name2,
+          direction: "unknown",
+          source: "implementationExpression",
+          element
+        });
+      }
+    }
+    if (details.kind === "userTask" && details.formKey) {
+      for (const name2 of details.variableCandidates) {
+        usages.push({
+          name: name2,
+          direction: "unknown",
+          source: "formKey",
+          element
+        });
+      }
+    }
+  }
+  const filteredUsages = args.name ? usages.filter((usage) => usage.name === args.name) : usages;
+  const filteredCallActivityMappings = args.name ? callActivityMappings.map((summary) => ({
+    ...summary,
+    inputMappings: summary.inputMappings.filter((mapping) => mappingHasName(mapping, args.name)),
+    outputMappings: summary.outputMappings.filter((mapping) => mappingHasName(mapping, args.name)),
+    variables: summary.variables.filter((name2) => name2 === args.name)
+  })).filter((summary) => summary.inputMappings.length > 0 || summary.outputMappings.length > 0 || summary.variables.includes(args.name)) : callActivityMappings;
+  return {
+    variables: summarizeVariables2(filteredUsages),
+    usages: filteredUsages.sort(compareUsage),
+    callActivityMappings: filteredCallActivityMappings.sort((a, b) => a.element.id.localeCompare(b.element.id)),
+    warnings: []
+  };
+}
+function mappingHasName(mapping, name2) {
+  if (mapping.variables === "all" && name2 === "*") {
+    return true;
+  }
+  return variableCandidatesFromMappings([mapping]).includes(name2);
+}
+function summarizeVariables2(usages) {
+  const byName = /* @__PURE__ */ new Map();
+  for (const usage of usages) {
+    byName.set(usage.name, [...byName.get(usage.name) ?? [], usage]);
+  }
+  return [...byName.entries()].map(([name2, items]) => ({
+    name: name2,
+    usageCount: items.length,
+    directions: [...new Set(items.map((item) => item.direction))].sort(compareDirection2),
+    elements: uniqueElements2(items.map((item) => item.element))
+  })).sort((a, b) => a.name.localeCompare(b.name));
+}
+function uniqueElements2(elements) {
+  const byId = /* @__PURE__ */ new Map();
+  for (const element of elements) {
+    byId.set(element.id, element);
+  }
+  return [...byId.values()].sort(compareElement2);
+}
+function cleanUsage(usage) {
+  return Object.fromEntries(Object.entries(usage).filter(([, value]) => value !== void 0));
+}
+function compareUsage(a, b) {
+  return a.name.localeCompare(b.name) || a.element.id.localeCompare(b.element.id) || compareDirection2(a.direction, b.direction) || a.source.localeCompare(b.source);
+}
+function compareElement2(a, b) {
+  return a.id.localeCompare(b.id);
+}
+function compareDirection2(a, b) {
+  const order = ["in", "out", "read", "write", "pass-through", "unknown"];
+  return order.indexOf(a) - order.indexOf(b);
+}
+
+// src/validate/variableLint.ts
+function variableLintDiagnostics(indexes) {
+  return [
+    ...callActivityMappingDiagnostics(indexes),
+    ...conditionProducerDiagnostics(indexes)
+  ].sort(compareDiagnostic);
+}
+function callActivityMappingDiagnostics(indexes) {
+  const diagnostics = [];
+  const contracts = getCallActivities(indexes, {}).callActivities;
+  for (const contract of contracts) {
+    const mappings = [...contract.inputMappings, ...contract.outputMappings];
+    if (mappings.length === 0 && !contract.passThrough) {
+      diagnostics.push(warning(
+        "CALL_ACTIVITY_WITHOUT_MAPPINGS",
+        "CallActivity has no explicit input/output mappings or variables pass-through",
+        contract.element.id
+      ));
+    }
+    for (const mapping of contract.inputMappings) {
+      if (!mapping.target) {
+        diagnostics.push(warning(
+          "CALL_ACTIVITY_IN_MISSING_TARGET",
+          "CallActivity input mapping has no target variable",
+          contract.element.id,
+          mappingDetails(mapping)
+        ));
+      }
+      if (mapping.sourceExpression && !mapping.target) {
+        diagnostics.push(warning(
+          "CALL_ACTIVITY_SOURCE_EXPRESSION_WITHOUT_TARGET",
+          "CallActivity sourceExpression mapping has no target variable",
+          contract.element.id,
+          mappingDetails(mapping)
+        ));
+      }
+    }
+    for (const mapping of contract.outputMappings) {
+      if (mapping.variables === "all") {
+        diagnostics.push(warning(
+          "CALL_ACTIVITY_VARIABLES_ALL_PASS_THROUGH",
+          "CallActivity passes through all variables",
+          contract.element.id,
+          mappingDetails(mapping)
+        ));
+        continue;
+      }
+      if (!mapping.target) {
+        diagnostics.push(warning(
+          "CALL_ACTIVITY_OUT_MISSING_TARGET",
+          "CallActivity output mapping has no target variable",
+          contract.element.id,
+          mappingDetails(mapping)
+        ));
+      }
+    }
+  }
+  return diagnostics;
+}
+function conditionProducerDiagnostics(indexes) {
+  const variables = getVariables(indexes, {});
+  const produced = new Set(
+    variables.usages.filter((usage) => usage.direction === "out" || usage.direction === "write").map((usage) => usage.name)
+  );
+  const conditionReads = variables.usages.filter((usage) => usage.source === "sequenceFlowCondition" && usage.direction === "read");
+  return conditionReads.filter((usage) => !isProduced(usage, produced)).map((usage) => warning(
+    "CONDITION_VARIABLE_WITHOUT_PRODUCER",
+    "Sequence-flow condition reads a variable with no detected producer",
+    usage.element.id,
+    { variable: usage.name, expression: usage.expression ?? null }
+  ));
+}
+function isProduced(usage, produced) {
+  return produced.has(usage.name);
+}
+function mappingDetails(mapping) {
+  return Object.fromEntries(Object.entries(mapping).filter(([, value]) => value !== void 0));
+}
+function warning(code, message, elementId, details) {
+  return {
+    severity: "warning",
+    code,
+    message,
+    elementId,
+    ...details ? { details } : {}
+  };
+}
+function compareDiagnostic(a, b) {
+  return (a.elementId ?? "").localeCompare(b.elementId ?? "") || a.code.localeCompare(b.code);
+}
+
 // src/validate/validateModel.ts
 function validateModel(model, indexes) {
   const errors = [];
@@ -9295,6 +9517,7 @@ function validateModel(model, indexes) {
       }
     }
   }
+  warnings.push(...variableLintDiagnostics(indexes));
   return {
     valid: errors.length === 0,
     errors,
@@ -11138,7 +11361,7 @@ async function convertBpmnToJson(xml2, options = {}) {
     definitions: cleanValue({ id: definitions.id }),
     collaborations: isExcludedByConfig("collaborations", config) ? void 0 : sortItems(rootElements.filter((element) => element.$type === "bpmn:Collaboration").map(projectCollaboration)),
     processes: sortItems(rootElements.filter((element) => element.$type === "bpmn:Process").map(projectProcess)),
-    warnings: warnings.map((warning) => cleanValue({ message: warning.message }))
+    warnings: warnings.map((warning2) => cleanValue({ message: warning2.message }))
   });
   const optimized = applyOptimizations(projected, config.optimizations?.enabled ?? []);
   return applyFieldExclusions(optimized, config);
@@ -11403,137 +11626,6 @@ async function validateCommand(args) {
     file: args.file,
     result
   });
-}
-
-// src/query/variables.ts
-function getVariables(indexes, args) {
-  const usages = [];
-  const callActivityMappings = [];
-  for (const element of [...indexes.byId.values()].sort(compareElement2)) {
-    if (args.element && element.id !== args.element) {
-      continue;
-    }
-    const details = getElementDetails(indexes, element);
-    if (!details) {
-      continue;
-    }
-    if (details.kind === "callActivity") {
-      const mappings = [...details.inputMappings, ...details.outputMappings];
-      const mappingVariables = variableCandidatesFromMappings(mappings);
-      if (details.outputMappings.some((mapping) => mapping.variables === "all")) {
-        mappingVariables.unshift("*");
-      }
-      callActivityMappings.push({
-        element,
-        calledElement: details.calledElement,
-        inputMappings: details.inputMappings,
-        outputMappings: details.outputMappings,
-        variables: [...new Set(mappingVariables)].sort((a, b) => a.localeCompare(b)),
-        warnings: details.warnings
-      });
-      for (const mapping of mappings) {
-        const direction = mapping.variables === "all" ? "pass-through" : mapping.direction;
-        const names = mapping.variables === "all" ? ["*"] : variableCandidatesFromMappings([mapping]);
-        for (const name2 of names) {
-          usages.push(cleanUsage({
-            name: name2,
-            direction,
-            source: "callActivityMapping",
-            element,
-            expression: mapping.sourceExpression,
-            mapping
-          }));
-        }
-      }
-    }
-    if (details.kind === "sequenceFlow" && details.condition) {
-      for (const name2 of details.variableCandidates) {
-        usages.push({
-          name: name2,
-          direction: "read",
-          source: "sequenceFlowCondition",
-          element,
-          expression: details.condition
-        });
-      }
-    }
-    if (details.kind === "serviceTask") {
-      const values = [
-        details.implementation.delegateExpression,
-        details.implementation.class,
-        details.implementation.expression
-      ].filter((value) => Boolean(value));
-      for (const name2 of variableCandidatesFromValues(values)) {
-        usages.push({
-          name: name2,
-          direction: "unknown",
-          source: "implementationExpression",
-          element
-        });
-      }
-    }
-    if (details.kind === "userTask" && details.formKey) {
-      for (const name2 of details.variableCandidates) {
-        usages.push({
-          name: name2,
-          direction: "unknown",
-          source: "formKey",
-          element
-        });
-      }
-    }
-  }
-  const filteredUsages = args.name ? usages.filter((usage) => usage.name === args.name) : usages;
-  const filteredCallActivityMappings = args.name ? callActivityMappings.map((summary) => ({
-    ...summary,
-    inputMappings: summary.inputMappings.filter((mapping) => mappingHasName(mapping, args.name)),
-    outputMappings: summary.outputMappings.filter((mapping) => mappingHasName(mapping, args.name)),
-    variables: summary.variables.filter((name2) => name2 === args.name)
-  })).filter((summary) => summary.inputMappings.length > 0 || summary.outputMappings.length > 0 || summary.variables.includes(args.name)) : callActivityMappings;
-  return {
-    variables: summarizeVariables2(filteredUsages),
-    usages: filteredUsages.sort(compareUsage),
-    callActivityMappings: filteredCallActivityMappings.sort((a, b) => a.element.id.localeCompare(b.element.id)),
-    warnings: []
-  };
-}
-function mappingHasName(mapping, name2) {
-  if (mapping.variables === "all" && name2 === "*") {
-    return true;
-  }
-  return variableCandidatesFromMappings([mapping]).includes(name2);
-}
-function summarizeVariables2(usages) {
-  const byName = /* @__PURE__ */ new Map();
-  for (const usage of usages) {
-    byName.set(usage.name, [...byName.get(usage.name) ?? [], usage]);
-  }
-  return [...byName.entries()].map(([name2, items]) => ({
-    name: name2,
-    usageCount: items.length,
-    directions: [...new Set(items.map((item) => item.direction))].sort(compareDirection2),
-    elements: uniqueElements2(items.map((item) => item.element))
-  })).sort((a, b) => a.name.localeCompare(b.name));
-}
-function uniqueElements2(elements) {
-  const byId = /* @__PURE__ */ new Map();
-  for (const element of elements) {
-    byId.set(element.id, element);
-  }
-  return [...byId.values()].sort(compareElement2);
-}
-function cleanUsage(usage) {
-  return Object.fromEntries(Object.entries(usage).filter(([, value]) => value !== void 0));
-}
-function compareUsage(a, b) {
-  return a.name.localeCompare(b.name) || a.element.id.localeCompare(b.element.id) || compareDirection2(a.direction, b.direction) || a.source.localeCompare(b.source);
-}
-function compareElement2(a, b) {
-  return a.id.localeCompare(b.id);
-}
-function compareDirection2(a, b) {
-  const order = ["in", "out", "read", "write", "pass-through", "unknown"];
-  return order.indexOf(a) - order.indexOf(b);
 }
 
 // src/cli/commands/variablesCommand.ts
