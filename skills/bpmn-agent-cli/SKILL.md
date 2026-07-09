@@ -13,7 +13,7 @@ Prefer specialized CLI queries over reading raw BPMN XML. The CLI returns small 
 1. Start with `bpmn-agent-cli overview <file>` to understand the diagram.
 2. Use `bpmn-agent-cli find <file> --query "<text>"` to locate elements by id, name, or type.
 3. Use `bpmn-agent-cli element <file> --id <elementId>` for exact structural details.
-4. Use `bpmn-agent-cli context <file> --id <elementId>` for before/after local flow context.
+4. Use `bpmn-agent-cli context <file> --id <elementId> --profile agent` for compact before/after local flow context; omit `--profile agent` only when full path node objects are needed.
 5. Use `bpmn-agent-cli gateway <file> --id <gatewayId>` for branch explanation.
 6. Use `bpmn-agent-cli trace <file> --from <elementId>` for forward control-flow paths.
 7. Use `bpmn-agent-cli trace <file> --from <elementId> --direction backward` for backward flow.

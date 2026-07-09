@@ -124,6 +124,10 @@ Planned measured experiments:
   - success unchanged: 20/20 tasks
   - CLI calls improved: 36 -> 34
   - estimated output tokens increased by 1159 because the command returns a richer contract card
-- next measured experiment: `context --profile agent`
+- measured experiment implemented: `context --profile agent`
+  - default full context remains unchanged
+  - agent profile returns compact ids for paths and immediate neighbors
+  - success unchanged: 20/20 tasks
+  - estimated output tokens improved by 92 compared with `candidate-call-activity`
 - variable-aware lint rules implemented as warnings-only `validate` diagnostics
 - JSON conversion modernization implemented: `to-json` remains supported and active converter code lives under `src/convert`

@@ -153,6 +153,23 @@ describe('CLI overview and validate', () => {
     });
   });
 
+  it('prints context agent profile as compact JSON', async () => {
+    const { stdout } = await execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'context', 'test/fixtures/simple-linear.bpmn', '--id', 'Task_1', '--profile', 'agent']);
+    const parsed = JSON.parse(stdout);
+
+    expect(parsed).toMatchObject({
+      ok: true,
+      command: 'context',
+      result: {
+        profile: 'agent',
+        focus: { id: 'Task_1' },
+        before: [expect.objectContaining({ nodeIds: ['StartEvent_1', 'Task_1'] })],
+        after: [expect.objectContaining({ nodeIds: ['Task_1', 'EndEvent_1'] })]
+      }
+    });
+    expect(JSON.stringify(parsed.result)).not.toContain('"nodes"');
+  });
+
   it('prints implementations envelope as JSON', async () => {
     const { stdout } = await execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'implementations', 'test/fixtures/camunda-implementations.bpmn']);
 
@@ -557,6 +574,13 @@ describe('CLI overview and validate', () => {
 
   it('exits 2 when path is missing --to', async () => {
     await expect(execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'path', 'test/fixtures/simple-linear.bpmn', '--from', 'StartEvent_1'])).rejects.toMatchObject({
+      code: 2,
+      stdout: expect.stringContaining('INVALID_OPTION_VALUE')
+    });
+  });
+
+  it('exits 2 when context profile is invalid', async () => {
+    await expect(execFileAsync('npx', ['tsx', 'src/cli/main.ts', 'context', 'test/fixtures/simple-linear.bpmn', '--id', 'Task_1', '--profile', 'verbose'])).rejects.toMatchObject({
       code: 2,
       stdout: expect.stringContaining('INVALID_OPTION_VALUE')
     });

@@ -43,6 +43,7 @@ describe('documentation', () => {
     expect(readme).toContain('bpmn-agent-cli export process.bpmn --format markdown');
     expect(contracts).toContain('ELEMENT_NOT_FOUND');
     expect(contracts).toContain('ElementDetails');
+    expect(contracts).toContain('AgentContextResult');
     expect(contracts).toContain('CallActivityElementDetails');
     expect(contracts).toContain('callActivityMappings');
     expect(contracts).toContain('VariablesResult');
@@ -68,6 +69,7 @@ describe('documentation', () => {
     expect(roadmap).toContain('P1-A');
     expect(roadmap).toContain('P1');
     expect(roadmap).toContain('P2');
+    expect(roadmap).toContain('context --profile agent');
     expect(vision).toContain('Product Vision');
     expect(vision).toContain('Dry-run');
     expect(vision).toContain('Metric-first reading');

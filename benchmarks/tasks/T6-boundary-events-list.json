@@ -7,7 +7,7 @@
   "allowedTools": ["bpmn-agent-cli"],
   "cliCalls": [
     ["events", "$fixture", "--type", "boundary"],
-    ["context", "$fixture", "--id", "Task_WaitForDocuments", "--after", "2"]
+    ["context", "$fixture", "--id", "Task_WaitForDocuments", "--after", "2", "--profile", "agent"]
   ],
   "successCriteria": ["mentions timer boundary", "mentions error boundary", "mentions reminder handler"],
   "scoring": { "maxScore": 3, "manualReviewRequired": true }

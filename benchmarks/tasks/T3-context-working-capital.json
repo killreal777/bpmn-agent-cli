@@ -6,7 +6,7 @@
   "prompt": "Explain what happens before and after the working capital risk task.",
   "allowedTools": ["bpmn-agent-cli"],
   "cliCalls": [
-    ["context", "$fixture", "--id", "Task_WorkingCapitalRisk", "--before", "2", "--after", "2"]
+    ["context", "$fixture", "--id", "Task_WorkingCapitalRisk", "--before", "2", "--after", "2", "--profile", "agent"]
   ],
   "successCriteria": ["mentions Gateway_ProductType", "mentions Gateway_Eligibility"],
   "scoring": { "maxScore": 3, "manualReviewRequired": true }

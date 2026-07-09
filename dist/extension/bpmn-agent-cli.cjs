@@ -8440,12 +8440,40 @@ function getContext(indexes, args) {
   }
   const before = collectPaths(indexes, focus, "backward", args.before, args.maxPaths);
   const after = collectPaths(indexes, focus, "forward", args.after, args.maxPaths);
+  const beforePaths = before.paths.map(reversePath);
+  const afterPaths = after.paths;
+  const truncated = before.truncated || after.truncated;
+  if (args.profile === "agent") {
+    return {
+      profile: "agent",
+      focus,
+      incoming: (indexes.incomingByNodeId.get(focus.id) ?? []).map((flow) => ({
+        flowId: flow.id,
+        sourceId: flow.sourceId,
+        condition: flow.condition
+      })),
+      outgoing: (indexes.outgoingByNodeId.get(focus.id) ?? []).map((flow) => ({
+        flowId: flow.id,
+        targetId: flow.targetId,
+        condition: flow.condition
+      })),
+      before: beforePaths.map(compactPath),
+      after: afterPaths.map(compactPath),
+      boundaryEvents: (indexes.boundaryEventsByAttachedToId.get(focus.id) ?? []).map((event) => ({
+        id: event.id,
+        name: event.name,
+        type: event.type,
+        ...event.eventDefinitionType !== void 0 ? { eventDefinitionType: event.eventDefinitionType } : {}
+      })),
+      truncated
+    };
+  }
   return {
     focus,
-    before: before.paths.map(reversePath),
-    after: after.paths,
+    before: beforePaths,
+    after: afterPaths,
     boundaryEvents: indexes.boundaryEventsByAttachedToId.get(focus.id) ?? [],
-    truncated: before.truncated || after.truncated
+    truncated
   };
 }
 function reversePath(path) {
@@ -8453,6 +8481,15 @@ function reversePath(path) {
     ...path,
     nodes: [...path.nodes].reverse(),
     flows: [...path.flows].reverse()
+  };
+}
+function compactPath(path) {
+  return {
+    nodeIds: path.nodes.map((node) => node.id),
+    flowIds: path.flows.map((flow) => flow.id),
+    conditions: path.flows.filter((flow) => Boolean(flow.condition)).map((flow) => ({ flowId: flow.id, condition: flow.condition })),
+    depth: path.depth,
+    ...path.cycleDetected ? { cycleDetected: true } : {}
   };
 }
 
@@ -8465,6 +8502,10 @@ async function contextCommand(args) {
   if (typeof id !== "string") {
     throw new BpmnCliError("INVALID_OPTION_VALUE", "context requires --id", 2);
   }
+  const profile = args.options.get("--profile");
+  if (profile !== void 0 && profile !== "full" && profile !== "agent") {
+    throw new BpmnCliError("INVALID_OPTION_VALUE", "context --profile must be full or agent", 2, { option: "--profile", value: profile });
+  }
   const model = await loadBpmn(args.file);
   return successEnvelope({
     command: "context",
@@ -8473,7 +8514,8 @@ async function contextCommand(args) {
       id,
       before: numberOption(args, "--before", 2),
       after: numberOption(args, "--after", 2),
-      maxPaths: numberOption(args, "--max-paths", 20)
+      maxPaths: numberOption(args, "--max-paths", 20),
+      profile
     })
   });
 }

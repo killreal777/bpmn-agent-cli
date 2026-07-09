@@ -39,6 +39,7 @@ bpmn-agent-cli overview process.bpmn
 bpmn-agent-cli find process.bpmn --query "loan"
 bpmn-agent-cli element process.bpmn --id Activity_CheckClient
 bpmn-agent-cli context process.bpmn --id Activity_CheckClient
+bpmn-agent-cli context process.bpmn --id Activity_CheckClient --profile agent
 bpmn-agent-cli trace process.bpmn --from Activity_CheckClient
 bpmn-agent-cli path process.bpmn --from StartEvent_1 --to EndEvent_1
 bpmn-agent-cli gateway process.bpmn --id Gateway_CheckResult

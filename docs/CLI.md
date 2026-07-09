@@ -63,9 +63,12 @@ Returns focused CallActivity contracts: called element, Camunda input/output map
 
 ```bash
 bpmn-agent-cli context process.bpmn --id Task_1 --before 2 --after 2
+bpmn-agent-cli context process.bpmn --id Task_1 --profile agent
 ```
 
 Returns local before/after paths. Before paths end with the focus element; after paths start with it.
+
+`--profile agent` returns compact paths with node ids, flow ids, and conditions instead of repeated full node objects.
 
 ## trace
 

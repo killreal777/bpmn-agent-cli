@@ -349,6 +349,30 @@ Implemented scope:
 - Implemented best-effort condition variable producer check for sequence-flow conditions.
 - Reused existing `variables` and `call-activity` extraction; no custom XML parser or expression execution.
 
+### BL-013A: `context --profile agent`
+
+Priority: `P4`
+Status: `implemented`
+
+Add a compact context profile for agent local reasoning.
+
+Implemented scope:
+
+- `bpmn-agent-cli context process.bpmn --id Task_1 --profile agent`.
+- Default `context` output remains unchanged.
+- Agent profile keeps a full summary for the focus element and returns compact `nodeIds`, `flowIds`, flow conditions, boundary events, and immediate incoming/outgoing ids.
+- Invalid profile values return `INVALID_OPTION_VALUE`.
+
+Measured result:
+
+- Candidate report: `benchmarks/results/candidate-context-agent-profile.json`.
+- Comparison report: `benchmarks/results/compare-context-agent-profile.json`.
+- Incremental comparison report: `benchmarks/results/compare-context-agent-profile-incremental.json`.
+- Successful tasks: unchanged at 20/20.
+- CLI calls: unchanged at 34 compared with `candidate-call-activity`.
+- Estimated output tokens improved by 92 compared with `candidate-call-activity`.
+- Decision: soft accept as a low-risk token reduction for local context tasks.
+
 ### BL-014: JSON Conversion Modernization
 
 Priority: `P4`

@@ -145,6 +145,56 @@ type BoundaryEventElementDetails = {
 
 For CallActivity data flow in general element inspection, use `inputMappings` and `outputMappings`. For focused CallActivity contract review, prefer the dedicated `call-activity` command.
 
+## ContextResult
+
+Default `context` output returns full before/after paths:
+
+```ts
+type ContextResult = {
+  focus: ElementSummary;
+  before: PathSummary[];
+  after: PathSummary[];
+  boundaryEvents: Array<EventSummary & { targetPath?: PathSummary | null }>;
+  truncated: boolean;
+};
+```
+
+`context --profile agent` returns compact path ids while keeping full summaries for focus and immediate neighbors:
+
+```ts
+type AgentContextResult = {
+  profile: "agent";
+  focus: ElementSummary;
+  incoming: Array<{
+    flowId: string;
+    sourceId: string;
+    condition: string | null;
+  }>;
+  outgoing: Array<{
+    flowId: string;
+    targetId: string;
+    condition: string | null;
+  }>;
+  before: CompactPathSummary[];
+  after: CompactPathSummary[];
+  boundaryEvents: Array<{
+    id: string;
+    name: string | null;
+    type: string;
+    eventDefinitionType?: string | null;
+  }>;
+  truncated: boolean;
+};
+
+type CompactPathSummary = {
+  nodeIds: string[];
+  flowIds: string[];
+  conditions: Array<{ flowId: string; condition: string }>;
+  depth: number;
+  cycleDetected?: boolean;
+};
+```
+
 ## VariablesResult
 
 ```ts

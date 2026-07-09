@@ -1,0 +1,49 @@
+{
+  "generatedAt": "2026-07-09T06:01:20.764Z",
+  "baseline": {
+    "variant": "candidate-call-activity",
+    "taskCount": 20,
+    "aggregate": {
+      "successfulTasks": 20,
+      "failedTasks": 0,
+      "successRate": 1,
+      "cliCalls": 34,
+      "elapsedMs": 89345,
+      "stdoutBytes": 39956,
+      "estimatedOutputTokens": 10002,
+      "xmlFallbackRate": 0,
+      "toolErrors": 0,
+      "toolErrorRate": 0
+    }
+  },
+  "candidate": {
+    "variant": "candidate-context-agent-profile",
+    "taskCount": 20,
+    "aggregate": {
+      "successfulTasks": 20,
+      "failedTasks": 0,
+      "successRate": 1,
+      "cliCalls": 34,
+      "elapsedMs": 95937,
+      "stdoutBytes": 39585,
+      "estimatedOutputTokens": 9910,
+      "xmlFallbackRate": 0,
+      "toolErrors": 0,
+      "toolErrorRate": 0
+    }
+  },
+  "deltas": {
+    "successfulTasks": 0,
+    "successRate": 0,
+    "cliCalls": 0,
+    "elapsedMs": 6592,
+    "stdoutBytes": -371,
+    "estimatedOutputTokens": -92,
+    "estimatedAgentOutputTokens": 0,
+    "answerCorrectnessScore": 0,
+    "averageCorrectnessScore": 0,
+    "xmlFallbackRate": 0,
+    "toolErrors": 0,
+    "toolErrorRate": 0
+  }
+}

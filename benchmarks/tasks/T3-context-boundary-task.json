@@ -6,7 +6,7 @@
   "prompt": "Explain normal and boundary-event context around Wait for documents.",
   "allowedTools": ["bpmn-agent-cli"],
   "cliCalls": [
-    ["context", "$fixture", "--id", "Task_WaitForDocuments", "--before", "1", "--after", "2"],
+    ["context", "$fixture", "--id", "Task_WaitForDocuments", "--before", "1", "--after", "2", "--profile", "agent"],
     ["events", "$fixture", "--type", "boundary"]
   ],
   "successCriteria": ["mentions Boundary_Timer", "mentions Boundary_Error", "mentions normal verification path"],

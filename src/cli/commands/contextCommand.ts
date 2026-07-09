@@ -14,6 +14,10 @@ export async function contextCommand(args: ParsedArgs): Promise<unknown> {
   if (typeof id !== 'string') {
     throw new BpmnCliError('INVALID_OPTION_VALUE', 'context requires --id', 2);
   }
+  const profile = args.options.get('--profile');
+  if (profile !== undefined && profile !== 'full' && profile !== 'agent') {
+    throw new BpmnCliError('INVALID_OPTION_VALUE', 'context --profile must be full or agent', 2, { option: '--profile', value: profile });
+  }
 
   const model = await loadBpmn(args.file);
   return successEnvelope({
@@ -23,7 +27,8 @@ export async function contextCommand(args: ParsedArgs): Promise<unknown> {
       id,
       before: numberOption(args, '--before', 2),
       after: numberOption(args, '--after', 2),
-      maxPaths: numberOption(args, '--max-paths', 20)
+      maxPaths: numberOption(args, '--max-paths', 20),
+      profile
     })
   });
 }
